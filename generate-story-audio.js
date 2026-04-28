@@ -127,55 +127,143 @@ The battle? Belongs to the LORD.`
   'samson': {
     filename: 'samson.mp3',
     title: 'Samson',
-    script: `Samson. The strongest man who ever lived. Here's what you need to know.
+    script: `Stop me if you've heard this one.
 
-So... let's set the scene. Israel is in a rough spot. They've been oppressed by the Philistines for forty years. And God's like... "I'm gonna send someone to start delivering my people."
+A blind guy. Chained between two stone pillars. Three thousand people drinking and laughing around him.
 
-Enter Samson.
+He whispers a prayer. Leans into the columns.
 
-Before he's even born... an angel appears to his mom and says... "You're gonna have a son. Don't cut his hair. Ever. He's gonna be set apart for God from day one."
+And brings the whole building down on his own head.
 
-This is called a Nazirite vow. No haircuts. No wine. Completely dedicated to God.
+That's how the strongest man who ever lived dies.
 
-And Samson? He's BUILT DIFFERENT. Like... supernaturally strong. We're talking... ripping a lion apart with his bare hands... like it's nothing. Killing a thousand Philistine soldiers... with a donkey's jawbone. Yeah. A jawbone.
+But how does Samson end up there?
 
-But here's the thing about Samson. He had incredible strength... but terrible judgment when it came to women.
+Rewind.
 
-He falls for a Philistine woman named Delilah. And the Philistine leaders are like... "Yo Delilah? Find out what makes him so strong. We'll pay you eleven hundred pieces of silver."
+Before he's born, an angel shows up to his mom. Tells her... "You're having a son. He's gonna be set apart from day one. Don't cut his hair. Ever. Not one strand."
 
-So Delilah starts asking... "Baby... what's the secret to your strength?"
+That's the deal. The hair is the sign. As long as it stays uncut... Samson is dialed into something supernatural.
 
-And Samson... being cocky... lies to her. Multiple times. "Tie me with fresh bowstrings." Nope. "Weave my hair into a loom." Nope.
+And we're talking SUPERNATURAL.
 
-But Delilah keeps pressing. Every. Single. Day. Until finally... Samson breaks.
+He's walking through a vineyard one day... a LION jumps him.
 
-He tells her everything. "A razor has never touched my head. If my hair is cut... my strength will leave me."
+Samson grabs it. With his BARE HANDS. Tears it apart like it's a piece of paper.
 
-That night... while Samson is sleeping on her lap... she calls a man to shave his head. And when he wakes up... he doesn't realize... the Lord has left him.
+He doesn't even tell anybody. Just keeps walking.
 
-The Philistines capture him. Gouge out his eyes. Put him in prison. Make him grind grain like an animal.
+Another time? An entire battalion of Philistine soldiers comes for him.
 
-But here's the plot twist. His hair... starts growing back.
+Samson finds a JAWBONE. Of a donkey. From the dirt.
 
-One day... the Philistines throw a huge party to their god Dagon. Three thousand people. And they bring out Samson... to entertain them.
+And kills a THOUSAND men with it.
 
-Samson asks the servant leading him... "Put me where I can feel the pillars... so I can lean on them."
+A literal jawbone. A thousand men.
 
-Then he prays one last prayer. "Lord God... remember me. Please strengthen me... just one more time."
+Nobody can touch him. He's a one-man army with no off switch.
+
+But here's where it gets messy.
+
+Samson's strength is otherworldly. His judgment? Kind of mid.
+
+Specifically when it comes to women.
+
+He falls for a Philistine girl named Delilah. Now... the Philistines? They've been trying to take him out for YEARS. Failing every time.
+
+So they go to Delilah. They say... "Find out his secret. We'll pay you eleven hundred pieces of silver. Each."
+
+That's a fortune. Like... life-changing money.
+
+Delilah agrees.
+
+She starts asking. "Baby... what makes you so strong? Just curious."
+
+And Samson... thinks he's smart. Lies to her.
+
+"Tie me with seven fresh bowstrings... I'll be helpless."
+
+She tries it. He snaps the bowstrings like dental floss.
+
+"Okay weave my hair into your loom..."
+
+Tries it. He walks away with the loom on his head.
+
+Round after round. Every day. She's pushing. He's lying. The Philistines hiding in the next room... waiting.
+
+Until one day she says... "If you really loved me you'd tell me."
+
+And Samson? He breaks.
+
+"A razor has never touched my head. If my hair gets cut... my strength leaves."
+
+That night... he falls asleep on her lap.
+
+And while he's sleeping... she calls a man in to shave his head. Seven locks of hair. Gone.
+
+The Philistines burst in.
+
+And for the first time in his life... Samson is just a guy.
+
+They take him. They gouge out his eyes. Both of them.
+
+And they put him in prison. Make him grind grain. Like an animal.
+
+The mighty Samson. Blind. Broken. Pushing a millstone in the dark.
+
+But here's what nobody notices.
+
+His hair? Starts growing back.
+
+Slowly. Quietly. While he prays.
+
+Months pass. Then the Philistines throw a massive party for their god Dagon. Three thousand of them. In a stone temple.
+
+And they say... "Bring out Samson. Let's make him dance."
+
+So they drag him out. Blind. Stumbling. They prop him up between two pillars... the load-bearing ones... so the crowd can mock him.
+
+A young servant boy is leading him by the hand.
+
+And Samson whispers to the kid... "Put my hands on the pillars. So I can lean."
+
+Then he prays. Out loud. The last words he ever says.
+
+"Lord God. Remember me. Please. Strengthen me ONE more time. Just once. Let me die with the Philistines."
 
 And God answers.
 
-Samson pushes against the two central pillars... and brings down the entire temple. Killing more enemies in his death... than he ever did in his life.
+Samson grips the columns. Pushes with everything he has left.
 
-So what do we learn from this?
+The pillars CRACK.
 
-God can use flawed people. Samson wasn't perfect. Far from it. But God still worked through him.
+The roof comes down.
 
-Our greatest strength... can become our greatest weakness... if we don't guard our hearts.
+Samson dies. With three thousand of his enemies.
 
-And sometimes... God gives us a second chance... even when we've messed up badly.
+He kills more in his last breath... than in his entire life.
 
-Samson's story is proof that... it's not about how you start. It's about how you finish.`
+Here's the thing about Samson.
+
+He didn't get a comeback story. He got a comeback MOMENT.
+
+One prayer. One choice. One push.
+
+And God heard it.
+
+So if you feel like you wasted your shot. Like your hair has been cut. Like your eyes are gone and you're grinding grain in the dark...
+
+Listen.
+
+The hair grows back.
+
+You don't need a perfect record. You need ONE more move toward Him.
+
+And He'll meet you. Even at the very end.
+
+Even in the dark.
+
+Even between the pillars.`
   },
 
   'jonah-whale': {
