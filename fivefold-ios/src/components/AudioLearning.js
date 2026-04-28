@@ -129,31 +129,39 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   useEffect(() => { sortOrderRef.current = sortOrder; }, [sortOrder]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
 
-  // Extract colors from image
-  const extractImageColors = async (storyId) => {
+  // Extract colors from image — supports bundled assets AND remote thumbnails
+  const extractImageColors = async (story) => {
+    if (!story) return;
     try {
-      if (storyImages[storyId]) {
-        const imageSource = Image.resolveAssetSource(storyImages[storyId]);
-        const colors = await getColors(imageSource.uri, {
-          fallback: '#7C3AED',
-          cache: true,
-          key: storyId,
+      let uri = null;
+      if (storyImages[story.id]) {
+        uri = Image.resolveAssetSource(storyImages[story.id]).uri;
+      } else if (story.thumbnail) {
+        uri = story.thumbnail;
+      }
+      if (!uri) return;
+
+      const colors = await getColors(uri, {
+        fallback: '#7C3AED',
+        cache: true,
+        key: story.id,
+      });
+
+      // Build a gradient that "fits" the image: dominant background tone → darker accent.
+      // Falls back gracefully across iOS/Android color extraction shapes.
+      if (colors.platform === 'ios') {
+        setExtractedColors({
+          primary: colors.background || colors.primary,
+          secondary: colors.detail || colors.secondary || colors.background,
+          background: colors.background,
+          detail: colors.detail,
         });
-        
-        if (colors.platform === 'ios') {
-          setExtractedColors({
-            primary: colors.primary,
-            secondary: colors.secondary,
-            background: colors.background,
-            detail: colors.detail,
-          });
-        } else {
-          setExtractedColors({
-            primary: colors.dominant,
-            secondary: colors.vibrant || colors.muted,
-            background: colors.darkVibrant || colors.darkMuted,
-          });
-        }
+      } else {
+        setExtractedColors({
+          primary: colors.lightVibrant || colors.vibrant || colors.dominant,
+          secondary: colors.darkVibrant || colors.darkMuted || colors.muted || colors.dominant,
+          background: colors.dominant,
+        });
       }
     } catch (error) {
       console.log('Error extracting colors:', error);
@@ -186,8 +194,9 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     playerDragY.setValue(0);
     playerOpacity.setValue(1);
     
-    // Extract colors from image
-    extractImageColors(story.id);
+    // Reset extracted colors so previous story's tones don't flash before new ones load
+    setExtractedColors(null);
+    extractImageColors(story);
   };
 
   // Function to close player smoothly
@@ -490,7 +499,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
       // Update selected story and play
       setSelectedStory(nextStory);
       setCurrentStoryData(nextStory);
-      extractImageColors(nextStory.id);
+      extractImageColors(nextStory);
       
       // Small delay to ensure state is updated
       setTimeout(() => {
@@ -955,8 +964,8 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
         {/* Beautiful gradient background - uses extracted colors from image */}
         <LinearGradient
           colors={[
-            storyToShow.gradient?.[0] || extractedColors?.primary || '#7C3AED',
-            storyToShow.gradient?.[1] || extractedColors?.secondary || extractedColors?.background || '#4C1D95',
+            extractedColors?.primary || storyToShow.gradient?.[0] || '#7C3AED',
+            extractedColors?.secondary || extractedColors?.background || storyToShow.gradient?.[1] || '#4C1D95',
             '#1C1C1E'
           ]}
           locations={[0, 0.5, 1]}
