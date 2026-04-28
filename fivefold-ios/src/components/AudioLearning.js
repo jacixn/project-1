@@ -955,8 +955,8 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
         {/* Beautiful gradient background - uses extracted colors from image */}
         <LinearGradient
           colors={[
-            extractedColors?.primary || storyToShow.gradient[0],
-            extractedColors?.secondary || extractedColors?.background || storyToShow.gradient[1],
+            storyToShow.gradient?.[0] || extractedColors?.primary || '#7C3AED',
+            storyToShow.gradient?.[1] || extractedColors?.secondary || extractedColors?.background || '#4C1D95',
             '#1C1C1E'
           ]}
           locations={[0, 0.5, 1]}
