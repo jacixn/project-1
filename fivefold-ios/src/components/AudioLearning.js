@@ -14,6 +14,7 @@ import {
   Alert,
   PanResponder,
   Image,
+  RefreshControl,
 } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
@@ -27,6 +28,20 @@ import { hapticFeedback } from '../utils/haptics';
 
 const SORT_PREFERENCE_KEY = 'audio_stories_sort_order';
 const PLAYBACK_MODE_KEY = 'audio_stories_playback_mode';
+
+// Remote audio stories config (mirrors BibleFastFacts pattern)
+const STORIES_CONFIG = {
+  GITHUB_USERNAME: 'jacixn',
+  REPO_NAME: 'project-1',
+  BRANCH: 'main',
+  FILE_PATH: 'quiz-data/audio-stories.json',
+  get URL() {
+    return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
+  },
+  CACHE_KEY: 'audio_stories_data_v1',
+  CACHE_TIMESTAMP_KEY: 'audio_stories_timestamp_v1',
+  CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
+};
 
 // Story thumbnail images
 const storyImages = {
@@ -52,7 +67,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.1);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [progress, setProgress] = useState(0);
   
   // Animations
@@ -361,31 +376,87 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     ).start();
   }, []);
 
+  const isStoriesCacheValid = async () => {
+    try {
+      const timestamp = await userStorage.getRaw(STORIES_CONFIG.CACHE_TIMESTAMP_KEY);
+      if (!timestamp) return false;
+      const cacheAge = Date.now() - parseInt(timestamp);
+      return cacheAge < STORIES_CONFIG.CACHE_DURATION;
+    } catch (error) {
+      console.error('Error checking stories cache validity:', error);
+      return false;
+    }
+  };
+
+  const fetchStoriesFromRemote = async () => {
+    const url = STORIES_CONFIG.URL;
+    console.log('📥 Fetching audio stories from GitHub:', url);
+    const response = await fetch(url, {
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    await userStorage.setRaw(STORIES_CONFIG.CACHE_KEY, JSON.stringify(data));
+    await userStorage.setRaw(STORIES_CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+    console.log(`✅ Fetched ${data.stories?.length || 0} audio stories from GitHub`);
+    return data;
+  };
+
   const loadStories = async (forceRefresh = false) => {
     try {
       setIsLoading(true);
-      
-      const url = 'https://raw.githubusercontent.com/jacixn/project-1/main/quiz-data/audio-stories.json';
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch stories');
+
+      if (!forceRefresh) {
+        const cacheValid = await isStoriesCacheValid();
+        if (cacheValid) {
+          const cached = await userStorage.getRaw(STORIES_CONFIG.CACHE_KEY);
+          if (cached) {
+            console.log('📦 Loading audio stories from cache');
+            const parsed = JSON.parse(cached);
+            setStories(parsed.stories || []);
+            setIsLoading(false);
+            return;
+          }
+        }
       }
-      
-      const data = await response.json();
+
+      const data = await fetchStoriesFromRemote();
       setStories(data.stories || []);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error loading audio stories:', error);
-      setIsLoading(false);
+      // Fall back to expired cache if network fails
+      try {
+        const cached = await userStorage.getRaw(STORIES_CONFIG.CACHE_KEY);
+        if (cached) {
+          console.log('📦 Using expired audio stories cache (network failed)');
+          const parsed = JSON.parse(cached);
+          setStories(parsed.stories || []);
+          return;
+        }
+      } catch (cacheErr) {
+        console.error('Cache fallback also failed:', cacheErr);
+      }
       Alert.alert('Error', 'Could not load audio stories. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await loadStories(true);
-    setIsRefreshing(false);
+    try {
+      // Clear timestamp so loadStories forces a network fetch
+      await userStorage.remove(STORIES_CONFIG.CACHE_TIMESTAMP_KEY);
+      const data = await fetchStoriesFromRemote();
+      setStories(data.stories || []);
+    } catch (error) {
+      console.error('Error refreshing audio stories:', error);
+      // Keep current list on refresh failure
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   // Get the next story in the list
@@ -607,6 +678,14 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.storiesGridContainer, { paddingTop: 0 }]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+            />
+          }
         >
           {/* Dynamic spacer that responds to search bar collapse */}
           <Animated.View style={{ height: headerSpacerHeight }} />

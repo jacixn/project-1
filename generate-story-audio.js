@@ -176,6 +176,132 @@ Our greatest strength... can become our greatest weakness... if we don't guard o
 And sometimes... God gives us a second chance... even when we've messed up badly.
 
 Samson's story is proof that... it's not about how you start. It's about how you finish.`
+  },
+
+  'jonah-whale': {
+    filename: 'jonah-whale.mp3',
+    title: 'Jonah and the Whale',
+    script: `Imagine God gives you ONE assignment.
+
+And you immediately book a one-way ticket... the OPPOSITE direction.
+
+That's Jonah.
+
+The job? Walk into Nineveh. Preach. Tell them to turn around before God ends them.
+
+But Nineveh isn't just any city. Nineveh is the BAD place.
+
+Cruel. Violent. Israel's worst enemy. The kind of people you'd cross the street to avoid.
+
+So when God says "go save them"... Jonah hears... "yeah no thanks."
+
+He goes to the docks. Buys a ticket to Tarshish. Literally the FARTHEST point on the map from where God told him to go.
+
+Like he could just... sneak past the Almighty. Slip out the back door of the universe.
+
+God watches him board the ship.
+
+And God says... "okay."
+
+Then sends a storm.
+
+Not a regular storm. A this-ship-is-about-to-SNAP-in-half storm. Waves like buildings. Wind ripping the sails. The sailors? Throwing cargo overboard. Praying to every god they've ever heard of.
+
+And Jonah?
+
+Jonah is ASLEEP. Below deck. Snoring through the apocalypse.
+
+The captain finds him. Shakes him awake. "BRO. We are about to DIE. Get up. Pray to your God. Maybe He cares."
+
+They cast lots to find out who brought this storm. The lot lands on Jonah.
+
+And he comes clean.
+
+"Yeah... it's on me. I'm running from the LORD. The one who made this sea. And the land. And... pretty much everything."
+
+The sailors LOSE it. "What do we DO?"
+
+And Jonah says the thing nobody saw coming.
+
+"Throw me overboard. The sea will calm. It's the only way."
+
+They don't want to. They try rowing back to land. The storm gets WORSE.
+
+Finally... they pick him up. And toss him.
+
+The sea goes... silent. Glass. Like it never happened.
+
+But Jonah is sinking.
+
+Seaweed wrapping around his head. Lungs filling. Going down. Down. Down.
+
+And right when it should be over...
+
+Something MASSIVE moves in the deep.
+
+A fish. The biggest fish anyone has ever seen. Sent by God Himself.
+
+It opens its mouth.
+
+And swallows Jonah. WHOLE.
+
+Three days. Three nights. Inside the belly of the thing. In the dark. In the cold. With... whatever else is in there.
+
+And down there? Jonah finally talks to God.
+
+Not running. Not arguing. Praying.
+
+"I cried out from the belly of hell... and You heard me. Salvation belongs to the LORD."
+
+God speaks to the fish.
+
+The fish vomits Jonah onto dry land. Alive. Breathing. Disgusting. But alive.
+
+God speaks to Jonah... again.
+
+"Now. Go to Nineveh."
+
+This time?
+
+Jonah goes.
+
+He walks into the city. Wet. Smelly. Probably traumatized. And he yells.
+
+"Forty days. Then Nineveh is OVER."
+
+That's it. Eight words.
+
+And here's where it gets crazy.
+
+The whole city believes him.
+
+From the king down to the kids in the street. They fast. They wear sackcloth. They cry out to God to spare them.
+
+And God?
+
+God hears them.
+
+And He spares the whole city.
+
+So here's the thing about Jonah's story.
+
+It's not really about a fish.
+
+It's about a guy who tried to run from God... and discovered there's no airport far enough. No ship fast enough. No storm strong enough to keep God from finding him.
+
+Not to crush him. To bring him back.
+
+Because God isn't only the God of the obedient. He's the God of the runaway. The reluctant. The ones who said no and meant it.
+
+And His mercy?
+
+His mercy is BIG enough for the worst city you can imagine. Big enough for sailors who didn't know His name. Big enough for a prophet who tried to disappear.
+
+Big enough for you.
+
+You can't outrun grace.
+
+You can only stop running.`
   }
 };
 
@@ -269,13 +395,16 @@ async function main() {
     await generateAudio('david-goliath');
   } else if (arg === 'samson') {
     await generateAudio('samson');
+  } else if (arg === 'jonah') {
+    await generateAudio('jonah-whale');
   } else if (STORIES[arg]) {
     await generateAudio(arg);
   } else {
-    console.error('Usage: node generate-story-audio.js [david|samson|all]');
+    console.error('Usage: node generate-story-audio.js [david|samson|jonah|all]');
     console.error('\nOptions:');
     console.error('  david   - Generate David and Goliath audio');
     console.error('  samson  - Generate Samson audio');
+    console.error('  jonah   - Generate Jonah and the Whale audio');
     console.error('  all     - Generate all stories');
     process.exit(1);
   }

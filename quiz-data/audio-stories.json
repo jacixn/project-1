@@ -45,12 +45,35 @@
       "tags": ["strength", "redemption", "second-chances", "old-testament", "samson"],
       "ageGroup": "all",
       "difficulty": "medium"
+    },
+    {
+      "id": "jonah-whale",
+      "title": "Jonah and the Whale",
+      "subtitle": "You Can't Outrun God",
+      "category": "old-testament",
+      "duration": "4:00",
+      "icon": "🐋",
+      "color": "#0EA5E9",
+      "gradient": ["#0EA5E9", "#1E3A8A"],
+      "audioUrl": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-files/jonah-whale.mp3",
+      "thumbnail": "https://raw.githubusercontent.com/jacixn/project-1/main/audio-thumbnails/jonah-whale.jpg",
+      "script": "Imagine God gives you ONE assignment.\n\nAnd you immediately book a one-way ticket... the OPPOSITE direction.\n\nThat's Jonah.\n\nThe job? Walk into Nineveh. Preach. Tell them to turn around before God ends them.\n\nBut Nineveh isn't just any city. Nineveh is the BAD place.\n\nCruel. Violent. Israel's worst enemy. The kind of people you'd cross the street to avoid.\n\nSo when God says \"go save them\"... Jonah hears... \"yeah no thanks.\"\n\nHe goes to the docks. Buys a ticket to Tarshish. Literally the FARTHEST point on the map from where God told him to go.\n\nLike he could just... sneak past the Almighty. Slip out the back door of the universe.\n\nGod watches him board the ship.\n\nAnd God says... \"okay.\"\n\nThen sends a storm.\n\nNot a regular storm. A this-ship-is-about-to-SNAP-in-half storm. Waves like buildings. Wind ripping the sails. The sailors? Throwing cargo overboard. Praying to every god they've ever heard of.\n\nAnd Jonah?\n\nJonah is ASLEEP. Below deck. Snoring through the apocalypse.\n\nThe captain finds him. Shakes him awake. \"BRO. We are about to DIE. Get up. Pray to your God. Maybe He cares.\"\n\nThey cast lots to find out who brought this storm. The lot lands on Jonah.\n\nAnd he comes clean.\n\n\"Yeah... it's on me. I'm running from the LORD. The one who made this sea. And the land. And... pretty much everything.\"\n\nThe sailors LOSE it. \"What do we DO?\"\n\nAnd Jonah says the thing nobody saw coming.\n\n\"Throw me overboard. The sea will calm. It's the only way.\"\n\nThey don't want to. They try rowing back to land. The storm gets WORSE.\n\nFinally... they pick him up. And toss him.\n\nThe sea goes... silent. Glass. Like it never happened.\n\nBut Jonah is sinking.\n\nSeaweed wrapping around his head. Lungs filling. Going down. Down. Down.\n\nAnd right when it should be over...\n\nSomething MASSIVE moves in the deep.\n\nA fish. The biggest fish anyone has ever seen. Sent by God Himself.\n\nIt opens its mouth.\n\nAnd swallows Jonah. WHOLE.\n\nThree days. Three nights. Inside the belly of the thing. In the dark. In the cold. With... whatever else is in there.\n\nAnd down there? Jonah finally talks to God.\n\nNot running. Not arguing. Praying.\n\n\"I cried out from the belly of hell... and You heard me. Salvation belongs to the LORD.\"\n\nGod speaks to the fish.\n\nThe fish vomits Jonah onto dry land. Alive. Breathing. Disgusting. But alive.\n\nGod speaks to Jonah... again.\n\n\"Now. Go to Nineveh.\"\n\nThis time?\n\nJonah goes.\n\nHe walks into the city. Wet. Smelly. Probably traumatized. And he yells.\n\n\"Forty days. Then Nineveh is OVER.\"\n\nThat's it. Eight words.\n\nAnd here's where it gets crazy.\n\nThe whole city believes him.\n\nFrom the king down to the kids in the street. They fast. They wear sackcloth. They cry out to God to spare them.\n\nAnd God?\n\nGod hears them.\n\nAnd He spares the whole city.\n\nSo here's the thing about Jonah's story.\n\nIt's not really about a fish.\n\nIt's about a guy who tried to run from God... and discovered there's no airport far enough. No ship fast enough. No storm strong enough to keep God from finding him.\n\nNot to crush him. To bring him back.\n\nBecause God isn't only the God of the obedient. He's the God of the runaway. The reluctant. The ones who said no and meant it.\n\nAnd His mercy?\n\nHis mercy is BIG enough for the worst city you can imagine. Big enough for sailors who didn't know His name. Big enough for a prophet who tried to disappear.\n\nBig enough for you.\n\nYou can't outrun grace.\n\nYou can only stop running.",
+      "reference": "Jonah 1-4",
+      "keyLessons": [
+        "You can't outrun God",
+        "Disobedience has a cost — but mercy is bigger",
+        "God gives second chances",
+        "His mercy reaches the worst of cities"
+      ],
+      "tags": ["obedience", "repentance", "mercy", "old-testament", "jonah"],
+      "ageGroup": "all",
+      "difficulty": "easy"
     }
   ],
   "metadata": {
-    "version": "1.1",
-    "totalStories": 2,
-    "lastUpdated": "2025-01-22"
+    "version": "1.2",
+    "totalStories": 3,
+    "lastUpdated": "2026-04-29"
   }
 }
 
