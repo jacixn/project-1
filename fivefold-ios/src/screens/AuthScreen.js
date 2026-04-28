@@ -33,6 +33,10 @@ import { hapticFeedback } from '../utils/haptics';
 import profanityFilter from '../services/profanityFilterService';
 
 const { width, height } = Dimensions.get('window');
+const DECK_CARD_WIDTH = 140;
+const DECK_CARD_HEIGHT = 290;
+const DECK_CARD_GAP = 14;
+const DECK_CYCLE_WIDTH = 9 * (DECK_CARD_WIDTH + DECK_CARD_GAP);
 
 const AuthScreen = ({ onAuthSuccess }) => {
   const navigation = useNavigation();
@@ -90,9 +94,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
   const word3Anim = useRef(new Animated.Value(0)).current;
   const subtitleAnim = useRef(new Animated.Value(0)).current;
   const ctaAnim = useRef(new Animated.Value(0)).current;
-  const glowPulse = useRef(new Animated.Value(0)).current;
-  const auroraShift = useRef(new Animated.Value(0)).current;
   const verseFade = useRef(new Animated.Value(1)).current;
+  const marqueeAnim = useRef(new Animated.Value(0)).current;
   const [verseIndex, setVerseIndex] = useState(0);
   const welcomeVerses = useRef([
     'Be still, and know',
@@ -100,6 +103,17 @@ const AuthScreen = ({ onAuthSuccess }) => {
     'Walk by faith',
     'Strength for today',
     'Renewed, every morning',
+  ]).current;
+  const screenshotDeck = useRef([
+    require('../../assets/auth-screenshots/1.png'),
+    require('../../assets/auth-screenshots/2.png'),
+    require('../../assets/auth-screenshots/3.png'),
+    require('../../assets/auth-screenshots/4.png'),
+    require('../../assets/auth-screenshots/5.png'),
+    require('../../assets/auth-screenshots/6.png'),
+    require('../../assets/auth-screenshots/7.png'),
+    require('../../assets/auth-screenshots/8.png'),
+    require('../../assets/auth-screenshots/9.png'),
   ]).current;
 
   useEffect(() => {
@@ -129,17 +143,9 @@ const AuthScreen = ({ onAuthSuccess }) => {
       ])
     ).start();
 
-    // Icon glow pulse
+    // Screenshot deck marquee (auto-scroll loop)
     Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowPulse, { toValue: 1, duration: 2400, useNativeDriver: true }),
-        Animated.timing(glowPulse, { toValue: 0, duration: 2400, useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Aurora shift (slow background gradient sweep)
-    Animated.loop(
-      Animated.timing(auroraShift, { toValue: 1, duration: 14000, useNativeDriver: true })
+      Animated.timing(marqueeAnim, { toValue: 1, duration: 32000, useNativeDriver: true })
     ).start();
 
     // Verse rotator
@@ -437,99 +443,92 @@ const AuthScreen = ({ onAuthSuccess }) => {
           end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
-        {/* Aurora wash (slow shift) */}
-        <Animated.View style={[StyleSheet.absoluteFill, {
-          opacity: 0.55,
-          transform: [{
-            translateX: auroraShift.interpolate({ inputRange: [0, 1], outputRange: [-80, 80] }),
-          }, {
-            translateY: auroraShift.interpolate({ inputRange: [0, 1], outputRange: [-40, 40] }),
-          }],
-        }]}>
-          <LinearGradient
-            colors={['transparent', 'rgba(34,197,94,0.18)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
 
-        {/* Light streaks (no circles, just slim vertical slivers) */}
-        {[...Array(10)].map((_, i) => (
-          <View key={i} pointerEvents="none" style={[styles.streak, {
-            left: `${(i * 11 + 5) % 100}%`,
-            top: `${(i * 19 + 8) % 90}%`,
-            opacity: 0.05 + ((i * 7) % 10) / 100,
-            height: 80 + ((i * 13) % 80),
-          }]} />
-        ))}
-
-        <View style={styles.overlayContent}>
+        <View style={[styles.overlayContent, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
-            {/* Top eyebrow chip */}
-            <View style={{ flex: 0.12 }} />
-            <Animated.View style={[styles.eyebrowChip, { opacity: subtitleAnim }]}>
-              <View style={styles.eyebrowDot} />
-              <Text style={styles.eyebrowText}>FREE FOREVER · NO ADS · NO PAYWALLS</Text>
-            </Animated.View>
+            <View style={{ height: 12 }} />
 
-            <View style={{ flex: 0.06 }} />
-
-            {/* Icon with diffuse glow (no circle outline) */}
+            {/* Logo */}
             <Animated.View style={{
-              transform: [
-                { translateY: mascotBounce },
-                { scale: iconScale },
-              ],
               opacity: iconOpacity,
-              alignItems: 'center',
-              justifyContent: 'center',
+              transform: [
+                { scale: iconScale },
+                { translateY: mascotBounce },
+              ],
             }}>
-              <Animated.View style={[styles.iconGlow, {
-                opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.75] }),
-                transform: [{
-                  scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.15] }),
-                }],
-              }]} />
               <Image
                 source={require('../../assets/onboard-icon.png')}
-                style={styles.mascotImage}
+                style={styles.headerLogo}
                 resizeMode="contain"
               />
             </Animated.View>
 
-            <View style={{ flex: 0.04 }} />
-
-            {/* Staggered word reveal headline */}
+            {/* Compact headline */}
             <View style={styles.headlineWrap}>
-              <Animated.Text style={[styles.headline, {
-                opacity: word1Anim,
-                transform: [{ translateY: word1Anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-              }]}>
-                FAITH.
-              </Animated.Text>
-              <Animated.Text style={[styles.headline, {
-                opacity: word2Anim,
-                transform: [{ translateY: word2Anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-              }]}>
-                FITNESS.
-              </Animated.Text>
-              <Animated.Text style={[styles.headline, styles.headlineAccent, {
-                opacity: word3Anim,
-                transform: [{ translateY: word3Anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-              }]}>
-                FOCUS.
-              </Animated.Text>
+              <View style={styles.headlineRow}>
+                <Animated.Text style={[styles.headlineCompact, {
+                  opacity: word1Anim,
+                  transform: [{ translateY: word1Anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+                }]}>
+                  Faith.
+                </Animated.Text>
+                <Animated.Text style={[styles.headlineCompact, {
+                  opacity: word2Anim,
+                  transform: [{ translateY: word2Anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+                }]}>
+                  {' Fitness.'}
+                </Animated.Text>
+                <Animated.Text style={[styles.headlineCompact, styles.headlineAccent, {
+                  opacity: word3Anim,
+                  transform: [{ translateY: word3Anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+                }]}>
+                  {' Focus.'}
+                </Animated.Text>
+              </View>
             </View>
-
-            <Animated.Text style={[styles.subtitle, { opacity: subtitleAnim }]}>
-              All in one.
-            </Animated.Text>
 
             {/* Cycling verse */}
             <Animated.Text style={[styles.verseLine, { opacity: Animated.multiply(subtitleAnim, verseFade) }]}>
               {welcomeVerses[verseIndex]}
             </Animated.Text>
+
+            <View style={{ height: 24 }} />
+
+            {/* Hero: auto-scrolling screenshot deck */}
+            <Animated.View style={[styles.deckWrapper, {
+              opacity: iconOpacity,
+              transform: [{ scale: iconScale.interpolate({ inputRange: [0.6, 1], outputRange: [0.9, 1] }) }],
+            }]}>
+              <Animated.View style={[styles.deckRow, {
+                transform: [{
+                  translateX: marqueeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -DECK_CYCLE_WIDTH],
+                  }),
+                }],
+              }]}>
+                {[...screenshotDeck, ...screenshotDeck].map((src, i) => (
+                  <View key={i} style={[styles.deckCard, { transform: [{ rotate: i % 2 === 0 ? '-2deg' : '2deg' }] }]}>
+                    <Image source={src} style={styles.deckImage} resizeMode="cover" />
+                  </View>
+                ))}
+              </Animated.View>
+              {/* Edge fade masks */}
+              <LinearGradient
+                colors={['#0A1A0F', 'rgba(10,26,15,0)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.deckEdgeLeft}
+                pointerEvents="none"
+              />
+              <LinearGradient
+                colors={['rgba(10,26,15,0)', '#0A1A0F']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.deckEdgeRight}
+                pointerEvents="none"
+              />
+            </Animated.View>
 
             <View style={{ flex: 1 }} />
 
@@ -562,7 +561,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
               </TouchableOpacity>
             </Animated.View>
 
-            <View style={{ height: 28 }} />
+            <View style={{ height: 16 }} />
           </Animated.View>
         </View>
       </View>
@@ -968,24 +967,6 @@ const styles = StyleSheet.create({
     width: width * 0.42,
     height: width * 0.42,
   },
-  iconGlow: {
-    position: 'absolute',
-    width: width * 0.78,
-    height: width * 0.78,
-    backgroundColor: '#22C55E',
-    borderRadius: 32,
-    opacity: 0.5,
-    shadowColor: '#22C55E',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 60,
-  },
-  streak: {
-    position: 'absolute',
-    width: 1.5,
-    backgroundColor: '#22C55E',
-    borderRadius: 1,
-  },
   eyebrowChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1008,7 +989,72 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#34D572',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerLogo: {
+    width: 160,
+    height: 160,
+  },
+  deckWrapper: {
+    width: width,
+    height: DECK_CARD_HEIGHT,
+    marginHorizontal: -30,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  deckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 20,
+  },
+  deckCard: {
+    width: DECK_CARD_WIDTH,
+    height: DECK_CARD_HEIGHT,
+    marginRight: DECK_CARD_GAP,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#0F1F15',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+  },
+  deckImage: {
+    width: '100%',
+    height: '100%',
+  },
+  deckEdgeLeft: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 60,
+  },
+  deckEdgeRight: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: 60,
+  },
+  headlineRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  headlineCompact: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: 0.4,
   },
   headlineWrap: {
     alignItems: 'center',
@@ -1022,10 +1068,10 @@ const styles = StyleSheet.create({
     lineHeight: 52,
   },
   headlineAccent: {
-    color: '#34D572',
-    textShadowColor: 'rgba(52, 213, 114, 0.55)',
+    color: '#4ADE80',
+    textShadowColor: 'rgba(74, 222, 128, 0.45)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 14,
+    textShadowRadius: 8,
   },
   subtitle: {
     fontSize: 18,
@@ -1038,12 +1084,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   verseLine: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.55)',
-    marginTop: 18,
+    fontSize: 13,
+    color: 'rgba(155, 181, 164, 0.75)',
+    marginTop: 10,
     textAlign: 'center',
     fontStyle: 'italic',
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
+    paddingHorizontal: 24,
   },
   ctaContainer: {
     width: '100%',
@@ -1071,16 +1118,17 @@ const styles = StyleSheet.create({
   secondaryButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 16,
     paddingVertical: 16,
     borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
+    borderColor: 'rgba(255,255,255,0.10)',
   },
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 0.2,
   },
   
   // Email form styles - Modern redesign

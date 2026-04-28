@@ -10,13 +10,20 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
-  PanResponder,
-  Animated,
-  Dimensions,
   Alert,
   Linking,
+  Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
+import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
 import ExercisesService from '../services/exercisesService';
 import { hapticFeedback } from '../utils/haptics';
@@ -24,6 +31,10 @@ import CustomLoadingIndicator from './CustomLoadingIndicator';
 import AddExerciseModal from './AddExerciseModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
+const DISMISS_THRESHOLD = SHEET_HEIGHT * 0.22;
+const VELOCITY_THRESHOLD = 700;
+const SPRING_CONFIG = { damping: 22, stiffness: 220, mass: 0.8 };
 
 const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = false, asScreen = false }) => {
   const { theme, isDark } = useTheme();
@@ -47,76 +58,56 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
   const [showCustomExercisesModal, setShowCustomExercisesModal] = useState(false);
   
-  // Animation for pull-to-dismiss
-  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const detailScrollRef = useRef(null);
-  const [isAtTop, setIsAtTop] = useState(true);
 
-  // Pan responder for pull-to-dismiss gesture
-  const dismissHapticFired = useRef(false);
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only allow pan if scrolled to top and pulling down
-        return isAtTop && gestureState.dy > 0;
-      },
-      onPanResponderGrant: () => {
-        dismissHapticFired.current = false;
-        hapticFeedback.light();
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          translateY.setValue(gestureState.dy);
-          // Fire a satisfying haptic when crossing the dismiss threshold
-          if (gestureState.dy > 150 && !dismissHapticFired.current) {
-            dismissHapticFired.current = true;
-            hapticFeedback.medium();
-          } else if (gestureState.dy <= 150 && dismissHapticFired.current) {
-            // Reset if user pulls back above threshold
-            dismissHapticFired.current = false;
-            hapticFeedback.light();
-          }
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        // If pulled down more than 150px, dismiss
-        if (gestureState.dy > 150) {
-          handleCloseDetailModal();
-        } else {
-          // Otherwise, spring back
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
+  // Bottom-sheet animation (UI-thread, glued to finger)
+  const translateY = useSharedValue(SHEET_HEIGHT);
+  const dragStartY = useSharedValue(0);
+
+  const finishClose = () => {
+    setShowExerciseDetail(false);
+  };
 
   const handleCloseDetailModal = () => {
-    Animated.timing(translateY, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowExerciseDetail(false);
-      translateY.setValue(SCREEN_HEIGHT);
+    translateY.value = withTiming(SHEET_HEIGHT, { duration: 240 }, (finished) => {
+      if (finished) runOnJS(finishClose)();
     });
   };
 
-  // Open detail modal with animation
   useEffect(() => {
     if (showExerciseDetail) {
-      setIsAtTop(true);
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11,
-      }).start();
+      translateY.value = SHEET_HEIGHT;
+      translateY.value = withSpring(0, SPRING_CONFIG);
     }
   }, [showExerciseDetail]);
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      dragStartY.value = translateY.value;
+    })
+    .onUpdate((e) => {
+      const next = dragStartY.value + e.translationY;
+      translateY.value = next < 0 ? next * 0.15 : next; // rubberband upward
+    })
+    .onEnd((e) => {
+      const shouldDismiss =
+        translateY.value > DISMISS_THRESHOLD || e.velocityY > VELOCITY_THRESHOLD;
+      if (shouldDismiss) {
+        translateY.value = withTiming(SHEET_HEIGHT, { duration: 220 }, (finished) => {
+          if (finished) runOnJS(finishClose)();
+        });
+      } else {
+        translateY.value = withSpring(0, SPRING_CONFIG);
+      }
+    });
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(0, 1 - translateY.value / SHEET_HEIGHT) * 0.5,
+  }));
 
   // Load exercises data
   useEffect(() => {
@@ -634,51 +625,58 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         )}
       </View>
 
-      {/* Exercise Detail Modal - Pull down to dismiss */}
+      {/* Exercise Detail Modal — custom bottom sheet (gesture-handler + reanimated) */}
       <Modal
         visible={showExerciseDetail}
+        transparent
         animationType="none"
-        transparent={true}
+        statusBarTranslucent
         onRequestClose={handleCloseDetailModal}
       >
-        <View style={styles.detailModalOverlay}>
+        <GestureHandlerRootView style={styles.sheetRoot}>
+          <Animated.View style={[styles.detailModalOverlay, backdropStyle]} pointerEvents="none" />
           {selectedExercise && (
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.detailContainer, 
-                { 
-                  backgroundColor: theme.background,
-                  transform: [{ translateY }]
-                }
+                styles.detailContainer,
+                { backgroundColor: theme.background },
+                sheetStyle,
               ]}
             >
-              {/* Pull indicator */}
-              <View {...panResponder.panHandlers} style={styles.pullIndicatorContainer}>
-                <View style={[styles.pullIndicator, { backgroundColor: theme.textSecondary }]} />
-              </View>
-
-              {/* Header */}
-              <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                <Text style={[styles.detailTitle, { color: theme.text }]}>
-                  {selectedExercise.name}
-                </Text>
-              </View>
-
-              <ScrollView 
-                ref={detailScrollRef}
-                style={styles.detailContent} 
-                showsVerticalScrollIndicator={false}
-                onScroll={(e) => {
-                  const offsetY = e.nativeEvent.contentOffset.y;
-                  setIsAtTop(offsetY <= 0);
-                }}
-                scrollEventThrottle={16}
-              >
-              {/* Exercise Icon */}
-              <View style={styles.detailImageContainer}>
-                <View style={[styles.exerciseIconContainerLarge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                  <MaterialIcons name="fitness-center" size={80} color={theme.primary} />
+              <GestureDetector gesture={panGesture}>
+                <View style={styles.sheetHandleArea}>
+                  <View style={styles.pullIndicatorContainer}>
+                    <View style={[styles.pullIndicator, { backgroundColor: theme.textSecondary }]} />
+                  </View>
+                  <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
+                    <Text style={[styles.detailTitle, { color: theme.text }]}>
+                      {selectedExercise.name}
+                    </Text>
+                  </View>
                 </View>
+              </GestureDetector>
+
+              <ScrollView
+                ref={detailScrollRef}
+                style={styles.detailContent}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
+              {/* Exercise Image / Icon */}
+              <View style={styles.detailImageContainer}>
+                {selectedExercise.images && selectedExercise.images.length > 0 ? (
+                  <Image
+                    source={{ uri: selectedExercise.images[0] }}
+                    style={styles.detailImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                ) : (
+                  <View style={[styles.exerciseIconContainerLarge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                    <MaterialIcons name="fitness-center" size={80} color={theme.primary} />
+                  </View>
+                )}
               </View>
 
               {/* About Section */}
@@ -773,7 +771,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
             </ScrollView>
             </Animated.View>
           )}
-        </View>
+        </GestureHandlerRootView>
       </Modal>
 
       {/* Add Exercise Modal */}
@@ -1079,36 +1077,39 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   // Exercise Detail Modal Styles
-  detailModalOverlay: {
+  sheetRoot: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  detailModalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
   },
   detailContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: SCREEN_HEIGHT * 0.91,
+    height: SHEET_HEIGHT,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
   },
-  pullIndicatorContainer: {
-    paddingVertical: 12,
-    alignItems: 'center',
+  sheetHandleArea: {
     backgroundColor: 'transparent',
   },
+  pullIndicatorContainer: {
+    paddingTop: 10,
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
   pullIndicator: {
-    width: 40,
+    width: 44,
     height: 5,
     borderRadius: 3,
-    opacity: 0.3,
+    opacity: 0.45,
   },
   detailHeader: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 10 : 10,
+    paddingTop: 6,
     paddingBottom: 16,
     borderBottomWidth: 0.5,
   },

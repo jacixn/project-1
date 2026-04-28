@@ -1038,19 +1038,17 @@ const GymTab = () => {
                   {bodyComp ? (
                     <View style={styles.exercisesPreview}>
                       <View style={[styles.exercisePreviewItem, {
-                        backgroundColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}33`,
-                        borderColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}60`,
+                        backgroundColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}24`,
+                        borderColor: `${bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444'}43`,
                         borderWidth: 0.8,
-                        opacity: 0.7,
                       }]}>
                         <Text style={{ fontSize: 28, fontWeight: '800', color: bodyComp.healthScore >= 80 ? '#3B82F6' : bodyComp.healthScore >= 70 ? '#10B981' : bodyComp.healthScore >= 40 ? '#F59E0B' : '#EF4444' }}>{bodyComp.healthScore}</Text>
                         <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Health Score</Text>
                       </View>
                       <View style={[styles.exercisePreviewItem, {
-                        backgroundColor: `${theme.primary}33`,
-                        borderColor: `${theme.primary}60`,
+                        backgroundColor: `${theme.primary}24`,
+                        borderColor: `${theme.primary}43`,
                         borderWidth: 0.8,
-                        opacity: 0.7,
                       }]}>
                         <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{bodyComp.bodyAge}</Text>
                         <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Body Age</Text>
@@ -1059,19 +1057,17 @@ const GymTab = () => {
                   ) : (
                     <View style={styles.exercisesPreview}>
                       <View style={[styles.exercisePreviewItem, {
-                        backgroundColor: `${theme.primary}33`,
-                        borderColor: `${theme.primary}60`,
+                        backgroundColor: `${theme.primary}24`,
+                        borderColor: `${theme.primary}43`,
                         borderWidth: 0.8,
-                        opacity: 0.7,
                       }]}>
                         <MaterialIcons name="monitor-weight" size={32} color={theme.primary} />
                         <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Body Metrics</Text>
                       </View>
                       <View style={[styles.exercisePreviewItem, {
-                        backgroundColor: `${theme.success || '#10B981'}33`,
-                        borderColor: `${theme.success || '#10B981'}60`,
+                        backgroundColor: `${theme.success || '#10B981'}24`,
+                        borderColor: `${theme.success || '#10B981'}43`,
                         borderWidth: 0.8,
-                        opacity: 0.7,
                       }]}>
                         <MaterialIcons name="insights" size={32} color={theme.success || '#10B981'} />
                         <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Health Score</Text>
@@ -1126,7 +1122,7 @@ const GymTab = () => {
                       <View style={styles.fuelProgressBarBg}>
                         <View style={[styles.fuelProgressBarFill, { backgroundColor: theme.primary, width: `${Math.min(((nutritionProgress.consumed?.calories || 0) / (nutritionProgress.targets?.calories || 2000)) * 100, 100)}%` }]} />
                       </View>
-                      <Text style={[styles.fuelProgressText, { color: textSecondaryColor }]}>
+                      <Text style={[styles.fuelProgressText, { color: textColor, ...textOutlineStyle }]}>
                         {nutritionProgress.consumed?.calories || 0} / {nutritionProgress.targets?.calories || 0} cal
                       </Text>
                     </View>
@@ -1156,11 +1152,11 @@ const GymTab = () => {
                     </TouchableOpacity>
                   </View>
                   <View style={styles.exercisesPreview}>
-                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}33`, borderColor: `${theme.primary}60`, borderWidth: 0.8, opacity: 0.7 }]}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}24`, borderColor: `${theme.primary}43`, borderWidth: 0.8 }]}>
                       <MaterialIcons name="accessibility-new" size={32} color={theme.primary} />
                       <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Muscle Map</Text>
                     </View>
-                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}33`, borderColor: `${theme.primary}60`, borderWidth: 0.8, opacity: 0.7 }]}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}24`, borderColor: `${theme.primary}43`, borderWidth: 0.8 }]}>
                       <MaterialIcons name="psychology" size={32} color={theme.primary} />
                       <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Balance Coach</Text>
                     </View>
@@ -1185,11 +1181,11 @@ const GymTab = () => {
                     </TouchableOpacity>
                   </View>
                   <View style={styles.exercisesPreview}>
-                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}33`, borderColor: `${theme.primary}60`, borderWidth: 0.8, opacity: 0.7 }]}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}24`, borderColor: `${theme.primary}43`, borderWidth: 0.8 }]}>
                       <MaterialIcons name="fitness-center" size={32} color={theme.primary} />
                       <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>128+ Exercises</Text>
                     </View>
-                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.success}33`, borderColor: `${theme.success}60`, borderWidth: 0.8, opacity: 0.7 }]}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.success}24`, borderColor: `${theme.success}43`, borderWidth: 0.8 }]}>
                       <MaterialIcons name="category" size={32} color={theme.success} />
                       <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>All Categories</Text>
                     </View>
@@ -1214,11 +1210,11 @@ const GymTab = () => {
                     </TouchableOpacity>
                   </View>
                   <View style={styles.exercisesPreview}>
-                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}33`, borderColor: `${theme.primary}60`, borderWidth: 0.8, opacity: 0.7 }]}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.primary}24`, borderColor: `${theme.primary}43`, borderWidth: 0.8 }]}>
                       <Text style={{ fontSize: 28, fontWeight: '800', color: theme.primary }}>{workoutHistory.length}</Text>
                       <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>{workoutHistory.length === 1 ? 'Workout' : 'Workouts'}</Text>
                     </View>
-                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.success || '#10B981'}33`, borderColor: `${theme.success || '#10B981'}60`, borderWidth: 0.8, opacity: 0.7 }]}>
+                    <View style={[styles.exercisePreviewItem, { backgroundColor: `${theme.success || '#10B981'}24`, borderColor: `${theme.success || '#10B981'}43`, borderWidth: 0.8 }]}>
                       <MaterialIcons name="trending-up" size={32} color={theme.success || '#10B981'} />
                       <Text style={[styles.exercisePreviewText, { color: textColor, ...textOutlineStyle }]}>Progress</Text>
                     </View>

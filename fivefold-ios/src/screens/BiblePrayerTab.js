@@ -1160,7 +1160,7 @@ const BiblePrayerTab = () => {
         Read, study, and grow in faith
       </Text>
       
-      <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+      <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}24`, borderWidth: 0.8, borderColor: `${theme.primary}43` }]}>
         <AnimatedBibleButton
           style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
           onPress={() => {
@@ -1172,10 +1172,10 @@ const BiblePrayerTab = () => {
         >
           <MaterialIcons name="menu-book" size={24} color={iconColor} />
           <View style={styles.bibleButtonContent}>
-            <Text style={[styles.bibleButtonTitle, { color: textColor }]}>
+            <Text style={[styles.bibleButtonTitle, { color: textColor, ...textOutlineStyle }]}>
               Open Bible
             </Text>
-            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor }]}>
+            <Text style={[styles.bibleButtonSubtitle, { color: textSecondaryColor, ...textOutlineStyle }]}>
               Simple English + Original text
             </Text>
           </View>
@@ -1183,7 +1183,7 @@ const BiblePrayerTab = () => {
         </AnimatedBibleButton>
       </View>
 
-      <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+      <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}24`, borderWidth: 0.8, borderColor: `${theme.primary}43` }]}>
         <TouchableOpacity
           activeOpacity={0.4}
           onPress={openVerseModal}
@@ -1256,7 +1256,7 @@ const BiblePrayerTab = () => {
         Explore characters, timeline, maps & more
       </Text>
       
-      <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+      <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}24`, borderWidth: 0.8, borderColor: `${theme.primary}43` }]}>
         <AnimatedBibleButton
           style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
           onPress={() => {
@@ -1321,7 +1321,7 @@ const BiblePrayerTab = () => {
         Your personal space to pin prayers & praise
       </Text>
       
-      <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+      <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}24`, borderWidth: 0.8, borderColor: `${theme.primary}43` }]}>
         <AnimatedBibleButton
           style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
           onPress={() => {
@@ -1386,7 +1386,7 @@ const BiblePrayerTab = () => {
           Your saved content & reflections
         </Text>
 
-        <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+        <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}24`, borderWidth: 0.8, borderColor: `${theme.primary}43` }]}>
           <TouchableOpacity
             style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
             activeOpacity={0.7}
@@ -1406,7 +1406,7 @@ const BiblePrayerTab = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+        <View style={[styles.innerBlurItem, { backgroundColor: `${theme.primary}24`, borderWidth: 0.8, borderColor: `${theme.primary}43` }]}>
           <TouchableOpacity
             style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
             activeOpacity={0.7}
@@ -1426,7 +1426,7 @@ const BiblePrayerTab = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}33`, borderWidth: 0.8, borderColor: `${theme.primary}60`, opacity: 0.7 }]}>
+        <View style={[styles.innerBlurItem, { marginBottom: 16, backgroundColor: `${theme.primary}24`, borderWidth: 0.8, borderColor: `${theme.primary}43` }]}>
           <TouchableOpacity
             style={[styles.bibleButton, { backgroundColor: 'transparent', borderRadius: 12 }]}
             activeOpacity={0.7}
@@ -1692,18 +1692,6 @@ const BiblePrayerTab = () => {
                 style={StyleSheet.absoluteFill}
               />
                 <View style={styles.verseModalContent}>
-                  {/* Close button */}
-                  <TouchableOpacity 
-                    style={[styles.verseModalClose, {
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.15)',
-                    }]}
-                    onPress={closeVerseModal}
-                  >
-                    <MaterialIcons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
-                  </TouchableOpacity>
-
                   <ScrollView
                     showsVerticalScrollIndicator={false}
                     bounces={true}

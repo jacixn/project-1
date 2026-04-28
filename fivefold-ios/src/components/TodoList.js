@@ -228,9 +228,8 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
         <View
           key={task.id}
           style={[styles.todoItem, styles.pendingItem, {
-            backgroundColor: `${theme.primary}33`,
-            borderColor: `${theme.primary}60`,
-            opacity: 0.7,
+            backgroundColor: `${theme.primary}24`,
+            borderColor: `${theme.primary}43`,
           }]}
         >
           <View style={styles.checkButton}>
@@ -279,10 +278,9 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
               <View
                 key={todo.id}
                 style={[styles.todoItem, {
-                  backgroundColor: `${theme.primary}33`,
+                  backgroundColor: `${theme.primary}24`,
                   borderWidth: 0.8,
-                  borderColor: `${theme.primary}60`,
-                  opacity: 0.7,
+                  borderColor: `${theme.primary}43`,
                 }]}
               >
                 <TouchableOpacity
@@ -477,7 +475,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pendingItem: {
-    opacity: 0.7,
     borderWidth: 1,
   },
   checkButton: {

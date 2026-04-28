@@ -33,26 +33,27 @@ export const getPreferredVersion = async () => {
   }
 };
 
+// Recognise placeholder strings used by UI while real verses are still loading.
+// These are passed to the service from cards/screens that haven't received the
+// real reference yet — fetching them is expected to fail and shouldn't be logged.
+const PLACEHOLDER_REFERENCES = new Set(['Loading...', 'loading...', '']);
+export const isPlaceholderReference = (ref) =>
+  !ref || PLACEHOLDER_REFERENCES.has(String(ref).trim());
+
 // Parse verse reference (e.g., "John 3:16" or "Proverbs 3:5-6")
 const parseVerseReference = (reference) => {
-  try {
-    // Match patterns like "Genesis 1:1", "John 3:16", "Proverbs 3:5-6"
-    const match = reference.match(/^([\d\s\w]+)\s+(\d+):(\d+)(?:-(\d+))?$/);
-    
-    if (!match) {
-      throw new Error(`Invalid verse reference format: ${reference}`);
-    }
-    
-    const bookName = match[1].trim();
-    const chapterNum = match[2];
-    const startVerse = parseInt(match[3]);
-    const endVerse = match[4] ? parseInt(match[4]) : startVerse;
-    
-    return { bookName, chapterNum, startVerse, endVerse };
-  } catch (error) {
-    console.error('Error parsing verse reference:', error);
-    throw error;
+  // Match patterns like "Genesis 1:1", "John 3:16", "Proverbs 3:5-6"
+  const match = reference.match(/^([\d\s\w]+)\s+(\d+):(\d+)(?:-(\d+))?$/);
+  if (!match) {
+    throw new Error(`Invalid verse reference format: ${reference}`);
   }
+
+  const bookName = match[1].trim();
+  const chapterNum = match[2];
+  const startVerse = parseInt(match[3]);
+  const endVerse = match[4] ? parseInt(match[4]) : startVerse;
+
+  return { bookName, chapterNum, startVerse, endVerse };
 };
 
 // Normalize book name (handle variations like "1 John", "I John", etc.)
@@ -141,13 +142,21 @@ const normalizeBookName = (bookName) => {
  * @returns {Promise<{text: string, version: string, reference: string}>}
  */
 export const getVerseByReference = async (reference, versionId = null) => {
+  // Short-circuit on placeholder strings (e.g. "Loading...") so we don't
+  // burn a fetch + log a confusing parse error while real verses arrive.
+  if (isPlaceholderReference(reference)) {
+    const err = new Error('Reference not ready yet');
+    err.code = 'PLACEHOLDER_REFERENCE';
+    throw err;
+  }
+
   try {
     console.log('📖 Fetching verse:', reference);
-    
+
     // Get version (use provided or user's preferred)
     const version = versionId || await getPreferredVersion();
     console.log('📖 Using version:', version);
-    
+
     // Parse the reference
     const { bookName, chapterNum, startVerse, endVerse } = parseVerseReference(reference);
     const normalizedBookName = normalizeBookName(bookName);

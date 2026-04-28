@@ -100,10 +100,11 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return isAtTop && gestureState.dy > 0;
+        // Pull pill sits above the ScrollView — claim any downward drag,
+        // regardless of how far user has scrolled the workout content.
+        return gestureState.dy > 0;
       },
       onPanResponderGrant: () => {
-        console.log('👆 PanResponder: Gesture STARTED (user touched)');
         panGestureStarted.current = true;
         dismissHapticFired.current = false;
         hapticFeedback.light();
@@ -111,34 +112,37 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
-          // Fire a satisfying haptic when crossing the dismiss threshold
           if (gestureState.dy > 150 && !dismissHapticFired.current) {
             dismissHapticFired.current = true;
             hapticFeedback.medium();
           } else if (gestureState.dy <= 150 && dismissHapticFired.current) {
-            // Reset if user pulls back above threshold
             dismissHapticFired.current = false;
-            hapticFeedback.light();
           }
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        console.log('👆 PanResponder released - dy:', gestureState.dy);
-        console.log('👆 PanResponder released - panGestureStarted:', panGestureStarted.current);
-        
-        // ONLY close if user actually started the gesture AND swiped far enough
-        if (panGestureStarted.current && gestureState.dy > 150) {
-          console.log('👆 PanResponder: VALID swipe down, calling handleCloseModal');
-          panGestureStarted.current = false; // Reset
+        const shouldDismiss =
+          (panGestureStarted.current && gestureState.dy > 150) || gestureState.vy > 0.6;
+        panGestureStarted.current = false;
+        if (shouldDismiss) {
           handleCloseModal();
         } else {
-          console.log('👆 PanResponder: Invalid or short swipe, bouncing back');
-          panGestureStarted.current = false; // Reset
           Animated.spring(panY, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: false,
+            tension: 80,
+            friction: 12,
           }).start();
         }
+      },
+      onPanResponderTerminate: () => {
+        panGestureStarted.current = false;
+        Animated.spring(panY, {
+          toValue: 0,
+          useNativeDriver: false,
+          tension: 80,
+          friction: 12,
+        }).start();
       },
     })
   ).current;
@@ -172,12 +176,12 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 220,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 220,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       // Animation is done — modal is visually gone.
@@ -433,7 +437,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           toValue: 1,
           tension: 100,
           friction: 20,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }).start(() => {
           console.log('🎬 Modal animation IN complete');
         });
@@ -2326,15 +2330,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pullIndicatorContainer: {
-    paddingVertical: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
   pullIndicator: {
-    width: 40,
+    width: 44,
     height: 5,
     borderRadius: 3,
-    opacity: 0.3,
+    opacity: 0.45,
   },
   header: {
     borderBottomWidth: 0.5,

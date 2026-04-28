@@ -172,10 +172,9 @@ const RemindersCard = ({
             style={[
               styles.reminderRow,
               {
-                backgroundColor: `${theme.primary}33`,
+                backgroundColor: `${theme.primary}24`,
                 borderWidth: 0.8,
-                borderColor: `${theme.primary}60`,
-                opacity: 0.7,
+                borderColor: `${theme.primary}43`,
               },
             ]}
           >
