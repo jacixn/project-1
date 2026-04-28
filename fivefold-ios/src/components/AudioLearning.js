@@ -48,6 +48,10 @@ const storyImages = {
   'david-goliath': require('../assets/audio-stories/david-goliath.png'),
   'samson': require('../assets/audio-stories/samson.png'),
   'jonah-whale': require('../assets/audio-stories/jonah-whale.png'),
+  'noah-ark': require('../assets/audio-stories/noah-ark.png'),
+  'esther': require('../assets/audio-stories/esther.png'),
+  'walking-on-water': require('../assets/audio-stories/walking-on-water.png'),
+  'zacchaeus': require('../assets/audio-stories/zacchaeus.png'),
 };
 
 const { width, height } = Dimensions.get('window');
