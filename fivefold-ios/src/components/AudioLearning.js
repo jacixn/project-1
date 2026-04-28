@@ -943,20 +943,13 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     const storyToShow = currentStoryData || selectedStory;
     if (!storyToShow) return null;
 
-    // Interpolate opacity based on drag position - fade out gradually as user pulls down
-    const dragOpacity = playerDragY.interpolate({
-      inputRange: [0, 150, 400],
-      outputRange: [1, 0.9, 0.6],
-      extrapolate: 'clamp',
-    });
-
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.playerContainer,
-          { 
+          {
             transform: [{ translateY: playerDragY }],
-            opacity: Animated.multiply(playerOpacity, dragOpacity),
+            opacity: playerOpacity,
           }
         ]}
         pointerEvents={playerVisible ? 'auto' : 'none'}
