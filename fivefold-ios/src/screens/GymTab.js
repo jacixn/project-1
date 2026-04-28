@@ -44,6 +44,8 @@ import WorkoutService from '../services/workoutService';
 import AchievementService from '../services/achievementService';
 import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
+import scaleService from '../services/scaleService';
+import ManualWeighInModal from '../components/ManualWeighInModal';
 
 
 // const { width } = Dimensions.get('window');
@@ -87,9 +89,12 @@ const GymTab = () => {
   const [nutritionProgress, setNutritionProgress] = useState(null);
   const [bodyComp, setBodyComp] = useState(null);
   const [bodyCompExpanded, setBodyCompExpanded] = useState(false);
+  const [weighInModalVisible, setWeighInModalVisible] = useState(false);
+  const [lastWeighIn, setLastWeighIn] = useState(null);
+  const [weighInDates, setWeighInDates] = useState(new Set());
 
   // Card customisation config
-  const GYM_DEFAULT_ORDER = ['WeeklyCalendar', 'BodyComposition', 'StartWorkout', 'Fuel', 'Physique', 'Exercises', 'WorkoutHistory'];
+  const GYM_DEFAULT_ORDER = ['WeeklyCalendar', 'WeeklyWeighIn', 'BodyComposition', 'StartWorkout', 'Fuel', 'Physique', 'Exercises', 'WorkoutHistory'];
   const [cardOrder, setCardOrder] = useState(GYM_DEFAULT_ORDER);
   const [hiddenCards, setHiddenCards] = useState([]);
 
@@ -212,6 +217,21 @@ const GymTab = () => {
       loadWorkoutHistory();
       loadScheduledWorkouts();
       loadNutritionProgress();
+      scaleService.getLastReading().then(setLastWeighIn).catch(() => {});
+      scaleService.getHistory().then(history => {
+        const weeks = new Set();
+        for (const entry of history || []) {
+          if (entry?.timestamp) {
+            const d = new Date(entry.timestamp);
+            // Map every log to the Saturday of its week (Sun-Sat)
+            const sat = new Date(d);
+            sat.setDate(d.getDate() + (6 - d.getDay()));
+            const key = `${sat.getFullYear()}-${String(sat.getMonth() + 1).padStart(2, '0')}-${String(sat.getDate()).padStart(2, '0')}`;
+            weeks.add(key);
+          }
+        }
+        setWeighInDates(weeks);
+      }).catch(() => {});
       userStorage.getRaw('fivefold_loading_animation').then(id => {
         setSelectedLoadingAnim(id || 'default');
       }).catch(() => {});
@@ -498,7 +518,12 @@ const GymTab = () => {
       const hasWorkout = workoutDates.has(dateKey);
       const scheduledForDay = getScheduledForDate(dateKey);
       const hasScheduled = scheduledForDay.length > 0;
-      
+      const isSaturday = i === 6;
+      const hasWeighIn = weighInDates.has(dateKey);
+      const isFuture = date > today && !isToday;
+      const weighInMissed = isSaturday && !isFuture && !hasWeighIn && !isToday;
+      const weighInDueToday = isSaturday && isToday && !hasWeighIn;
+
       days.push({
         dayName: dayNames[i],
         date: date.getDate(),
@@ -507,6 +532,10 @@ const GymTab = () => {
         hasWorkout,
         hasScheduled,
         isPast: date < today && !isToday,
+        isSaturday,
+        hasWeighIn,
+        weighInMissed,
+        weighInDueToday,
       });
     }
     return days;
@@ -553,7 +582,11 @@ const GymTab = () => {
       const isFuture = date > today;
       const scheduledForDay = getScheduledForDate(dateKey);
       const hasScheduled = scheduledForDay.length > 0;
-      
+      const isSaturday = date.getDay() === 6;
+      const hasWeighIn = weighInDates.has(dateKey);
+      const weighInMissed = isSaturday && !isFuture && !hasWeighIn && !isToday;
+      const weighInDueToday = isSaturday && isToday && !hasWeighIn;
+
       days.push({
         day,
         dateKey,
@@ -562,9 +595,13 @@ const GymTab = () => {
         isFuture,
         hasScheduled,
         scheduledWorkouts: scheduledForDay,
+        isSaturday,
+        hasWeighIn,
+        weighInMissed,
+        weighInDueToday,
       });
     }
-    
+
     return days;
   };
 
@@ -915,6 +952,20 @@ const GymTab = () => {
                                 <MaterialIcons name="schedule" size={8} color="#FFFFFF" />
                               </View>
                             )}
+                            {day.isSaturday && (day.hasWeighIn || day.weighInDueToday || day.weighInMissed) && (
+                              <View
+                                style={[
+                                  styles.weighInDot,
+                                  {
+                                    backgroundColor: day.hasWeighIn
+                                      ? '#10B981'
+                                      : day.weighInDueToday
+                                        ? '#6366F1'
+                                        : '#EF4444',
+                                  },
+                                ]}
+                              />
+                            )}
                           </View>
                         </View>
                       ))}
@@ -922,6 +973,44 @@ const GymTab = () => {
                   </TouchableOpacity>
                 </LiquidGlassContainer>
               );
+              case 'WeeklyWeighIn': {
+                const today = new Date();
+                const isSaturday = today.getDay() === 6;
+                const lastTs = lastWeighIn?.timestamp ? new Date(lastWeighIn.timestamp) : null;
+                const daysSince = lastTs ? Math.floor((today - lastTs) / 86400000) : 999;
+                const overdue = daysSince >= 7;
+                if (!isSaturday && !overdue) return null;
+                const subtitle = lastWeighIn
+                  ? `Last: ${lastWeighIn.weightKg?.toFixed(1)} kg${lastWeighIn.bodyFatPercent ? ` · ${lastWeighIn.bodyFatPercent.toFixed(1)}% fat` : ''}${daysSince === 0 ? ' · today' : ` · ${daysSince}d ago`}`
+                  : 'Log your first weigh-in';
+                return (
+                  <LiquidGlassContainer key={id}>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => { hapticFeedback.medium(); setWeighInModalVisible(true); }}
+                      style={styles.weighInCard}
+                    >
+                      <View style={styles.weighInRow}>
+                        <View style={[styles.weighInIcon, { backgroundColor: theme.primary + '18' }]}>
+                          <MaterialIcons name="fitness-center" size={24} color={theme.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.sectionTitle, { color: textColor, ...textOutlineStyle }]}>
+                            {isSaturday ? 'Weekly Check-In' : 'Weigh-In Overdue'}
+                          </Text>
+                          <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
+                            {subtitle}
+                          </Text>
+                        </View>
+                        <View style={[styles.weighInCta, { backgroundColor: theme.primary }]}>
+                          <Text style={styles.weighInCtaText}>Log</Text>
+                          <MaterialIcons name="arrow-forward" size={14} color="#FFF" />
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  </LiquidGlassContainer>
+                );
+              }
               case 'BodyComposition': return (
                 <LiquidGlassContainer key={id}>
                   <View style={styles.exercisesHeader}>
@@ -1254,9 +1343,27 @@ const GymTab = () => {
                     ]}
                   >
                     {!day.empty && (
-                      <TouchableOpacity 
-                        activeOpacity={day.hasScheduled ? 0.6 : 1}
+                      <TouchableOpacity
+                        activeOpacity={(day.hasScheduled || day.weighInDueToday || day.weighInMissed) ? 0.6 : 1}
                         onPress={() => {
+                          if (day.weighInDueToday) {
+                            hapticFeedback.medium();
+                            setShowCalendarModal(false);
+                            setTimeout(() => setWeighInModalVisible(true), 250);
+                            return;
+                          }
+                          if (day.weighInMissed) {
+                            hapticFeedback.medium();
+                            Alert.alert(
+                              'Missed Weigh-In',
+                              `You did not log your weight on ${day.dateKey}. Log it now to keep your weekly streak going.`,
+                              [
+                                { text: 'Skip', style: 'cancel' },
+                                { text: 'Log Now', onPress: () => { setShowCalendarModal(false); setTimeout(() => setWeighInModalVisible(true), 250); } },
+                              ]
+                            );
+                            return;
+                          }
                           if (day.hasScheduled && day.scheduledWorkouts?.length > 0) {
                             hapticFeedback.medium();
                             const schedule = day.scheduledWorkouts[0];
@@ -1333,6 +1440,21 @@ const GymTab = () => {
                             <MaterialIcons name="schedule" size={8} color="#FFFFFF" />
                           </View>
                         )}
+                        {/* Saturday weigh-in indicator */}
+                        {day.isSaturday && (day.hasWeighIn || day.weighInDueToday || day.weighInMissed) && (
+                          <View
+                            style={[
+                              styles.calendarWeighInDot,
+                              {
+                                backgroundColor: day.hasWeighIn
+                                  ? '#10B981'
+                                  : day.weighInDueToday
+                                    ? '#6366F1'
+                                    : '#EF4444',
+                              },
+                            ]}
+                          />
+                        )}
                       </TouchableOpacity>
                     )}
                   </Animated.View>
@@ -1350,12 +1472,20 @@ const GymTab = () => {
                   <Text style={[styles.legendText, { color: textSecondaryColor }]}>Scheduled</Text>
                 </View>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { 
-                    backgroundColor: 'transparent', 
+                  <View style={[styles.legendDot, {
+                    backgroundColor: 'transparent',
                     borderWidth: 2,
                     borderColor: theme.primary,
                   }]} />
                   <Text style={[styles.legendText, { color: textSecondaryColor }]}>Today</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
+                  <Text style={[styles.legendText, { color: textSecondaryColor }]}>Weigh-in</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+                  <Text style={[styles.legendText, { color: textSecondaryColor }]}>Missed</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -1364,6 +1494,19 @@ const GymTab = () => {
       </Modal>
 
       <AboutBiblelyModal visible={showAboutModal} onClose={() => setShowAboutModal(false)} />
+
+      <ManualWeighInModal
+        visible={weighInModalVisible}
+        onClose={() => setWeighInModalVisible(false)}
+        onSaved={(reading) => {
+          const now = new Date();
+          const sat = new Date(now);
+          sat.setDate(now.getDate() + (6 - now.getDay()));
+          const key = `${sat.getFullYear()}-${String(sat.getMonth() + 1).padStart(2, '0')}-${String(sat.getDate()).padStart(2, '0')}`;
+          setLastWeighIn({ ...reading, timestamp: now.toISOString() });
+          setWeighInDates(prev => new Set(prev).add(key));
+        }}
+      />
     </AnimatedWallpaper>
   );
 };
@@ -1371,6 +1514,34 @@ const GymTab = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  weighInCard: {
+    paddingVertical: 4,
+  },
+  weighInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  weighInIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weighInCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  weighInCtaText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   fixedHeader: {
     position: 'absolute',
@@ -2314,10 +2485,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  calendarWeighInDot: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  weighInDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   calendarLegend: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 24,
+    flexWrap: 'wrap',
+    gap: 16,
     marginTop: 20,
     paddingTop: 16,
     borderTopWidth: 1,

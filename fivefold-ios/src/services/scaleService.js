@@ -20,7 +20,19 @@
  *                                                  → nutritionService (update profile weight/bf)
  */
 
-import { BleManager } from 'react-native-ble-plx';
+// Bluetooth scale support has been removed for App Store compliance.
+// The BleManager stub below throws if any code path tries to scan or connect —
+// the UI is gated by SCALE_BLUETOOTH_ENABLED = false so this never runs.
+class BleManager {
+  constructor() {}
+  startDeviceScan() { throw new Error('Bluetooth scale support has been removed.'); }
+  stopDeviceScan() {}
+  connectToDevice() { throw new Error('Bluetooth scale support has been removed.'); }
+  cancelDeviceConnection() {}
+  state() { return Promise.resolve('PoweredOff'); }
+  onStateChange() { return { remove: () => {} }; }
+  destroy() {}
+}
 import { Platform, PermissionsAndroid } from 'react-native';
 import userStorage from '../utils/userStorage';
 import { pushToCloud } from './userSyncService';
@@ -222,16 +234,25 @@ class ScaleService {
   }
 
   /**
-   * Send user profile to Chipsea-based scales so they calculate body composition.
+   * Send user profile to scale so it calculates body composition.
+   * Format depends on protocol:
+   *   - chipsea: Chipsea-style profile commands on FFF1
+   *   - generic: Healthkeep/Fitdays/QN-style commands on FFB1
    * Must be called AFTER connect() completes.
    */
   async sendUserProfile(gender, age, heightCm, weightKg) {
-    if (!this._device || !this._connected) return;
+    if (!this._device || !this._connected) {
+      console.log('[Scale] sendUserProfile skipped — not connected');
+      return;
+    }
 
     const svcUUID = this._protocol === 'chipsea' ? CHIPSEA_SVC
                   : this._protocol === 'generic' ? GENERIC_SVC
                   : null;
-    if (!svcUUID) return;
+    if (!svcUUID) {
+      console.log('[Scale] sendUserProfile skipped — protocol:', this._protocol);
+      return;
+    }
 
     const g = gender === 'male' ? 0x01 : 0x02;
     const a = Math.min(255, Math.max(10, Math.round(age || 25)));
@@ -240,36 +261,88 @@ class ScaleService {
     const wHi = (wInt >> 8) & 0xFF;
     const wLo = wInt & 0xFF;
 
-    // Find a writable characteristic on this service
+    console.log('[Scale] sendUserProfile protocol=' + this._protocol + ' g=' + g + ' age=' + a + ' h=' + h);
+
     let writeCharUUID = null;
     try {
       const chars = await this._device.characteristicsForService(svcUUID);
-      const writeChar = chars.find(c => c.isWritableWithResponse || c.isWritableWithoutResponse);
+      // Prefer FFB1 for generic, FFF1 for chipsea — but accept any writable
+      const preferred = this._protocol === 'generic'
+        ? chars.find(c => c.uuid.toLowerCase().includes('ffb1') && (c.isWritableWithResponse || c.isWritableWithoutResponse))
+        : chars.find(c => c.uuid.toLowerCase().includes('fff1') && (c.isWritableWithResponse || c.isWritableWithoutResponse));
+      const writeChar = preferred || chars.find(c => c.isWritableWithResponse || c.isWritableWithoutResponse);
       if (writeChar) writeCharUUID = writeChar.uuid;
-    } catch (_) {}
-    if (!writeCharUUID) return;
+    } catch (e) {
+      console.warn('[Scale] characteristicsForService failed:', e.message);
+    }
+    if (!writeCharUUID) {
+      console.warn('[Scale] No writable characteristic found on', svcUUID);
+      return;
+    }
+    console.log('[Scale] Profile write char:', writeCharUUID);
 
-    const cmds = [
-      new Uint8Array([0x10, g, a, h, wHi, wLo, 0x00, 0x00]),
-      new Uint8Array([0xFE, 0x01, g, a, h, wHi, wLo, 0x00]),
-      new Uint8Array([0x13, g, a, h, 0x00, 0x00, 0x00, 0x00]),
-    ];
+    let cmds;
+    if (this._protocol === 'generic') {
+      // FITDAYS PROTOCOL — captured via PacketLogger BLE sniff of Fitdays app session.
+      // Each packet is exactly 20 bytes:
+      //   [seq][len_lo][len_hi][cmd][params...][zero-pad to byte 18][checksum byte 19]
+      // Checksum is non-standard — don't recompute, replay verbatim.
+      // Replaying the captured bytes works because scale validates the bytes themselves,
+      // not the timestamp staleness or session uniqueness.
+      //
+      // Captured init handshake (in order):
+      //   B0 INIT (cmd=0xb0 arg=0x00)
+      //   B1 USER PROFILE (cmd=0xb1, embeds: timestamp BE, user_id, gender, height, ..., unit, chk)
+      //   B2 DEVICE STATE (cmd=0xb2, embeds device session bytes)
+      //   B0 START MEASURE (cmd=0xb0 arg=0x01)
+      //
+      // Profile baked into B1 is: male (g=1), height=178cm (0xb2), unit=kg (0x01).
+      // For other users, B1 must be re-captured with their own Fitdays session OR the
+      // checksum algo must be reverse-engineered. For this user (jason: male/178cm) it works.
+      const fitdaysInit = [
+        '000300b000000000000000000000000000000010', // 0: B0 INIT
+        '011000b169ef74ab003c01b21da6992f251c0104', // 1: B1 USER PROFILE
+        '020e00b203b21da699a5203a35aa1cc59900001b', // 2: B2 DEVICE STATE
+        '090300b001000000000000000000000000000011', // 3: B0 START MEASURE
+      ];
+      cmds = fitdaysInit.map(hex => {
+        const out = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < hex.length; i += 2) out[i / 2] = parseInt(hex.substr(i, 2), 16);
+        return out;
+      });
+    } else {
+      // Chipsea — keep XOR-based profile cmds
+      cmds = [
+        new Uint8Array([0x10, g, a, h, wHi, wLo, 0x00, 0x00]),
+        new Uint8Array([0xFE, 0x01, g, a, h, wHi, wLo, 0x00]),
+        new Uint8Array([0x13, g, a, h, 0x00, 0x00, 0x00, 0x00]),
+      ];
+    }
 
     for (const cmd of cmds) {
-      let xor = 0;
-      for (let i = 0; i < cmd.length - 1; i++) xor ^= cmd[i];
-      cmd[cmd.length - 1] = xor;
+      // For Fitdays packets the checksum is already correct (replayed) — don't overwrite.
+      // For Chipsea, recalculate XOR checksum into last byte.
+      if (this._protocol !== 'generic') {
+        let xor = 0;
+        for (let i = 0; i < cmd.length - 1; i++) xor ^= cmd[i];
+        cmd[cmd.length - 1] = xor;
+      }
 
+      const hex = Array.from(cmd).map(b => b.toString(16).padStart(2, '0')).join(' ');
       const b64 = this._bytesToBase64(cmd);
       try {
         await this._device.writeCharacteristicWithResponseForService(svcUUID, writeCharUUID, b64);
-        console.log('[Scale] Sent profile cmd:', Array.from(cmd).map(b => b.toString(16).padStart(2, '0')).join(' '));
-      } catch (_) {
+        console.log('[Scale] Sent profile cmd:', hex);
+      } catch (e1) {
         try {
           await this._device.writeCharacteristicWithoutResponseForService(svcUUID, writeCharUUID, b64);
-          console.log('[Scale] Sent profile cmd (no-resp):', Array.from(cmd).map(b => b.toString(16).padStart(2, '0')).join(' '));
-        } catch (__) {}
+          console.log('[Scale] Sent profile cmd (no-resp):', hex);
+        } catch (e2) {
+          console.warn('[Scale] Profile write failed:', hex, '|', e2.message);
+        }
       }
+      // Small delay between writes — scale needs time to process each command
+      await new Promise(resolve => setTimeout(resolve, 80));
     }
   }
 
@@ -575,17 +648,55 @@ class ScaleService {
       }
     }
 
-    // 20-byte Healthkeep/QN format on FFB3 (impedance result):
-    // [00][08][00][A3][00][w2][w1][w0][00][imp_hi][imp_lo][00...][chk]
-    // Sent once after weight+impedance stabilise — contains final weight + raw impedance
+    // 0xA1 packet on FFB3 = static device info / heartbeat broadcast.
+    // Confirmed via logs: bytes are CONSTANT across an entire session and even
+    // identical between sessions — not measurement data. Skip entirely.
+    if (bytes.length >= 4 && bytes[1] === 0x08 && bytes[3] === 0xA1) {
+      return null;
+    }
+    // 0xA0 packet on FFB3 = countdown/heartbeat ping. Skip.
+    if (bytes.length >= 4 && bytes[1] === 0x03 && bytes[3] === 0xA0) {
+      return null;
+    }
+
+    // 20-byte Healthkeep/QN format on FFB3 (final result packet):
+    // [seq][08][00][A3][00][w2][w1][w0][bmi*4][imp_hi][imp_lo][00...][chk]
+    //
+    // Decoded via Fitdays BLE sniff:
+    // - bytes[5..7] = weight in grams (24-bit BE)
+    // - byte[8]    = BMI × 4 (e.g. 0x60=96 → BMI=24.0). Only set after Fitdays-style init.
+    // - bytes[9..10] = raw impedance (16-bit BE)
     if (bytes.length >= 12 && bytes[1] === 0x08 && bytes[3] === 0xA3) {
       const weightGrams = (bytes[5] << 16) | (bytes[6] << 8) | bytes[7];
       const weightKg = weightGrams / 1000;
+      const bmiRaw = bytes[8];
       const impRaw = (bytes[9] << 8) | bytes[10];
       if (weightKg >= 20 && weightKg <= 250) {
         let result = { weightKg: Math.round(weightKg * 100) / 100, stable: true, protocol: 'generic' };
         if (impRaw > 50 && impRaw < 10000) result.impedance = impRaw;
-        console.log('[Scale] A3 impedance packet: weight=' + result.weightKg + ' imp=' + impRaw);
+        if (bmiRaw > 40 && bmiRaw < 200) result.bmi = bmiRaw / 4;
+        console.log('[Scale] A3 packet: weight=' + result.weightKg + ' imp=' + impRaw + ' bmiRaw=' + bmiRaw + (result.bmi ? ' bmi=' + result.bmi : ''));
+        return result;
+      }
+    }
+
+    // 20-byte Healthkeep/QN A4 packet (final body composition):
+    // [seq][0c][00][A4][ts3][ts2][ts1][ts0][00][w2][w1][w0][bmi*4][imp_hi][imp_lo][bc..][chk]
+    // - bytes[4..7] = unix timestamp (BE, seconds)
+    // - bytes[9..11] = weight in grams (24-bit BE)
+    // - byte[12]   = BMI × 4
+    // - bytes[13..14] = raw impedance (16-bit BE)
+    // - bytes[15..18] may carry body comp values when scale has user profile
+    if (bytes.length >= 15 && bytes[1] === 0x0C && bytes[3] === 0xA4) {
+      const weightGrams = (bytes[9] << 16) | (bytes[10] << 8) | bytes[11];
+      const weightKg = weightGrams / 1000;
+      const bmiRaw = bytes[12];
+      const impRaw = (bytes[13] << 8) | bytes[14];
+      if (weightKg >= 20 && weightKg <= 250) {
+        let result = { weightKg: Math.round(weightKg * 100) / 100, stable: true, protocol: 'generic' };
+        if (impRaw > 50 && impRaw < 10000) result.impedance = impRaw;
+        if (bmiRaw > 40 && bmiRaw < 200) result.bmi = bmiRaw / 4;
+        console.log('[Scale] A4 packet: weight=' + result.weightKg + ' imp=' + impRaw + ' bmiRaw=' + bmiRaw + (result.bmi ? ' bmi=' + result.bmi : ''));
         return result;
       }
     }

@@ -48,6 +48,7 @@ const CARD_META = {
   },
   Gym: {
     WeeklyCalendar:  { label: 'This Week',        icon: 'calendar-today',  color: '#3B82F6' },
+    WeeklyWeighIn:   { label: 'Weekly Weigh-In',  icon: 'monitor-weight',  color: '#6366F1' },
     BodyComposition: { label: 'Body Composition',  icon: 'monitor-heart',   color: '#EC4899' },
     StartWorkout:    { label: 'Start Workout',     icon: 'play-arrow',      color: '#10B981' },
     Fuel:            { label: 'Fuel',              icon: 'restaurant',      color: '#F59E0B' },
@@ -60,7 +61,7 @@ const CARD_META = {
 const DEFAULT_ORDERS = {
   BiblePrayer: ['Prayer', 'Bible', 'BibleStudy', 'PrayerBoard', 'Library'],
   Todos: ['Calendar', 'Reminders', 'Habits', 'Vision', 'Tasks'],
-  Gym: ['WeeklyCalendar', 'BodyComposition', 'StartWorkout', 'Fuel', 'Physique', 'Exercises', 'WorkoutHistory'],
+  Gym: ['WeeklyCalendar', 'WeeklyWeighIn', 'BodyComposition', 'StartWorkout', 'Fuel', 'Physique', 'Exercises', 'WorkoutHistory'],
 };
 
 const STORAGE_KEYS = {

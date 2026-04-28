@@ -83,29 +83,74 @@ const AuthScreen = ({ onAuthSuccess }) => {
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const mascotBounce = useRef(new Animated.Value(0)).current;
-  
+  const iconScale = useRef(new Animated.Value(0.6)).current;
+  const iconOpacity = useRef(new Animated.Value(0)).current;
+  const word1Anim = useRef(new Animated.Value(0)).current;
+  const word2Anim = useRef(new Animated.Value(0)).current;
+  const word3Anim = useRef(new Animated.Value(0)).current;
+  const subtitleAnim = useRef(new Animated.Value(0)).current;
+  const ctaAnim = useRef(new Animated.Value(0)).current;
+  const glowPulse = useRef(new Animated.Value(0)).current;
+  const auroraShift = useRef(new Animated.Value(0)).current;
+  const verseFade = useRef(new Animated.Value(1)).current;
+  const [verseIndex, setVerseIndex] = useState(0);
+  const welcomeVerses = useRef([
+    'Be still, and know',
+    'Trust in the Lord',
+    'Walk by faith',
+    'Strength for today',
+    'Renewed, every morning',
+  ]).current;
+
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-    
-    // Gentle bounce animation for mascot
+    // Container fade
+    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+
+    // Icon entrance: scale up + fade in
+    Animated.parallel([
+      Animated.spring(iconScale, { toValue: 1, tension: 36, friction: 7, useNativeDriver: true }),
+      Animated.timing(iconOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+    ]).start();
+
+    // Staggered word reveal
+    Animated.stagger(140, [
+      Animated.spring(word1Anim, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }),
+      Animated.spring(word2Anim, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }),
+      Animated.spring(word3Anim, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }),
+      Animated.timing(subtitleAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(ctaAnim, { toValue: 1, tension: 50, friction: 10, useNativeDriver: true }),
+    ]).start();
+
+    // Mascot float (gentle vertical bob)
     Animated.loop(
       Animated.sequence([
-        Animated.timing(mascotBounce, {
-          toValue: -10,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(mascotBounce, {
-          toValue: 0,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
+        Animated.timing(mascotBounce, { toValue: -10, duration: 2000, useNativeDriver: true }),
+        Animated.timing(mascotBounce, { toValue: 0, duration: 2000, useNativeDriver: true }),
       ])
     ).start();
+
+    // Icon glow pulse
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowPulse, { toValue: 1, duration: 2400, useNativeDriver: true }),
+        Animated.timing(glowPulse, { toValue: 0, duration: 2400, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Aurora shift (slow background gradient sweep)
+    Animated.loop(
+      Animated.timing(auroraShift, { toValue: 1, duration: 14000, useNativeDriver: true })
+    ).start();
+
+    // Verse rotator
+    const verseTimer = setInterval(() => {
+      Animated.timing(verseFade, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => {
+        setVerseIndex(i => (i + 1) % welcomeVerses.length);
+        Animated.timing(verseFade, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+      });
+    }, 3500);
+
+    return () => clearInterval(verseTimer);
   }, []);
   
   // Check username availability with debounce
@@ -385,56 +430,140 @@ const AuthScreen = ({ onAuthSuccess }) => {
   if (viewMode === 'main') {
     return (
       <View style={styles.container}>
-        {/* Background Image */}
-        <Image 
-          source={require('../../assets/auth-background.jpg')} 
-          style={styles.backgroundImage}
-          resizeMode="cover"
+        {/* Base gradient */}
+        <LinearGradient
+          colors={['#050D08', '#0A1A0F', '#11241B']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFill}
         />
-        
+        {/* Aurora wash (slow shift) */}
+        <Animated.View style={[StyleSheet.absoluteFill, {
+          opacity: 0.55,
+          transform: [{
+            translateX: auroraShift.interpolate({ inputRange: [0, 1], outputRange: [-80, 80] }),
+          }, {
+            translateY: auroraShift.interpolate({ inputRange: [0, 1], outputRange: [-40, 40] }),
+          }],
+        }]}>
+          <LinearGradient
+            colors={['transparent', 'rgba(34,197,94,0.18)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
+        {/* Light streaks (no circles, just slim vertical slivers) */}
+        {[...Array(10)].map((_, i) => (
+          <View key={i} pointerEvents="none" style={[styles.streak, {
+            left: `${(i * 11 + 5) % 100}%`,
+            top: `${(i * 19 + 8) % 90}%`,
+            opacity: 0.05 + ((i * 7) % 10) / 100,
+            height: 80 + ((i * 13) % 80),
+          }]} />
+        ))}
+
         <View style={styles.overlayContent}>
-          <View style={{ flex: 1 }}>
-            <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
-              {/* Spacer to push headline down */}
-              <View style={{ flex: 0.12 }} />
-            
-            {/* Headline - positioned higher without mascot */}
-            <Text style={[styles.headline, { marginTop: 9 }]}>
-              FAITH. FITNESS. <Text style={styles.headlineAccent}>FOCUS.</Text>
-            </Text>
-            <Text style={styles.subtitle}>All in one.</Text>
-            
-            {/* Flexible spacer to push buttons down */}
+          <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
+            {/* Top eyebrow chip */}
+            <View style={{ flex: 0.12 }} />
+            <Animated.View style={[styles.eyebrowChip, { opacity: subtitleAnim }]}>
+              <View style={styles.eyebrowDot} />
+              <Text style={styles.eyebrowText}>FREE FOREVER · NO ADS · NO PAYWALLS</Text>
+            </Animated.View>
+
+            <View style={{ flex: 0.06 }} />
+
+            {/* Icon with diffuse glow (no circle outline) */}
+            <Animated.View style={{
+              transform: [
+                { translateY: mascotBounce },
+                { scale: iconScale },
+              ],
+              opacity: iconOpacity,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Animated.View style={[styles.iconGlow, {
+                opacity: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.75] }),
+                transform: [{
+                  scale: glowPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.15] }),
+                }],
+              }]} />
+              <Image
+                source={require('../../assets/onboard-icon.png')}
+                style={styles.mascotImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+
+            <View style={{ flex: 0.04 }} />
+
+            {/* Staggered word reveal headline */}
+            <View style={styles.headlineWrap}>
+              <Animated.Text style={[styles.headline, {
+                opacity: word1Anim,
+                transform: [{ translateY: word1Anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+              }]}>
+                FAITH.
+              </Animated.Text>
+              <Animated.Text style={[styles.headline, {
+                opacity: word2Anim,
+                transform: [{ translateY: word2Anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+              }]}>
+                FITNESS.
+              </Animated.Text>
+              <Animated.Text style={[styles.headline, styles.headlineAccent, {
+                opacity: word3Anim,
+                transform: [{ translateY: word3Anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+              }]}>
+                FOCUS.
+              </Animated.Text>
+            </View>
+
+            <Animated.Text style={[styles.subtitle, { opacity: subtitleAnim }]}>
+              All in one.
+            </Animated.Text>
+
+            {/* Cycling verse */}
+            <Animated.Text style={[styles.verseLine, { opacity: Animated.multiply(subtitleAnim, verseFade) }]}>
+              {welcomeVerses[verseIndex]}
+            </Animated.Text>
+
             <View style={{ flex: 1 }} />
-            
-            {/* Main CTA Buttons - at the bottom */}
-            <View style={styles.ctaContainer}>
-              <TouchableOpacity 
-                style={styles.primaryButton}
-                onPress={() => {
-                  setViewMode('email');
-                  setEmailMode('signup');
-                }}
+
+            {/* CTAs */}
+            <Animated.View style={[styles.ctaContainer, {
+              opacity: ctaAnim,
+              transform: [{ translateY: ctaAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
+            }]}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => { setViewMode('email'); setEmailMode('signup'); }}
               >
-                <Text style={styles.primaryButtonText}>Create Account</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+                <LinearGradient
+                  colors={['#22C55E', '#16A34A']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.primaryButton}
+                >
+                  <Text style={styles.primaryButtonText}>Create Account</Text>
+                  <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+                </LinearGradient>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
+                activeOpacity={0.85}
                 style={styles.secondaryButton}
-                onPress={() => {
-                  setViewMode('email');
-                  setEmailMode('login');
-                }}
+                onPress={() => { setViewMode('email'); setEmailMode('login'); }}
               >
                 <Text style={styles.secondaryButtonText}>I already have an account</Text>
               </TouchableOpacity>
-              </View>
-              
-              {/* Bottom spacing */}
-              <View style={{ height: 20 }} />
             </Animated.View>
-          </View>
+
+            <View style={{ height: 28 }} />
+          </Animated.View>
         </View>
       </View>
     );
@@ -444,7 +573,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={['#F5EFE6', '#E8DFD0']}
+        colors={['#0A1A0F', '#11241B']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.gradientBackground}
@@ -469,21 +598,21 @@ const AuthScreen = ({ onAuthSuccess }) => {
             
             {/* Header section */}
             <View style={styles.formHeader}>
-              <View style={[styles.formIconContainer, { backgroundColor: '#E67E22' }]}>
+              <View style={[styles.formIconContainer, { backgroundColor: '#22C55E' }]}>
                 <Ionicons 
                   name={emailMode === 'login' ? 'person' : emailMode === 'signup' ? 'person-add' : emailMode === '2fa' ? 'shield-checkmark' : 'key'} 
                   size={26} 
                   color="#FFF" 
                 />
               </View>
-              <Text style={[styles.formTitle, { color: '#2C3E50' }]}>
+              <Text style={[styles.formTitle, { color: '#FFFFFF' }]}>
                 {emailMode === 'login' && 'Welcome Back'}
                 {emailMode === 'signup' && 'Join Us'}
                 {emailMode === 'forgot' && 'Reset Password'}
                 {emailMode === 'resetCode' && 'Enter Code'}
                 {emailMode === '2fa' && 'Verify Identity'}
               </Text>
-              <Text style={[styles.formSubtitle, { color: '#666' }]}>
+              <Text style={[styles.formSubtitle, { color: 'rgba(255,255,255,0.7)' }]}>
                 {emailMode === 'login' && 'Sign in with your email or username'}
                 {emailMode === 'signup' && 'Create an account to get started'}
                 {emailMode === 'forgot' && 'Enter your email or username to reset'}
@@ -643,7 +772,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                     disabled={resendCooldown > 0}
                     style={{ alignSelf: 'center', marginBottom: 12, marginTop: -4 }}
                   >
-                    <Text style={{ fontSize: 14, color: resendCooldown > 0 ? '#BBB' : '#E67E22', fontWeight: '600' }}>
+                    <Text style={{ fontSize: 14, color: resendCooldown > 0 ? '#BBB' : '#22C55E', fontWeight: '600' }}>
                       {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
                     </Text>
                   </TouchableOpacity>
@@ -675,7 +804,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                     disabled={twoFAResendCooldown > 0}
                     style={{ alignSelf: 'center', marginBottom: 12, marginTop: -4 }}
                   >
-                    <Text style={{ fontSize: 14, color: twoFAResendCooldown > 0 ? '#BBB' : '#E67E22', fontWeight: '600' }}>
+                    <Text style={{ fontSize: 14, color: twoFAResendCooldown > 0 ? '#BBB' : '#22C55E', fontWeight: '600' }}>
                       {twoFAResendCooldown > 0 ? `Resend code in ${twoFAResendCooldown}s` : 'Resend code'}
                     </Text>
                   </TouchableOpacity>
@@ -758,7 +887,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                     disabled={isButtonLoading}
                   >
                     <LinearGradient
-                      colors={['#E67E22', '#D35400']}
+                      colors={['#22C55E', '#16A34A']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.actionButtonGradient}
@@ -813,7 +942,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5EFE6', // Warm, friendly background like Bread
+    backgroundColor: '#0A1A0F', // Dark forest green matching Biblely brand
   },
   backgroundImage: {
     position: 'absolute',
@@ -836,30 +965,85 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   mascotImage: {
-    width: width * 0.45,
-    height: width * 0.45,
+    width: width * 0.42,
+    height: width * 0.42,
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: width * 0.78,
+    height: width * 0.78,
+    backgroundColor: '#22C55E',
+    borderRadius: 32,
+    opacity: 0.5,
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 60,
+  },
+  streak: {
+    position: 'absolute',
+    width: 1.5,
+    backgroundColor: '#22C55E',
+    borderRadius: 1,
+  },
+  eyebrowChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 100,
+    backgroundColor: 'rgba(34, 197, 94, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.28)',
+    gap: 8,
+  },
+  eyebrowDot: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#34D572',
+    borderRadius: 1,
+    transform: [{ rotate: '45deg' }],
+  },
+  eyebrowText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#34D572',
+    letterSpacing: 1.4,
+  },
+  headlineWrap: {
+    alignItems: 'center',
   },
   headline: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#2C3E50',
+    fontSize: 46,
+    fontWeight: '900',
+    color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: 2,
+    letterSpacing: 1,
+    lineHeight: 52,
   },
   headlineAccent: {
-    color: '#E67E22', // Warm accent color
-    fontWeight: '900',
+    color: '#34D572',
+    textShadowColor: 'rgba(52, 213, 114, 0.55)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 14,
   },
   subtitle: {
-    fontSize: 17,
-    color: '#555',
-    marginTop: 12,
-    marginBottom: 50,
+    fontSize: 18,
+    color: '#9BB5A4',
+    marginTop: 14,
     textAlign: 'center',
     lineHeight: 24,
     fontWeight: '500',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
     paddingHorizontal: 10,
+  },
+  verseLine: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: 18,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    letterSpacing: 0.4,
   },
   ctaContainer: {
     width: '100%',
@@ -869,11 +1053,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E67E22',
+    backgroundColor: '#22C55E',
     borderRadius: 16,
     paddingVertical: 18,
     gap: 8,
-    shadowColor: '#E67E22',
+    shadowColor: '#22C55E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -887,16 +1071,16 @@ const styles = StyleSheet.create({
   secondaryButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 16,
     paddingVertical: 16,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
   },
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: '#FFFFFF',
   },
   
   // Email form styles - Modern redesign
@@ -982,8 +1166,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   modeTabActive: {
-    backgroundColor: '#E67E22',
-    shadowColor: '#E67E22',
+    backgroundColor: '#22C55E',
+    shadowColor: '#22C55E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1035,14 +1219,14 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 14,
-    color: '#E67E22',
+    color: '#22C55E',
     fontWeight: '600',
   },
   actionButton: {
     borderRadius: 16,
     overflow: 'hidden',
     marginTop: 8,
-    shadowColor: '#E67E22',
+    shadowColor: '#22C55E',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,

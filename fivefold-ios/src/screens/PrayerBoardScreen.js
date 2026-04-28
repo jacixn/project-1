@@ -24,7 +24,8 @@ import userStorage from '../utils/userStorage';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
-import { Accelerometer } from 'expo-sensors';
+// Accelerometer parallax removed — motion permission no longer required.
+// import { Accelerometer } from 'expo-sensors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -995,21 +996,8 @@ const PrayerBoardScreen = ({ navigation }) => {
     });
   }, [currentBoardIndex, saveBoards]);
 
-  // Parallax accelerometer
-  useEffect(() => {
-    Accelerometer.setUpdateInterval(32);
-    accelSubscription.current = Accelerometer.addListener(({ x, y }) => {
-      parallaxX.value = withSpring(x, { damping: 20, stiffness: 90 });
-      parallaxY.value = withSpring(y - 0.5, { damping: 20, stiffness: 90 });
-    });
-
-    return () => {
-      if (accelSubscription.current) {
-        accelSubscription.current.remove();
-        accelSubscription.current = null;
-      }
-    };
-  }, [parallaxX, parallaxY]);
+  // Parallax accelerometer removed for App Store compliance — motion permission
+  // is no longer requested. The parallax shared values stay at their defaults.
 
   // ─── Modal open/close ───
   const openCreateFolder = useCallback(() => {

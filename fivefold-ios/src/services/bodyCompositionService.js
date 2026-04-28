@@ -323,15 +323,18 @@ class BodyCompositionService {
     const bmiShift = idealBMI - (isMale ? 22.5 : 21.5);
     const bmiAdj = bmi - bmiShift;
 
-    if (bmiAdj < 16) score -= 25;
-    else if (bmiAdj < 18.5) score -= 8 + (18.5 - bmiAdj) * 4;
-    else if (bmiAdj < 20) score -= (20 - bmiAdj) * 2;
-    else if (bmiAdj >= 40) score -= 35;
-    else if (bmiAdj >= 35) score -= 25 + (bmiAdj - 35) * 2;
-    else if (bmiAdj >= 30) score -= 15 + (bmiAdj - 30) * 2;
-    else if (bmiAdj >= 27) score -= 6 + (bmiAdj - 27) * 3;
-    else if (bmiAdj >= 25) score -= (bmiAdj - 25) * 3;
-    else if (bmiAdj >= 23) score -= (bmiAdj - 23) * 1.5;
+    // Note: BMI penalties are reduced because body fat % already captures most
+    // of the same signal. Heavy BMI deductions on top of BF deductions
+    // double-counts adiposity and crushes the score for ordinary cases.
+    if (bmiAdj < 16) score -= 18;
+    else if (bmiAdj < 18.5) score -= 6 + (18.5 - bmiAdj) * 2.5;
+    else if (bmiAdj < 20) score -= (20 - bmiAdj) * 1.2;
+    else if (bmiAdj >= 40) score -= 22;
+    else if (bmiAdj >= 35) score -= 16 + (bmiAdj - 35) * 1.2;
+    else if (bmiAdj >= 30) score -= 9 + (bmiAdj - 30) * 1.4;
+    else if (bmiAdj >= 27) score -= 4 + (bmiAdj - 27) * 1.7;
+    else if (bmiAdj >= 25) score -= (bmiAdj - 25) * 2;
+    else if (bmiAdj >= 23) score -= (bmiAdj - 23) * 1;
 
     // ── Body fat — THE dominant factor, thresholds slide with age ──
     const bfT = this._getBodyFatThresholds(isMale, realAge);
@@ -365,16 +368,18 @@ class BodyCompositionService {
     if (bodyWater < idealWater - 8) score -= 4 + (idealWater - 8 - bodyWater);
     else if (bodyWater < idealWater) score -= (idealWater - bodyWater) * 0.4;
 
-    // ── Visceral fat ──
-    if (visceralFat > 14) score -= 10 + (visceralFat - 14) * 2.5;
-    else if (visceralFat > 9) score -= 2 + (visceralFat - 9) * 1.5;
-    else if (visceralFat > 5) score -= (visceralFat - 5) * 0.3;
+    // ── Visceral fat (already partly reflected in BF/BMI — softer penalty) ──
+    if (visceralFat > 14) score -= 6 + (visceralFat - 14) * 1.2;
+    else if (visceralFat > 9) score -= 1.5 + (visceralFat - 9) * 0.9;
+    else if (visceralFat > 5) score -= (visceralFat - 5) * 0.25;
 
-    // ── Body age vs real age ──
-    if (bodyAge > realAge + 8) score -= 8 + (bodyAge - realAge - 8) * 1.5;
-    else if (bodyAge > realAge + 3) score -= 2 + (bodyAge - realAge - 3) * 1.2;
-    else if (bodyAge > realAge) score -= (bodyAge - realAge) * 0.8;
+    // ── Body age vs real age (capped to avoid stacking with BF/BMI/visceral) ──
+    let bodyAgePenalty = 0;
+    if (bodyAge > realAge + 8) bodyAgePenalty = 5 + (bodyAge - realAge - 8) * 0.8;
+    else if (bodyAge > realAge + 3) bodyAgePenalty = 1.5 + (bodyAge - realAge - 3) * 0.7;
+    else if (bodyAge > realAge) bodyAgePenalty = (bodyAge - realAge) * 0.5;
     else if (bodyAge < realAge - 5) score += Math.min((realAge - bodyAge - 5) * 0.3, 2);
+    score -= Math.min(bodyAgePenalty, 10);
 
     return Math.max(5, Math.min(100, Math.round(score)));
   }

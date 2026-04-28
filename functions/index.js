@@ -803,6 +803,52 @@ exports.rollbackReferralOnAccountDelete = onCall({ maxInstances: 10 }, async (re
 // Scheduled — runs daily at 3 AM UTC to delete hub_posts older than 7 days.
 // Uses admin SDK so it bypasses Firestore rules (can delete any user's posts).
 
+// ─── checkAiUsage ────────────────────────────────────────────────
+// Server-side rate limiting for AI features.
+// Atomic check + increment per (uid, category, UTC date).
+// Client cannot bypass via clock change, app reinstall, or storage edits.
+
+const AI_USAGE_LIMITS = {
+  chat: 50,
+  food: 15,
+  bible: 25,
+  task: 30,
+  generation: 10,
+  voice: 35,
+  speechToText: 25,
+  reflection: 15,
+};
+
+exports.checkAiUsage = onCall({ maxInstances: 50 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Sign in required');
+  }
+  if (!request.auth.token.email_verified) {
+    throw new HttpsError('permission-denied', 'Email verification required');
+  }
+
+  const uid = request.auth.uid;
+  const category = request.data?.category;
+  const limit = AI_USAGE_LIMITS[category];
+  if (!limit) {
+    throw new HttpsError('invalid-argument', 'Unknown category');
+  }
+
+  const now = new Date();
+  const dateKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+  const ref = db.doc(`users/${uid}/ai_usage/${dateKey}`);
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const used = (snap.exists && snap.data()[category]) || 0;
+    if (used >= limit) {
+      return { allowed: false, used, limit };
+    }
+    tx.set(ref, { [category]: used + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    return { allowed: true, used: used + 1, limit };
+  });
+});
+
 exports.cleanupExpiredHubPosts = onSchedule('every day 03:00', async () => {
   const POST_EXPIRY_DAYS = 7;
   const cutoff = new Date();

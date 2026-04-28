@@ -7,12 +7,17 @@
  * - Conflict resolution: Cloud wins for critical data
  */
 
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
+import {
+  doc,
+  collection,
+  getDoc,
+  getDocs,
+  setDoc,
   updateDoc,
+  deleteDoc,
+  writeBatch,
   serverTimestamp,
+  deleteField,
 } from 'firebase/firestore';
 // AsyncStorage import removed — all storage now goes through userStorage
 import { db, auth } from '../config/firebase';
@@ -74,6 +79,79 @@ export const pushToCloud = (firestoreField, data, delay = 1500) => {
       const userId = auth.currentUser?.uid;
       if (!userId) return;
 
+      // Subcollection-backed fields: route to per-doc storage to avoid
+      // 1 MiB Firestore doc limit and write amplification.
+      if (firestoreField === 'savedBibleVerses' && Array.isArray(data)) {
+        await syncSavedVersesSubcollection(userId, data);
+        return;
+      }
+      if (firestoreField === 'workoutHistory' && Array.isArray(data)) {
+        // Prune to last 90 days before sync (matches existing retention policy).
+        const pruned = data.filter(w => {
+          if (!w) return false;
+          const ts = w.completedAt ? new Date(w.completedAt).getTime() : (w.timestamp || 0);
+          return !ts || ts > Date.now() - HISTORY_RETENTION_MS;
+        });
+        await syncArraySubcollection(userId, 'workouts', pruned);
+        await setDoc(doc(db, 'users', userId), {
+          workoutHistory: deleteField(),
+          lastActive: serverTimestamp(),
+        }, { merge: true });
+        return;
+      }
+      if (firestoreField === 'foodLog' && data && typeof data === 'object') {
+        // foodLog is an object keyed by 'YYYY-MM-DD' → meals array.
+        // Stored as one Firestore doc per date in `users/{uid}/food_log`.
+        await syncMapSubcollection(userId, 'food_log', data, /* pruneByDateKey */ true);
+        await setDoc(doc(db, 'users', userId), {
+          foodLog: deleteField(),
+          lastActive: serverTimestamp(),
+        }, { merge: true });
+        return;
+      }
+      if (firestoreField === 'journalNotes' && Array.isArray(data)) {
+        await syncArraySubcollection(userId, 'journal', data);
+        await setDoc(doc(db, 'users', userId), {
+          journalNotes: deleteField(),
+          lastActive: serverTimestamp(),
+        }, { merge: true });
+        return;
+      }
+      if (firestoreField === 'simplePrayers' && Array.isArray(data)) {
+        await syncArraySubcollection(userId, 'prayers_personal', data);
+        await setDoc(doc(db, 'users', userId), {
+          simplePrayers: deleteField(),
+          lastActive: serverTimestamp(),
+        }, { merge: true });
+        return;
+      }
+      if (firestoreField === 'todos' && Array.isArray(data)) {
+        await syncArraySubcollection(userId, 'todos', data);
+        await setDoc(doc(db, 'users', userId), {
+          todos: deleteField(),
+          lastActive: serverTimestamp(),
+        }, { merge: true });
+        return;
+      }
+      // Smaller per-item arrays — same pattern: subcollection + drop legacy field.
+      const ARRAY_TO_SUBCOLLECTION = {
+        favoriteVerses: 'favorite_verses',
+        foodFavorites: 'food_favorites',
+        scaleHistory: 'scale_history',
+        scheduledWorkouts: 'scheduled_workouts',
+        visions: 'visions',
+        prayerBoards: 'prayer_boards',
+      };
+      const subName = ARRAY_TO_SUBCOLLECTION[firestoreField];
+      if (subName && Array.isArray(data)) {
+        await syncArraySubcollection(userId, subName, data);
+        await setDoc(doc(db, 'users', userId), {
+          [firestoreField]: deleteField(),
+          lastActive: serverTimestamp(),
+        }, { merge: true });
+        return;
+      }
+
       await setDoc(doc(db, 'users', userId), {
         [firestoreField]: data,
         lastActive: serverTimestamp(),
@@ -84,6 +162,287 @@ export const pushToCloud = (firestoreField, data, delay = 1500) => {
     }
   }, delay);
 };
+
+// ── Saved verses subcollection helpers ────────────────────────────
+// Storage layout: users/{uid}/saved_verses/{verseId}
+// Each verse is its own Firestore doc, sized ~250 bytes.
+// Supports unlimited verses per user (no 1 MiB doc cap).
+
+const SAVED_VERSES_SUBCOLLECTION = 'saved_verses';
+
+/**
+ * Sanitize a verse.id into a valid Firestore document ID.
+ * Firestore docIds cannot contain '/'. Verse IDs use '_' and '-' only,
+ * but defensively replace any remaining slashes.
+ */
+const verseDocId = (verseId) => String(verseId).replace(/\//g, '_');
+
+/**
+ * Sync the full saved-verses array to the user's subcollection.
+ * Upserts every verse (merge), and deletes cloud docs not in `verses`.
+ * One-time migration: removes legacy array field from main user doc.
+ */
+const syncSavedVersesSubcollection = async (userId, verses) => {
+  if (!userId || !Array.isArray(verses)) return;
+
+  const subRef = collection(db, 'users', userId, SAVED_VERSES_SUBCOLLECTION);
+
+  // Read existing IDs in cloud
+  const cloudSnap = await getDocs(subRef);
+  const cloudIds = new Set();
+  cloudSnap.forEach(d => cloudIds.add(d.id));
+
+  // Build local id set + write upserts
+  const localIds = new Set();
+  let batch = writeBatch(db);
+  let opsInBatch = 0;
+  const commits = [];
+
+  for (const v of verses) {
+    if (!v || !v.id) continue;
+    const docId = verseDocId(v.id);
+    localIds.add(docId);
+    batch.set(doc(subRef, docId), { ...v, syncedAt: serverTimestamp() }, { merge: true });
+    opsInBatch++;
+    if (opsInBatch >= 450) {
+      commits.push(batch.commit());
+      batch = writeBatch(db);
+      opsInBatch = 0;
+    }
+  }
+
+  // Delete cloud docs not present locally
+  for (const cloudId of cloudIds) {
+    if (!localIds.has(cloudId)) {
+      batch.delete(doc(subRef, cloudId));
+      opsInBatch++;
+      if (opsInBatch >= 450) {
+        commits.push(batch.commit());
+        batch = writeBatch(db);
+        opsInBatch = 0;
+      }
+    }
+  }
+
+  if (opsInBatch > 0) commits.push(batch.commit());
+  await Promise.all(commits);
+
+  // Remove legacy array field from main doc + bump lastActive
+  await setDoc(doc(db, 'users', userId), {
+    savedBibleVerses: deleteField(),
+    lastActive: serverTimestamp(),
+  }, { merge: true });
+
+  let deleted = 0;
+  for (const id of cloudIds) if (!localIds.has(id)) deleted++;
+  console.log(`[Sync] Synced ${verses.length} saved verses to subcollection (deleted ${deleted} stale)`);
+};
+
+/**
+ * Read all saved verses from the subcollection.
+ * Returns array (may be empty). Caller should fall back to legacy array
+ * field on the user doc if this returns empty AND user is mid-migration.
+ */
+export const pullSavedVersesFromSubcollection = async (userId) => {
+  if (!userId) return [];
+  try {
+    const subRef = collection(db, 'users', userId, SAVED_VERSES_SUBCOLLECTION);
+    const snap = await getDocs(subRef);
+    const out = [];
+    snap.forEach(d => {
+      const data = d.data();
+      // Strip server-only fields before returning
+      const { syncedAt, ...rest } = data;
+      out.push(rest);
+    });
+    return out;
+  } catch (e) {
+    console.warn('[Sync] pullSavedVersesFromSubcollection failed:', e.message);
+    return [];
+  }
+};
+
+/**
+ * Delete a single verse from the cloud subcollection.
+ * Used by callers that delete verses individually (cheaper than full re-sync).
+ */
+export const deleteVerseFromCloud = async (verseId) => {
+  const userId = auth.currentUser?.uid;
+  if (!userId || !verseId) return;
+  try {
+    await deleteDoc(doc(db, 'users', userId, SAVED_VERSES_SUBCOLLECTION, verseDocId(verseId)));
+  } catch (e) {
+    console.warn('[Sync] deleteVerseFromCloud failed:', e.message);
+  }
+};
+
+/**
+ * Generic per-doc subcollection sync. Upserts each item by `id`, deletes
+ * cloud docs missing from the local array. Used for any large array that
+ * would otherwise blow the 1 MiB user-doc cap (workouts, food log, etc.).
+ *
+ * Items must have a string/number `id` field — items without are skipped.
+ *
+ * @param {string} userId
+ * @param {string} subcollectionName  e.g. 'workouts', 'food_log', 'journal'
+ * @param {Array<object>} items
+ */
+const syncArraySubcollection = async (userId, subcollectionName, items) => {
+  if (!userId || !Array.isArray(items)) return;
+
+  const subRef = collection(db, 'users', userId, subcollectionName);
+
+  const cloudSnap = await getDocs(subRef);
+  const cloudIds = new Set();
+  cloudSnap.forEach(d => cloudIds.add(d.id));
+
+  const localIds = new Set();
+  let batch = writeBatch(db);
+  let opsInBatch = 0;
+  const commits = [];
+
+  for (const item of items) {
+    if (!item || item.id === undefined || item.id === null) continue;
+    const docId = verseDocId(item.id); // sanitize slashes
+    localIds.add(docId);
+    batch.set(doc(subRef, docId), { ...item, syncedAt: serverTimestamp() }, { merge: true });
+    opsInBatch++;
+    if (opsInBatch >= 450) {
+      commits.push(batch.commit());
+      batch = writeBatch(db);
+      opsInBatch = 0;
+    }
+  }
+
+  for (const cloudId of cloudIds) {
+    if (!localIds.has(cloudId)) {
+      batch.delete(doc(subRef, cloudId));
+      opsInBatch++;
+      if (opsInBatch >= 450) {
+        commits.push(batch.commit());
+        batch = writeBatch(db);
+        opsInBatch = 0;
+      }
+    }
+  }
+
+  if (opsInBatch > 0) commits.push(batch.commit());
+  await Promise.all(commits);
+
+  let deleted = 0;
+  for (const id of cloudIds) if (!localIds.has(id)) deleted++;
+  console.log(`[Sync] Synced ${items.length} items to ${subcollectionName} (deleted ${deleted} stale)`);
+};
+
+/**
+ * Pull all items from a subcollection into an array. Strips internal
+ * `syncedAt` timestamp before returning.
+ */
+const pullArraySubcollection = async (userId, subcollectionName) => {
+  if (!userId) return [];
+  try {
+    const subRef = collection(db, 'users', userId, subcollectionName);
+    const snap = await getDocs(subRef);
+    const out = [];
+    snap.forEach(d => {
+      const { syncedAt, ...rest } = d.data();
+      out.push(rest);
+    });
+    return out;
+  } catch (e) {
+    console.warn(`[Sync] pullArraySubcollection(${subcollectionName}) failed:`, e.message);
+    return [];
+  }
+};
+
+export { pullArraySubcollection };
+
+/**
+ * Sync an object keyed by string (e.g. foodLog keyed by 'YYYY-MM-DD') into
+ * a subcollection where each top-level key becomes one doc. Each doc stores
+ * its value under `entries` (array) or `value` (anything else) so reads can
+ * round-trip cleanly.
+ *
+ * If `pruneByDateKey` is true, keys parseable as dates older than 90 days
+ * are dropped before writing.
+ */
+const syncMapSubcollection = async (userId, subcollectionName, mapObject, pruneByDateKey = false) => {
+  if (!userId || !mapObject || typeof mapObject !== 'object') return;
+
+  const subRef = collection(db, 'users', userId, subcollectionName);
+  const cloudSnap = await getDocs(subRef);
+  const cloudIds = new Set();
+  cloudSnap.forEach(d => cloudIds.add(d.id));
+
+  const localIds = new Set();
+  let batch = writeBatch(db);
+  let opsInBatch = 0;
+  const commits = [];
+  const cutoff = Date.now() - HISTORY_RETENTION_MS;
+
+  for (const key of Object.keys(mapObject)) {
+    if (pruneByDateKey) {
+      const ts = new Date(key).getTime();
+      if (!isNaN(ts) && ts < cutoff) continue;
+    }
+    const value = mapObject[key];
+    const docId = verseDocId(key);
+    localIds.add(docId);
+    const payload = Array.isArray(value)
+      ? { entries: value, syncedAt: serverTimestamp() }
+      : { value, syncedAt: serverTimestamp() };
+    batch.set(doc(subRef, docId), payload, { merge: true });
+    opsInBatch++;
+    if (opsInBatch >= 450) {
+      commits.push(batch.commit());
+      batch = writeBatch(db);
+      opsInBatch = 0;
+    }
+  }
+
+  for (const cloudId of cloudIds) {
+    if (!localIds.has(cloudId)) {
+      batch.delete(doc(subRef, cloudId));
+      opsInBatch++;
+      if (opsInBatch >= 450) {
+        commits.push(batch.commit());
+        batch = writeBatch(db);
+        opsInBatch = 0;
+      }
+    }
+  }
+
+  if (opsInBatch > 0) commits.push(batch.commit());
+  await Promise.all(commits);
+
+  let deletedMap = 0;
+  for (const id of cloudIds) if (!localIds.has(id)) deletedMap++;
+  console.log(`[Sync] Synced ${Object.keys(mapObject).length} entries to ${subcollectionName} (deleted ${deletedMap} stale)`);
+};
+
+/**
+ * Pull a map-style subcollection back into a plain object.
+ * Each doc's `entries` (array) or `value` field is reattached under its docId.
+ */
+const pullMapSubcollection = async (userId, subcollectionName) => {
+  if (!userId) return {};
+  try {
+    const subRef = collection(db, 'users', userId, subcollectionName);
+    const snap = await getDocs(subRef);
+    const out = {};
+    snap.forEach(d => {
+      const data = d.data();
+      if (Array.isArray(data.entries)) out[d.id] = data.entries;
+      else if (data.value !== undefined) out[d.id] = data.value;
+    });
+    return out;
+  } catch (e) {
+    console.warn(`[Sync] pullMapSubcollection(${subcollectionName}) failed:`, e.message);
+    return {};
+  }
+};
+
+export { pullMapSubcollection };
 
 /**
  * Filter history array to only keep entries from the last 90 days
@@ -144,15 +503,15 @@ const cleanHistoryData = (data) => {
   const cleaned = { ...data };
   
   // Clean each history type
-  if (cleaned.workoutHistory) {
+  if (Array.isArray(cleaned.workoutHistory)) {
     const before = cleaned.workoutHistory.length;
     cleaned.workoutHistory = filterRecentHistory(cleaned.workoutHistory);
     if (before !== cleaned.workoutHistory.length) {
       console.log(`[Sync] Cleaned workoutHistory: ${before} → ${cleaned.workoutHistory.length} entries`);
     }
   }
-  
-  if (cleaned.quizHistory) {
+
+  if (Array.isArray(cleaned.quizHistory)) {
     const before = cleaned.quizHistory.length;
     cleaned.quizHistory = filterRecentHistory(cleaned.quizHistory);
     if (before !== cleaned.quizHistory.length) {
@@ -160,15 +519,15 @@ const cleanHistoryData = (data) => {
     }
   }
   
-  if (cleaned.prayerHistory) {
+  if (Array.isArray(cleaned.prayerHistory)) {
     const before = cleaned.prayerHistory.length;
     cleaned.prayerHistory = filterRecentHistory(cleaned.prayerHistory);
     if (before !== cleaned.prayerHistory.length) {
       console.log(`[Sync] Cleaned prayerHistory: ${before} → ${cleaned.prayerHistory.length} entries`);
     }
   }
-  
-  if (cleaned.completedTodos) {
+
+  if (Array.isArray(cleaned.completedTodos)) {
     const before = cleaned.completedTodos.length;
     cleaned.completedTodos = filterRecentHistory(cleaned.completedTodos);
     if (before !== cleaned.completedTodos.length) {
@@ -465,21 +824,35 @@ export const downloadAndMergeCloudData = async (userId) => {
       return merged;
     };
     
-    // Saved Bible Verses - merge by ID, keep local-only additions
-    if (cloudData.savedBibleVerses && Array.isArray(cloudData.savedBibleVerses)) {
-      const merged = await mergeArraysById('savedBibleVerses', cloudData.savedBibleVerses);
-      console.log(`[Sync] Merged saved verses: ${merged?.length || 0} total`);
-      
-      const statsStr = await userStorage.getRaw('userStats');
-      const stats = statsStr ? JSON.parse(statsStr) : {};
-      stats.savedVerses = merged?.length || 0;
-      await userStorage.setRaw('userStats', JSON.stringify(stats));
+    // Saved Bible Verses — pull from subcollection (preferred) or legacy array field.
+    // Subcollection layout avoids 1 MiB doc cap and lets users save unlimited verses.
+    {
+      let cloudVerses = await pullSavedVersesFromSubcollection(userId);
+      if ((!cloudVerses || cloudVerses.length === 0) && Array.isArray(cloudData.savedBibleVerses) && cloudData.savedBibleVerses.length > 0) {
+        // Legacy: doc still has the old array field. Use it; next push will migrate.
+        cloudVerses = cloudData.savedBibleVerses;
+      }
+      if (cloudVerses && cloudVerses.length > 0) {
+        const merged = await mergeArraysById('savedBibleVerses', cloudVerses);
+        console.log(`[Sync] Merged saved verses: ${merged?.length || 0} total`);
+
+        const statsStr = await userStorage.getRaw('userStats');
+        const stats = statsStr ? JSON.parse(statsStr) : {};
+        stats.savedVerses = merged?.length || 0;
+        await userStorage.setRaw('userStats', JSON.stringify(stats));
+      }
     }
     
-    // Journal Notes - merge by ID, keep local-only additions
-    if (cloudData.journalNotes && Array.isArray(cloudData.journalNotes)) {
-      const merged = await mergeArraysById('journalNotes', cloudData.journalNotes);
-      console.log(`[Sync] Merged journal notes: ${merged?.length || 0} total`);
+    // Journal Notes — pull from `journal` subcollection (preferred) or legacy field.
+    {
+      let cloudJournal = await pullArraySubcollection(userId, 'journal');
+      if ((!cloudJournal || cloudJournal.length === 0) && Array.isArray(cloudData.journalNotes) && cloudData.journalNotes.length > 0) {
+        cloudJournal = cloudData.journalNotes;
+      }
+      if (cloudJournal && cloudJournal.length > 0) {
+        const merged = await mergeArraysById('journalNotes', cloudJournal);
+        console.log(`[Sync] Merged journal notes: ${merged?.length || 0} total`);
+      }
     }
     
     // Theme Preferences - ONLY apply cloud theme if local has NO theme set
@@ -498,20 +871,27 @@ export const downloadAndMergeCloudData = async (userId) => {
       }
     }
     
+    // Workout history — pull from `workouts` subcollection (preferred),
+    // fall back to legacy `workoutHistory` array field for users mid-migration.
+    {
+      let cloudWorkouts = await pullArraySubcollection(userId, 'workouts');
+      if ((!cloudWorkouts || cloudWorkouts.length === 0) && Array.isArray(cloudData.workoutHistory) && cloudData.workoutHistory.length > 0) {
+        cloudWorkouts = cloudData.workoutHistory;
+      }
+      // Apply 90-day retention to whatever source we used
+      if (Array.isArray(cloudWorkouts) && cloudWorkouts.length > 0) {
+        cloudWorkouts = filterRecentHistory(cloudWorkouts);
+        const merged = await mergeArraysById('@workout_history', cloudWorkouts);
+        console.log(`[Sync] Merged workout history: ${merged?.length || 0} entries`);
+      }
+    }
+
     // Clean history data from cloud before saving locally (remove entries older than 90 days)
     const cleanedCloudData = cleanHistoryData({
-      workoutHistory: cloudData.workoutHistory,
       quizHistory: cloudData.quizHistory,
       prayerHistory: cloudData.prayerHistory,
       completedTodos: cloudData.completedTodos,
     });
-    
-    // Workout history - merge, keep local-only entries
-    // Note: workoutService uses @workout_history key
-    if (cleanedCloudData.workoutHistory && cleanedCloudData.workoutHistory.length > 0) {
-      const merged = await mergeArraysById('@workout_history', cleanedCloudData.workoutHistory);
-      console.log(`[Sync] Merged workout history: ${merged?.length || 0} entries`);
-    }
 
     // Workout templates - cloud + local-only
     if (cloudData.workoutTemplates && Array.isArray(cloudData.workoutTemplates)) {
@@ -538,33 +918,45 @@ export const downloadAndMergeCloudData = async (userId) => {
       }
     }
 
-    // Food log - merge date keys (each key is a date like "2026-02-09")
-    if (cloudData.foodLog && typeof cloudData.foodLog === 'object') {
-      const localStr = await userStorage.getRaw('@food_log');
-      const localLog = localStr ? JSON.parse(localStr) : {};
-      // Merge: for each date, keep whichever has more entries
-      const merged = { ...cloudData.foodLog };
-      for (const [dateKey, localEntries] of Object.entries(localLog)) {
-        if (!merged[dateKey]) {
-          merged[dateKey] = localEntries;
-        } else {
-          // Keep whichever has more food entries for that day
-          const cloudEntries = merged[dateKey];
-          const cloudFoods = cloudEntries.foods?.length || 0;
-          const localFoods = localEntries.foods?.length || 0;
-          if (localFoods > cloudFoods) {
+    // Food log — pull from `food_log` subcollection (preferred) or legacy field.
+    // Subcollection holds one doc per date; entries stored under `entries`.
+    {
+      let cloudFoodLog = await pullMapSubcollection(userId, 'food_log');
+      // pullMapSubcollection returns { 'YYYY-MM-DD': arrayOfEntries }; legacy field
+      // shape was { 'YYYY-MM-DD': { foods: [...], totals: {...} } } — fall back to that.
+      const haveSubcollection = cloudFoodLog && Object.keys(cloudFoodLog).length > 0;
+      if (!haveSubcollection && cloudData.foodLog && typeof cloudData.foodLog === 'object') {
+        cloudFoodLog = cloudData.foodLog;
+      }
+      if (cloudFoodLog && Object.keys(cloudFoodLog).length > 0) {
+        const localStr = await userStorage.getRaw('@food_log');
+        const localLog = localStr ? JSON.parse(localStr) : {};
+        const merged = { ...cloudFoodLog };
+        for (const [dateKey, localEntries] of Object.entries(localLog)) {
+          if (!merged[dateKey]) {
             merged[dateKey] = localEntries;
+          } else {
+            const cloudEntries = merged[dateKey];
+            const cloudFoods = cloudEntries?.foods?.length || (Array.isArray(cloudEntries) ? cloudEntries.length : 0);
+            const localFoods = localEntries?.foods?.length || (Array.isArray(localEntries) ? localEntries.length : 0);
+            if (localFoods > cloudFoods) merged[dateKey] = localEntries;
           }
         }
+        await userStorage.setRaw('@food_log', JSON.stringify(merged));
+        console.log(`[Sync] Merged food log: ${Object.keys(merged).length} days`);
       }
-      await userStorage.setRaw('@food_log', JSON.stringify(merged));
-      console.log(`[Sync] Merged food log: ${Object.keys(merged).length} days`);
     }
 
-    // Food favorites - merge by ID
-    if (cloudData.foodFavorites && Array.isArray(cloudData.foodFavorites)) {
-      const merged = await mergeArraysById('@food_favorites', cloudData.foodFavorites);
-      console.log(`[Sync] Merged food favorites: ${merged?.length || 0}`);
+    // Food favorites — pull from `food_favorites` subcollection or legacy field.
+    {
+      let cloudFavs = await pullArraySubcollection(userId, 'food_favorites');
+      if ((!cloudFavs || cloudFavs.length === 0) && Array.isArray(cloudData.foodFavorites) && cloudData.foodFavorites.length > 0) {
+        cloudFavs = cloudData.foodFavorites;
+      }
+      if (cloudFavs && cloudFavs.length > 0) {
+        const merged = await mergeArraysById('@food_favorites', cloudFavs);
+        console.log(`[Sync] Merged food favorites: ${merged?.length || 0}`);
+      }
     }
 
     // Physique scores - cloud wins
@@ -615,30 +1007,32 @@ export const downloadAndMergeCloudData = async (userId) => {
       }
     }
     
-    // Active todos/tasks - merge by ID, preserve local completion state
-    if (cloudData.todos) {
-      const localStr = await userStorage.getRaw('fivefold_todos');
-      const localTodos = localStr ? JSON.parse(localStr) : [];
-      const localMap = new Map(localTodos.map(t => [t.id, t]));
-      
-      // Merge: keep local completion state if more recent
-      cloudData.todos.forEach(cloudTodo => {
-        const localTodo = localMap.get(cloudTodo.id);
-        if (localTodo) {
-          // If local is completed but cloud isn't, keep local (user completed it this session)
-          if (localTodo.completed && !cloudTodo.completed) {
-            // Keep local version
+    // Active todos/tasks — pull from `todos` subcollection (preferred) or legacy field.
+    {
+      let cloudTodos = await pullArraySubcollection(userId, 'todos');
+      if ((!cloudTodos || cloudTodos.length === 0) && Array.isArray(cloudData.todos) && cloudData.todos.length > 0) {
+        cloudTodos = cloudData.todos;
+      }
+      if (cloudTodos && cloudTodos.length > 0) {
+        const localStr = await userStorage.getRaw('fivefold_todos');
+        const localTodos = localStr ? JSON.parse(localStr) : [];
+        const localMap = new Map(localTodos.map(t => [t.id, t]));
+        cloudTodos.forEach(cloudTodo => {
+          const localTodo = localMap.get(cloudTodo.id);
+          if (localTodo) {
+            if (localTodo.completed && !cloudTodo.completed) {
+              // Keep local version (more recent completion)
+            } else {
+              localMap.set(cloudTodo.id, cloudTodo);
+            }
           } else {
             localMap.set(cloudTodo.id, cloudTodo);
           }
-        } else {
-          localMap.set(cloudTodo.id, cloudTodo);
-        }
-      });
-      
-      const merged = Array.from(localMap.values());
-      await userStorage.setRaw('fivefold_todos', JSON.stringify(merged));
-      console.log(`[Sync] Merged ${merged.length} todos`);
+        });
+        const merged = Array.from(localMap.values());
+        await userStorage.setRaw('fivefold_todos', JSON.stringify(merged));
+        console.log(`[Sync] Merged ${merged.length} todos`);
+      }
     }
     
     // Completed todos/tasks (cleaned) - merge, keep local-only completions
@@ -688,38 +1082,45 @@ export const downloadAndMergeCloudData = async (userId) => {
     }
     
     // Scheduled workouts (gym)
-    if (cloudData.scheduledWorkouts) {
-      await userStorage.setRaw('@scheduled_workouts', JSON.stringify(cloudData.scheduledWorkouts));
-      console.log(`[Sync] Downloaded ${cloudData.scheduledWorkouts.length} scheduled workouts from cloud`);
+    {
+      let cloudScheduled = await pullArraySubcollection(userId, 'scheduled_workouts');
+      if ((!cloudScheduled || cloudScheduled.length === 0) && Array.isArray(cloudData.scheduledWorkouts) && cloudData.scheduledWorkouts.length > 0) {
+        cloudScheduled = cloudData.scheduledWorkouts;
+      }
+      if (cloudScheduled && cloudScheduled.length > 0) {
+        await userStorage.setRaw('@scheduled_workouts', JSON.stringify(cloudScheduled));
+        console.log(`[Sync] Downloaded ${cloudScheduled.length} scheduled workouts from cloud`);
+      }
     }
     
-    // Simple prayers - SMART MERGE: preserve local completedAt timestamps
-    if (cloudData.simplePrayers && Array.isArray(cloudData.simplePrayers)) {
-      const localStr = await userStorage.getRaw('fivefold_simplePrayers');
-      const localPrayers = localStr ? JSON.parse(localStr) : [];
-      
-      // Build map of local completion states
-      const localCompletions = {};
-      localPrayers.forEach(p => {
-        if (p.completedAt) localCompletions[p.id] = { completedAt: p.completedAt, canComplete: p.canComplete };
-      });
-      
-      // Merge: use cloud prayers but preserve more recent local completedAt
-      const merged = cloudData.simplePrayers.map(cloudPrayer => {
-        const localCompletion = localCompletions[cloudPrayer.id];
-        if (localCompletion && localCompletion.completedAt) {
-          const localDate = new Date(localCompletion.completedAt);
-          const cloudDate = cloudPrayer.completedAt ? new Date(cloudPrayer.completedAt) : new Date(0);
-          if (localDate > cloudDate) {
-            // Local completion is more recent - keep it
-            return { ...cloudPrayer, completedAt: localCompletion.completedAt, canComplete: false };
+    // Simple prayers — pull from `prayers_personal` subcollection (preferred) or legacy field.
+    // Smart merge preserves more recent local completedAt timestamps.
+    {
+      let cloudPrayers = await pullArraySubcollection(userId, 'prayers_personal');
+      if ((!cloudPrayers || cloudPrayers.length === 0) && Array.isArray(cloudData.simplePrayers) && cloudData.simplePrayers.length > 0) {
+        cloudPrayers = cloudData.simplePrayers;
+      }
+      if (cloudPrayers && cloudPrayers.length > 0) {
+        const localStr = await userStorage.getRaw('fivefold_simplePrayers');
+        const localPrayers = localStr ? JSON.parse(localStr) : [];
+        const localCompletions = {};
+        localPrayers.forEach(p => {
+          if (p.completedAt) localCompletions[p.id] = { completedAt: p.completedAt, canComplete: p.canComplete };
+        });
+        const merged = cloudPrayers.map(cloudPrayer => {
+          const localCompletion = localCompletions[cloudPrayer.id];
+          if (localCompletion && localCompletion.completedAt) {
+            const localDate = new Date(localCompletion.completedAt);
+            const cloudDate = cloudPrayer.completedAt ? new Date(cloudPrayer.completedAt) : new Date(0);
+            if (localDate > cloudDate) {
+              return { ...cloudPrayer, completedAt: localCompletion.completedAt, canComplete: false };
+            }
           }
-        }
-        return cloudPrayer;
-      });
-      
-      await userStorage.setRaw('fivefold_simplePrayers', JSON.stringify(merged));
-      console.log(`[Sync] Merged ${merged.length} prayers (preserved local completions)`);
+          return cloudPrayer;
+        });
+        await userStorage.setRaw('fivefold_simplePrayers', JSON.stringify(merged));
+        console.log(`[Sync] Merged ${merged.length} prayers (preserved local completions)`);
+      }
     }
     
     // Verse data (contains highlights) - SMART MERGE: keep local additions
@@ -902,12 +1303,17 @@ export const downloadAndMergeCloudData = async (userId) => {
       }
     }
     
-    // Key Verses favorites
-    if (cloudData.favoriteVerses) {
-      await userStorage.setRaw('fivefold_favoriteVerses', JSON.stringify(cloudData.favoriteVerses));
-      console.log('[Sync] Downloaded Key Verses favorites from cloud');
+    // Key Verses favorites — pull from `favorite_verses` subcollection or legacy field.
+    {
+      let cloudFav = await pullArraySubcollection(userId, 'favorite_verses');
+      if ((!cloudFav || cloudFav.length === 0) && Array.isArray(cloudData.favoriteVerses) && cloudData.favoriteVerses.length > 0) {
+        cloudFav = cloudData.favoriteVerses;
+      }
+      if (cloudFav && cloudFav.length > 0) {
+        await userStorage.setRaw('fivefold_favoriteVerses', JSON.stringify(cloudFav));
+        console.log('[Sync] Downloaded Key Verses favorites from cloud');
+      }
     }
-    
     // ── Achievement & Customisation Data ──────────────────────────
     // Unlocked achievements — merge: union of local + cloud
     if (cloudData.achievementsUnlocked && Array.isArray(cloudData.achievementsUnlocked)) {
@@ -964,10 +1370,16 @@ export const downloadAndMergeCloudData = async (userId) => {
       }
     }
 
-    // Visions — merge by ID, keep local-only additions
-    if (cloudData.visions && Array.isArray(cloudData.visions)) {
-      const merged = await mergeArraysById('visions', cloudData.visions);
-      console.log(`[Sync] Merged visions: ${merged?.length || 0} total`);
+    // Visions — pull from `visions` subcollection or legacy field.
+    {
+      let cloudVisions = await pullArraySubcollection(userId, 'visions');
+      if ((!cloudVisions || cloudVisions.length === 0) && Array.isArray(cloudData.visions) && cloudData.visions.length > 0) {
+        cloudVisions = cloudData.visions;
+      }
+      if (cloudVisions && cloudVisions.length > 0) {
+        const merged = await mergeArraysById('visions', cloudVisions);
+        console.log(`[Sync] Merged visions: ${merged?.length || 0} total`);
+      }
     }
 
     // Reminders — merge by ID, preserve local completions
@@ -1028,10 +1440,16 @@ export const downloadAndMergeCloudData = async (userId) => {
       }
     }
 
-    // Prayer boards — cloud wins (contains cloud image URLs that work on any device)
-    if (cloudData.prayerBoards && Array.isArray(cloudData.prayerBoards) && cloudData.prayerBoards.length > 0) {
-      await userStorage.set('prayerBoards_list', cloudData.prayerBoards);
-      console.log(`[Sync] Downloaded ${cloudData.prayerBoards.length} prayer boards from cloud`);
+    // Prayer boards — pull from `prayer_boards` subcollection or legacy field.
+    {
+      let cloudBoards = await pullArraySubcollection(userId, 'prayer_boards');
+      if ((!cloudBoards || cloudBoards.length === 0) && Array.isArray(cloudData.prayerBoards) && cloudData.prayerBoards.length > 0) {
+        cloudBoards = cloudData.prayerBoards;
+      }
+      if (cloudBoards && cloudBoards.length > 0) {
+        await userStorage.set('prayerBoards_list', cloudBoards);
+        console.log(`[Sync] Downloaded ${cloudBoards.length} prayer boards from cloud`);
+      }
     }
 
     return {
@@ -1195,23 +1613,16 @@ export const getSyncStatus = async (userId) => {
  */
 export const syncSavedVersesToCloud = async (userId) => {
   if (!userId) return false;
-  
+
   try {
     const savedVersesStr = await userStorage.getRaw('savedBibleVerses');
-    console.log('[Sync] Saved verses from AsyncStorage:', savedVersesStr ? 'found' : 'not found');
-    
-    if (savedVersesStr) {
-      const savedVerses = JSON.parse(savedVersesStr);
-      console.log(`[Sync] Preparing to upload ${savedVerses.length} saved verses to cloud for user ${userId}`);
-      
-      await setDoc(doc(db, 'users', userId), {
-        savedBibleVerses: savedVerses,
-        lastActive: serverTimestamp(),
-      }, { merge: true });
-      console.log(`[Sync] Successfully uploaded ${savedVerses.length} saved verses to cloud`);
-    } else {
+    if (!savedVersesStr) {
       console.log('[Sync] No saved verses found in local storage to upload');
+      return true;
     }
+    const savedVerses = JSON.parse(savedVersesStr);
+    console.log(`[Sync] Preparing to upload ${savedVerses.length} saved verses to subcollection for user ${userId}`);
+    await syncSavedVersesSubcollection(userId, savedVerses);
     return true;
   } catch (error) {
     console.error('[Sync] Error syncing saved verses:', error);
@@ -1227,17 +1638,15 @@ export const syncSavedVersesToCloud = async (userId) => {
  */
 export const syncJournalNotesToCloud = async (userId) => {
   if (!userId) return false;
-  
   try {
     const journalNotesStr = await userStorage.getRaw('journalNotes');
-    if (journalNotesStr) {
-      const journalNotes = JSON.parse(journalNotesStr);
-      await setDoc(doc(db, 'users', userId), {
-        journalNotes: journalNotes,
-        lastActive: serverTimestamp(),
-      }, { merge: true });
-      console.log(`[Sync] Uploaded ${journalNotes.length} journal notes to cloud`);
-    }
+    if (!journalNotesStr) return true;
+    const journalNotes = JSON.parse(journalNotesStr);
+    await syncArraySubcollection(userId, 'journal', journalNotes);
+    await setDoc(doc(db, 'users', userId), {
+      journalNotes: deleteField(),
+      lastActive: serverTimestamp(),
+    }, { merge: true });
     return true;
   } catch (error) {
     console.error('[Sync] Error syncing journal notes:', error);
@@ -1252,30 +1661,16 @@ export const syncJournalNotesToCloud = async (userId) => {
  */
 export const syncPrayersToCloud = async (userId) => {
   if (!userId) return false;
-  
   try {
-    // Try the main key first (fivefold_ prefix is added by saveData)
     let prayersStr = await userStorage.getRaw('fivefold_simplePrayers');
-    console.log('[Sync] Checking fivefold_simplePrayers:', prayersStr ? `found ${JSON.parse(prayersStr).length} prayers` : 'not found');
-    
-    if (!prayersStr) {
-      // Fallback to non-prefixed key
-      prayersStr = await userStorage.getRaw('simplePrayers');
-      console.log('[Sync] Checking simplePrayers fallback:', prayersStr ? `found ${JSON.parse(prayersStr).length} prayers` : 'not found');
-    }
-    
-    if (prayersStr) {
-      const prayers = JSON.parse(prayersStr);
-      console.log('[Sync] Uploading prayers to cloud:', prayers.map(p => ({ id: p.id, name: p.name })));
-      
-      await setDoc(doc(db, 'users', userId), {
-        simplePrayers: prayers,
-        lastActive: serverTimestamp(),
-      }, { merge: true });
-      console.log(`[Sync] Successfully uploaded ${prayers.length} prayers to Firestore for user ${userId}`);
-    } else {
-      console.log('[Sync] No prayers found in local storage to upload');
-    }
+    if (!prayersStr) prayersStr = await userStorage.getRaw('simplePrayers');
+    if (!prayersStr) return true;
+    const prayers = JSON.parse(prayersStr);
+    await syncArraySubcollection(userId, 'prayers_personal', prayers);
+    await setDoc(doc(db, 'users', userId), {
+      simplePrayers: deleteField(),
+      lastActive: serverTimestamp(),
+    }, { merge: true });
     return true;
   } catch (error) {
     console.error('[Sync] Error syncing prayers:', error);
@@ -1326,12 +1721,17 @@ export const syncAllHistoryToCloud = async (userId) => {
   try {
     const updateData = { lastActive: serverTimestamp() };
     
-    // Workout history (workoutService stores under @workout_history)
+    // Workout history — synced to `users/{uid}/workouts` subcollection
+    // (NOT the main user doc) to avoid the 1 MiB doc cap. Pruned to last 90 days.
     let workoutHistoryStr = await userStorage.getRaw('@workout_history');
     if (!workoutHistoryStr) workoutHistoryStr = await userStorage.getRaw('workoutHistory');
     if (workoutHistoryStr) {
-      updateData.workoutHistory = JSON.parse(workoutHistoryStr);
-      console.log(`[Sync] Including workout history (${updateData.workoutHistory.length} entries) in upload`);
+      const parsed = JSON.parse(workoutHistoryStr);
+      const pruned = filterRecentHistory(parsed);
+      await syncArraySubcollection(userId, 'workouts', pruned);
+      // Strip legacy field from main doc if present.
+      updateData.workoutHistory = deleteField();
+      console.log(`[Sync] Synced ${pruned.length} workouts to subcollection`);
     }
 
     // Workout templates
@@ -1355,18 +1755,22 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including nutrition profile in upload');
     }
 
-    // Food log
+    // Food log — synced to `users/{uid}/food_log` subcollection (one doc per date).
     const foodLogStr = await userStorage.getRaw('@food_log');
     if (foodLogStr) {
-      updateData.foodLog = JSON.parse(foodLogStr);
-      console.log('[Sync] Including food log in upload');
+      const parsedLog = JSON.parse(foodLogStr);
+      await syncMapSubcollection(userId, 'food_log', parsedLog, /* pruneByDateKey */ true);
+      updateData.foodLog = deleteField();
+      console.log(`[Sync] Synced food log (${Object.keys(parsedLog).length} days) to subcollection`);
     }
 
-    // Food favorites
+    // Food favorites — synced to `users/{uid}/food_favorites` subcollection.
     const foodFavoritesStr = await userStorage.getRaw('@food_favorites');
     if (foodFavoritesStr) {
-      updateData.foodFavorites = JSON.parse(foodFavoritesStr);
-      console.log(`[Sync] Including food favorites (${updateData.foodFavorites.length}) in upload`);
+      const arr = JSON.parse(foodFavoritesStr);
+      await syncArraySubcollection(userId, 'food_favorites', arr);
+      updateData.foodFavorites = deleteField();
+      console.log(`[Sync] Synced ${arr.length} food favorites to subcollection`);
     }
 
     // Physique scores
@@ -1407,10 +1811,13 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including hub_token_schedule in upload');
     }
     
-    // Active todos/tasks
+    // Active todos/tasks — synced to `users/{uid}/todos` subcollection.
     const todosStr = await userStorage.getRaw('fivefold_todos');
     if (todosStr) {
-      updateData.todos = JSON.parse(todosStr);
+      const todosArr = JSON.parse(todosStr);
+      await syncArraySubcollection(userId, 'todos', todosArr);
+      updateData.todos = deleteField();
+      console.log(`[Sync] Synced ${todosArr.length} todos to subcollection`);
     }
     
     // Completed todos/tasks
@@ -1432,11 +1839,13 @@ export const syncAllHistoryToCloud = async (userId) => {
       }
     }
     
-    // Scheduled workouts (gym)
+    // Scheduled workouts — synced to `users/{uid}/scheduled_workouts` subcollection.
     const scheduledWorkoutsStr = await userStorage.getRaw('@scheduled_workouts');
     if (scheduledWorkoutsStr) {
-      updateData.scheduledWorkouts = JSON.parse(scheduledWorkoutsStr);
-      console.log('[Sync] Including scheduled workouts in upload');
+      const arr = JSON.parse(scheduledWorkoutsStr);
+      await syncArraySubcollection(userId, 'scheduled_workouts', arr);
+      updateData.scheduledWorkouts = deleteField();
+      console.log(`[Sync] Synced ${arr.length} scheduled workouts to subcollection`);
     }
     
     // Highlights - stored in verse_data key by VerseDataManager
@@ -1545,11 +1954,13 @@ export const syncAllHistoryToCloud = async (userId) => {
       updateData.friendChatHistory = JSON.parse(friendChatHistoryStr);
     }
     
-    // Key Verses favorites (uses fivefold_ prefix via saveData)
+    // Key Verses favorites — synced to `users/{uid}/favorite_verses` subcollection.
     const favoriteVersesStr = await userStorage.getRaw('fivefold_favoriteVerses');
     if (favoriteVersesStr) {
-      updateData.favoriteVerses = JSON.parse(favoriteVersesStr);
-      console.log('[Sync] Including Key Verses favorites in upload');
+      const arr = JSON.parse(favoriteVersesStr);
+      await syncArraySubcollection(userId, 'favorite_verses', arr);
+      updateData.favoriteVerses = deleteField();
+      console.log(`[Sync] Synced ${arr.length} Key Verses favorites to subcollection`);
     }
     
     // ── Achievement & Customisation Data ──────────────────────────
@@ -1613,11 +2024,13 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including workout split plan in upload');
     }
 
-    // Visions
+    // Visions — synced to `users/{uid}/visions` subcollection.
     const visionsStr = await userStorage.getRaw('visions');
     if (visionsStr) {
-      updateData.visions = JSON.parse(visionsStr);
-      console.log(`[Sync] Including visions (${updateData.visions.length}) in upload`);
+      const arr = JSON.parse(visionsStr);
+      await syncArraySubcollection(userId, 'visions', arr);
+      updateData.visions = deleteField();
+      console.log(`[Sync] Synced ${arr.length} visions to subcollection`);
     }
 
     // Habits
@@ -1650,10 +2063,11 @@ export const syncAllHistoryToCloud = async (userId) => {
       console.log('[Sync] Including daily verse data in upload');
     }
     
-    // Prayer boards (full board data with cloud image URLs)
+    // Prayer boards — synced to `users/{uid}/prayer_boards` subcollection.
     const prayerBoardsData = await userStorage.get('prayerBoards_list');
     if (prayerBoardsData && Array.isArray(prayerBoardsData) && prayerBoardsData.length > 0) {
-      updateData.prayerBoards = prayerBoardsData;
+      await syncArraySubcollection(userId, 'prayer_boards', prayerBoardsData);
+      updateData.prayerBoards = deleteField();
       console.log(`[Sync] Including prayer boards (${prayerBoardsData.length} boards) in upload`);
     }
 

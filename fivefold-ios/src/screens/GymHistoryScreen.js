@@ -14,14 +14,12 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Platform,
   StatusBar,
   Alert,
   RefreshControl,
   Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -167,9 +165,16 @@ const GymHistoryScreen = () => {
 
       <Animated.ScrollView
         style={{ flex: 1, opacity: fadeAnim }}
-        contentContainerStyle={{ paddingTop: insets.top + 46, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header title (scrolls with content) — back button hoisted outside scroll for static position */}
+        <View style={[styles.dashHeader, { paddingTop: insets.top + 8, paddingHorizontal: 20 }]}>
+          <View style={styles.headerBtn} />
+          <Text style={[styles.dashTitle, { color: textPrimary }]}>Workout History</Text>
+          <View style={styles.headerBtn} />
+        </View>
+
         {/* Stats Banner */}
         <View style={[styles.statsBanner, { backgroundColor: cardBg, borderColor: cardBorder }]}>
           <View style={styles.statItem}>
@@ -331,59 +336,20 @@ const GymHistoryScreen = () => {
         ))}
       </Animated.ScrollView>
 
-      {/* Premium Transparent Header */}
-      <BlurView
-        intensity={50}
-        tint={isDark ? 'dark' : 'light'}
-        style={{
+      {/* Static back button — outside ScrollView, fixed position */}
+      <TouchableOpacity
+        style={[styles.headerBtn, {
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-        }}
+          top: insets.top + 8,
+          left: 20,
+          zIndex: 10,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+        }]}
+        onPress={() => { hapticFeedback.light(); navigation.goBack(); }}
+        activeOpacity={0.7}
       >
-        <View style={{ height: Platform.OS === 'ios' ? insets.top : 24 }} />
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-            </TouchableOpacity>
-
-            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
-              <Text style={{
-                color: textPrimary,
-                fontSize: 17,
-                fontWeight: '700',
-                letterSpacing: 0.3,
-              }}>
-                Workout History
-              </Text>
-              <View style={{
-                width: 60,
-                height: 3,
-                backgroundColor: theme.primary,
-                borderRadius: 2,
-                marginTop: 6,
-              }} />
-            </View>
-
-            {/* Spacer to balance the back button */}
-            <View style={{ width: 40 }} />
-          </View>
-        </View>
-      </BlurView>
+        <MaterialIcons name="arrow-back-ios-new" size={18} color={textPrimary} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -392,6 +358,26 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontSize: 14, fontWeight: '500' },
+
+  // Header — matches Fuel
+  dashHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dashTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
 
   // Stats banner
   statsBanner: {

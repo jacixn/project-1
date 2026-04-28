@@ -309,10 +309,22 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
   // ── Data Handling ──
 
   const finalizeMeasurement = useCallback((data) => {
+    console.log('[ScaleModal] FINALIZE called — phase:', phaseRef.current, 'data:', JSON.stringify({ weightKg: data?.weightKg, bf: data?.bodyFatPercent, imp: data?.impedance }));
     if (phaseRef.current !== 'measuring') return;
 
     if (bodyCompTimerRef.current) { clearTimeout(bodyCompTimerRef.current); bodyCompTimerRef.current = null; }
     stableDataRef.current = null;
+
+    if (!data.bodyFatPercent && data.impedance && profileRef.current) {
+      const p = profileRef.current;
+      const bf = scaleService.calculateBodyFat(data.impedance, data.weightKg, p.heightCm, p.age, p.gender === 'male');
+      if (bf) {
+        data = { ...data, bodyFatPercent: bf };
+        console.log('[ScaleModal] Finalize fallback BF computed:', bf);
+      } else {
+        console.log('[ScaleModal] Finalize fallback BF null — profile:', JSON.stringify({ heightCm: p.heightCm, age: p.age, gender: p.gender }));
+      }
+    }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setStableReading(data);
@@ -353,13 +365,21 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
     if (!bf && data.impedance && profileRef.current) {
       const p = profileRef.current;
       bf = scaleService.calculateBodyFat(data.impedance, data.weightKg, p.heightCm, p.age, p.gender === 'male');
+      if (!bf) {
+        console.log('[ScaleModal] BF compute returned null — profile:', JSON.stringify({ heightCm: p.heightCm, age: p.age, gender: p.gender, weightKg: p.weightKg }), 'impedance:', data.impedance);
+      } else {
+        console.log('[ScaleModal] BF computed:', bf, 'from impedance:', data.impedance);
+      }
+    } else if (!bf && data.impedance && !profileRef.current) {
+      console.log('[ScaleModal] BF skip — profile not loaded, impedance:', data.impedance);
     }
     if (bf) setLiveBodyFat(bf);
 
     if (!data.stable) seenUnstableRef.current = true;
 
+    console.log('[ScaleModal] tick — stable:', data.stable, 'phase:', phaseRef.current, 'timerArmed:', !!bodyCompTimerRef.current, 'weight:', data.weightKg, 'bf:', bf);
+
     if (!data.weightKg || data.weightKg < 25 || !data.stable) return;
-    if (!seenUnstableRef.current) return;
     if (phaseRef.current !== 'measuring') return;
 
     // Weight stable — build reading with all accumulated body comp
@@ -368,19 +388,19 @@ const ScaleConnectionModal = ({ visible, onClose, onReadingSaved }) => {
       bodyFatPercent: bf || data.bodyFatPercent || null,
     };
 
-    if (reading.bodyFatPercent) {
-      finalizeMeasurement(reading);
-      return;
-    }
-
-    // No body comp yet — store data and wait up to 15 s for impedance packet
+    // Always store latest stable reading — overwritten each tick with newest body comp
     stableDataRef.current = reading;
+
+    // Wait for scale to settle body composition computation. Each new stable packet
+    // updates stableDataRef.current; timer fires once with the LAST/most-recent reading.
+    // Longer wait when bf still missing (scale hasn't sent body comp yet).
     if (!bodyCompTimerRef.current) {
+      const settleMs = reading.bodyFatPercent ? 4000 : 15000;
       bodyCompTimerRef.current = setTimeout(() => {
         if (phaseRef.current === 'measuring' && stableDataRef.current) {
           finalizeMeasurement(stableDataRef.current);
         }
-      }, 15000);
+      }, settleMs);
     }
   }, [finalizeMeasurement]);
 

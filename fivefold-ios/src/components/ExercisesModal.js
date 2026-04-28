@@ -17,7 +17,6 @@ import {
   Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import ExercisesService from '../services/exercisesService';
 import { hapticFeedback } from '../utils/haptics';
@@ -28,6 +27,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = false, asScreen = false }) => {
   const { theme, isDark } = useTheme();
+  const insets = { top: Platform.OS === 'ios' ? 50 : 24, bottom: 0, left: 0, right: 0 };
+  const textPrimary = theme.text;
   const scrollViewRef = useRef(null);
   const sectionRefs = useRef({});
   const [exercises, setExercises] = useState([]);
@@ -293,9 +294,6 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         }
       }}
     >
-      <View style={[styles.exerciseIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-        <MaterialIcons name="fitness-center" size={28} color={theme.primary} />
-      </View>
       <View style={styles.exerciseInfo}>
         <Text style={[styles.exerciseName, { color: theme.text }]}>
           {exercise.name}
@@ -311,117 +309,78 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const content = (
     <>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Premium Transparent Header — matches Saved Verses */}
-        <BlurView 
-          intensity={50} 
-          tint={isDark ? 'dark' : 'light'} 
-          style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 1000,
-          }}
-        >
-          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
-          
-          <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
-            {/* Title row */}
-            <View style={{ 
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
+        {/* Header — matches Fuel */}
+        <View style={{ paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 8, backgroundColor: theme.background }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <TouchableOpacity
+              onPress={() => { hapticFeedback.light(); onClose(); }}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="arrow-back-ios-new" size={18} color={textPrimary} />
+            </TouchableOpacity>
+            <Text style={{ color: textPrimary, fontSize: 20, fontWeight: '700', letterSpacing: 0.3 }}>
+              {selectionMode ? 'New' : 'Exercises'}
+            </Text>
+            <View style={{ width: 44, height: 44 }} />
+          </View>
+
+          {/* Search Bar */}
+          <View style={{
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+            borderRadius: 14,
+            paddingHorizontal: 14,
+            paddingVertical: 11,
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+          }}>
+            <MaterialIcons name="search" size={20} color={theme.textTertiary || theme.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search"
+              placeholderTextColor={theme.textTertiary || theme.textSecondary}
+              style={{
+                flex: 1,
+                fontSize: 15,
+                color: theme.text,
+                marginLeft: 10,
+                paddingVertical: 2,
+              }}
+            />
+            {searchQuery.length > 0 && (
               <TouchableOpacity
-                onPress={() => {
-                  hapticFeedback.light();
-                  onClose();
-                }}
-                style={{ 
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                onPress={() => setSearchQuery('')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  zIndex: 1,
                 }}
-                activeOpacity={0.7}
               >
-                <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+                <MaterialIcons name="close" size={14} color={theme.text} />
               </TouchableOpacity>
-              
-              <View style={{ 
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                alignItems: 'center',
-              }}>
-                <Text style={{ 
-                  color: theme.text, 
-                  fontSize: 17, 
-                  fontWeight: '700',
-                  letterSpacing: 0.3,
-                }}>
-                  {selectionMode ? 'New' : 'Exercises'}
-                </Text>
-              </View>
-            
-            <View style={{ width: 40 }} />
+            )}
           </View>
-            
-            {/* Search Bar */}
-            <View style={{
-              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-              borderRadius: 14,
-              paddingHorizontal: 14,
-              paddingVertical: 11,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-              marginTop: 16,
-            }}>
-              <MaterialIcons name="search" size={20} color={theme.textTertiary || theme.textSecondary} />
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search"
-                placeholderTextColor={theme.textTertiary || theme.textSecondary}
-                style={{
-                  flex: 1,
-                  fontSize: 15,
-                  color: theme.text,
-                  marginLeft: 10,
-                  paddingVertical: 2,
-                }}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery('')}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <MaterialIcons name="close" size={14} color={theme.text} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </BlurView>
+        </View>
 
         {/* Filter Menu - appears when three dots is tapped */}
         {showFilterMenu && (
-          <View style={[styles.filterMenu, { 
+          <View style={[styles.filterMenu, {
             backgroundColor: theme.background,
             borderBottomColor: theme.border,
-            marginTop: Platform.OS === 'ios' ? 175 : 155,
           }]}>
             <TouchableOpacity
               style={[styles.filterMenuItem, { borderBottomColor: theme.border }]}
@@ -622,7 +581,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
             <ScrollView
               ref={scrollViewRef}
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 185 : 165, paddingBottom: 50 }}
+              contentContainerStyle={{ paddingTop: 8, paddingBottom: 50 }}
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
@@ -1028,7 +987,6 @@ const styles = StyleSheet.create({
   },
   exerciseInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   exerciseName: {
     fontSize: 17,

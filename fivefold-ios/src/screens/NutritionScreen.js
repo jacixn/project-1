@@ -29,7 +29,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
@@ -69,14 +69,21 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const NutritionScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // When pushed as a dedicated edit/reconfigure stack screen we want to render
+  // the form on first paint (no loader, no fade-in flash) so the native slide
+  // animation actually shows real content.
+  const isEditPush = route.name === 'EditProfile' || route.name === 'ReconfigureProfile';
+  const isReconfigurePush = route.name === 'ReconfigureProfile';
+
   // ─── State ───
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [fullSetupMode, setFullSetupMode] = useState(false); // true = show all fields (gender, birthday, height etc.)
+  const [loading, setLoading] = useState(!isEditPush);
+  const [editingProfile, setEditingProfile] = useState(isEditPush);
+  const [fullSetupMode, setFullSetupMode] = useState(isReconfigurePush); // true = show all fields (gender, birthday, height etc.)
 
   // Setup form fields
   const [formGender, setFormGender] = useState('male');
@@ -143,7 +150,8 @@ const NutritionScreen = () => {
   const [displayCalories, setDisplayCalories] = useState(0);
 
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(isEditPush ? 1 : 0)).current;
+  const hasLoadedOnceRef = useRef(false);
   const ringAnim = useRef(new Animated.Value(0)).current;
   const cardSlideAnims = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(30))).current;
   const cardFadeAnims = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(0))).current;
@@ -311,9 +319,25 @@ const NutritionScreen = () => {
     }, [])
   );
 
+  // Honor deep-link params from other screens (e.g. Body Composition)
+  useEffect(() => {
+    if (route.params?.openReconfigure) {
+      setEditingProfile(true);
+      setFullSetupMode(true);
+      navigation.setParams({ openReconfigure: undefined });
+    } else if (route.params?.openEdit) {
+      setEditingProfile(true);
+      setFullSetupMode(false);
+      navigation.setParams({ openEdit: undefined });
+    }
+  }, [route.params?.openEdit, route.params?.openReconfigure]);
+
   const loadData = async () => {
     try {
-      setLoading(true);
+      // Only show loader + run entrance animation on FIRST load. Returning from
+      // a pushed screen (Edit/Reconfigure) should NOT flash the loader/fade.
+      const isFirstLoad = !hasLoadedOnceRef.current;
+      if (isFirstLoad) setLoading(true);
 
       // Always load unit preferences (even before profile exists)
       const storedWU = await userStorage.getRaw('weightUnit');
@@ -351,45 +375,52 @@ const NutritionScreen = () => {
         setStreak(s);
 
 
-        // Animate ring
-        const consumed = progress.consumed?.calories || 0;
-        const target = progress.targets?.calories || 2000;
-        const pct = Math.min(consumed / target, 1);
+        // Animate ring (only on first load — re-running it on every refocus
+        // resets the dial to zero and looks like a flicker)
+        if (isFirstLoad) {
+          const consumed = progress.consumed?.calories || 0;
+          const target = progress.targets?.calories || 2000;
+          const pct = Math.min(consumed / target, 1);
 
-        ringAnim.setValue(0);
-        Animated.timing(ringAnim, {
-          toValue: pct,
-          duration: 1000,
-          useNativeDriver: false,
-        }).start();
+          ringAnim.setValue(0);
+          Animated.timing(ringAnim, {
+            toValue: pct,
+            duration: 1000,
+            useNativeDriver: false,
+          }).start();
+        }
       }
 
-      setLoading(false);
+      if (isFirstLoad) {
+        setLoading(false);
 
-      // Entrance animations
-      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-      cardSlideAnims.forEach((anim, i) => {
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 400,
-          delay: i * 80,
-          useNativeDriver: true,
-        }).start();
-      });
-      cardFadeAnims.forEach((anim, i) => {
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 400,
-          delay: i * 80,
-          useNativeDriver: true,
-        }).start();
-      });
+        // Entrance animations
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+        cardSlideAnims.forEach((anim, i) => {
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 400,
+            delay: i * 80,
+            useNativeDriver: true,
+          }).start();
+        });
+        cardFadeAnims.forEach((anim, i) => {
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 400,
+            delay: i * 80,
+            useNativeDriver: true,
+          }).start();
+        });
+
+        hasLoadedOnceRef.current = true;
+      }
 
       // Ensure widget has latest fuel data whenever screen loads
       updateFuelWidget().catch(() => {});
     } catch (e) {
       console.warn('[NutritionScreen] Load failed:', e);
-      setLoading(false);
+      if (!hasLoadedOnceRef.current) setLoading(false);
     }
   };
 
@@ -1029,7 +1060,9 @@ const NutritionScreen = () => {
         <TouchableOpacity
           style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
           onPress={() => {
-            if (editingProfile) {
+            // If we were pushed as a dedicated Edit/Reconfigure stack screen, just pop.
+            const pushedAsEditStack = route.name === 'EditProfile' || route.name === 'ReconfigureProfile';
+            if (editingProfile && !pushedAsEditStack) {
               setEditingProfile(false);
               setFullSetupMode(false);
             } else {
@@ -1351,7 +1384,7 @@ const NutritionScreen = () => {
           <Text style={[styles.dashTitle, { color: textPrimary }]}>Fuel</Text>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-            onPress={() => { hapticFeedback.light(); setEditingProfile(true); }}
+            onPress={() => { hapticFeedback.light(); navigation.navigate('EditProfile'); }}
           >
             <MaterialIcons name="tune" size={20} color={textPrimary} />
           </TouchableOpacity>
@@ -2249,7 +2282,7 @@ const NutritionScreen = () => {
   //  MAIN RENDER
   // ════════════════════════════════════════════════════
 
-  if (loading) {
+  if (loading && !isEditPush) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: screenBg }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />

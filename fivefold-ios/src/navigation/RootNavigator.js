@@ -957,9 +957,29 @@ const RootNavigator = () => {
       />
       
       {/* Nutrition Screen */}
-      <Stack.Screen 
-        name="Nutrition" 
+      <Stack.Screen
+        name="Nutrition"
         component={NutritionScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Edit Profile Screen */}
+      <Stack.Screen
+        name="EditProfile"
+        component={NutritionScreen}
+        initialParams={{ openEdit: true }}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+
+      {/* Reconfigure Profile Screen */}
+      <Stack.Screen
+        name="ReconfigureProfile"
+        component={NutritionScreen}
+        initialParams={{ openReconfigure: true }}
         options={{
           animation: 'slide_from_right',
         }}

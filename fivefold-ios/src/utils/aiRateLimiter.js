@@ -1,14 +1,17 @@
 /**
  * aiRateLimiter.js — Per-category daily usage caps for AI features.
  *
- * Tracks usage counts in AsyncStorage keyed by date (ai_usage_YYYY-MM-DD).
- * Automatically resets at midnight local time.
+ * Server-authoritative: calls `checkAiUsage` Cloud Function which
+ * atomically checks + increments usage in Firestore using server time
+ * and the authenticated UID. Client cannot bypass via clock change,
+ * app reinstall, or storage edits.
+ *
  * Requires email verification before any AI feature can be used.
  */
 
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { auth } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions } from '../config/firebase';
 
 const LIMITS = {
   chat: 50,
@@ -32,30 +35,6 @@ const LIMIT_MESSAGES = {
   reflection: "You've reached your daily reflection limit (15 prayers). Your reflections will refresh tomorrow!",
 };
 
-function todayKey() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `ai_usage_${yyyy}-${mm}-${dd}`;
-}
-
-async function getUsageData() {
-  try {
-    const key = todayKey();
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? JSON.parse(raw) : {};
-  } catch (_) {
-    return {};
-  }
-}
-
-async function saveUsageData(data) {
-  try {
-    await AsyncStorage.setItem(todayKey(), JSON.stringify(data));
-  } catch (_) {}
-}
-
 function isEmailVerified() {
   const user = auth.currentUser;
   return user ? user.emailVerified : false;
@@ -69,6 +48,8 @@ function showVerificationPrompt() {
   );
 }
 
+const checkAiUsageFn = httpsCallable(functions, 'checkAiUsage');
+
 async function checkLimit(category) {
   if (!isEmailVerified()) {
     showVerificationPrompt();
@@ -78,40 +59,32 @@ async function checkLimit(category) {
   const limit = LIMITS[category];
   if (!limit) return { allowed: true, remaining: 999 };
 
-  const data = await getUsageData();
-  const used = data[category] || 0;
-
-  if (used >= limit) {
-    return { allowed: false, limit, used, message: LIMIT_MESSAGES[category] };
+  try {
+    const { data } = await checkAiUsageFn({ category });
+    if (!data.allowed) {
+      return { allowed: false, limit: data.limit, used: data.used, message: LIMIT_MESSAGES[category] };
+    }
+    return { allowed: true, remaining: data.limit - data.used };
+  } catch (e) {
+    // Fail closed — deny on error rather than allow bypass.
+    return { allowed: false, limit, used: 0, message: 'Could not verify usage limit. Check your connection and try again.' };
   }
-  return { allowed: true, remaining: limit - used };
 }
 
-async function increment(category) {
-  const data = await getUsageData();
-  data[category] = (data[category] || 0) + 1;
-  await saveUsageData(data);
+// Server-side checkLimit already increments atomically. Kept as no-op for
+// backward compatibility with existing callers.
+async function increment(_category) {
+  return;
 }
 
 async function getUsage() {
-  const data = await getUsageData();
+  // UI display only — reads Firestore doc directly.
+  // (Optional convenience; not required for limit enforcement.)
   const result = {};
   for (const cat of Object.keys(LIMITS)) {
-    result[cat] = { used: data[cat] || 0, limit: LIMITS[cat] };
+    result[cat] = { used: 0, limit: LIMITS[cat] };
   }
   return result;
 }
-
-async function cleanup() {
-  try {
-    const keys = await AsyncStorage.getAllKeys();
-    const today = todayKey();
-    const old = keys.filter(k => k.startsWith('ai_usage_') && k !== today);
-    if (old.length > 0) await AsyncStorage.multiRemove(old);
-  } catch (_) {}
-}
-
-// Run cleanup on import (non-blocking)
-cleanup();
 
 export default { checkLimit, increment, getUsage, LIMITS, LIMIT_MESSAGES };

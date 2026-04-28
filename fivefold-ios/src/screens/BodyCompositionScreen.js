@@ -31,8 +31,13 @@ import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
 import FitnessDisclaimer from '../components/FitnessDisclaimer';
 import ScaleConnectionModal from '../components/ScaleConnectionModal';
+import ManualWeighInModal from '../components/ManualWeighInModal';
 import scaleService from '../services/scaleService';
 import { hapticFeedback } from '../utils/haptics';
+
+// Bluetooth scale support disabled — manual weigh-in only.
+// Flip to true to re-enable BLE scale flow (code preserved).
+const SCALE_BLUETOOTH_ENABLED = false;
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -50,6 +55,7 @@ const BodyCompositionScreen = () => {
 
   // Smart Scale
   const [scaleModalVisible, setScaleModalVisible] = useState(false);
+  const [manualModalVisible, setManualModalVisible] = useState(false);
   const [lastScaleReading, setLastScaleReading] = useState(null);
   const [savedScaleDevice, setSavedScaleDevice] = useState(null);
   const scaleCardScale = useRef(new Animated.Value(0)).current;
@@ -104,18 +110,25 @@ const BodyCompositionScreen = () => {
     loadData();
   };
 
+  const hasLoadedOnceRef = useRef(false);
+
   const loadData = async () => {
     try {
-      setLoading(true);
+      // Only show loader + run entrance animation on FIRST load.
+      // Returning from a pushed screen should NOT flash the loader.
+      if (!hasLoadedOnceRef.current) setLoading(true);
       const profile = await nutritionService.getProfile();
       if (profile && profile.weightKg && profile.heightCm) {
         const data = bodyCompositionService.calculate(profile);
         setBodyComp(data);
       }
-      setLoading(false);
-      runEntranceAnimations();
+      if (!hasLoadedOnceRef.current) {
+        setLoading(false);
+        runEntranceAnimations();
+        hasLoadedOnceRef.current = true;
+      }
     } catch (e) {
-      setLoading(false);
+      if (!hasLoadedOnceRef.current) setLoading(false);
     }
   };
 
@@ -651,6 +664,17 @@ const BodyCompositionScreen = () => {
 
       <StaticBackButton onBack={() => navigation.goBack()} left={16} />
 
+      {/* Top-right: Edit profile (mirror of Fuel screen) */}
+      <View style={[styles.headerRightBtns, { top: insets.top + 8 }]} pointerEvents="box-none">
+        <TouchableOpacity
+          style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+          onPress={() => { hapticFeedback.light(); navigation.navigate('EditProfile'); }}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="tune" size={20} color={textPrimary} />
+        </TouchableOpacity>
+      </View>
+
       <Animated.ScrollView
         style={{ flex: 1, opacity: fadeAnim }}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -665,7 +689,11 @@ const BodyCompositionScreen = () => {
         }}>
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => { hapticFeedback.medium(); setScaleModalVisible(true); }}
+            onPress={() => {
+              hapticFeedback.medium();
+              if (SCALE_BLUETOOTH_ENABLED) setScaleModalVisible(true);
+              else setManualModalVisible(true);
+            }}
             style={[styles.scaleCard, {
               backgroundColor: cardBg,
               borderColor: cardBorder,
@@ -673,10 +701,12 @@ const BodyCompositionScreen = () => {
           >
             <View style={styles.scaleCardContent}>
               <View style={[styles.scaleIconBg, { backgroundColor: '#6366F114' }]}>
-                <MaterialIcons name="bluetooth" size={22} color="#6366F1" />
+                <MaterialIcons name={SCALE_BLUETOOTH_ENABLED ? 'bluetooth' : 'fitness-center'} size={22} color="#6366F1" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.scaleCardTitle, { color: textPrimary }]}>Smart Scale</Text>
+                <Text style={[styles.scaleCardTitle, { color: textPrimary }]}>
+                  {SCALE_BLUETOOTH_ENABLED ? 'Smart Scale' : 'Weigh-In'}
+                </Text>
                 {lastScaleReading ? (
                   <Text style={[styles.scaleCardSub, { color: textSecondary }]}>
                     Last: {lastScaleReading.weightKg?.toFixed(1)} kg
@@ -685,12 +715,18 @@ const BodyCompositionScreen = () => {
                   </Text>
                 ) : (
                   <Text style={[styles.scaleCardSub, { color: textTertiary }]}>
-                    {savedScaleDevice ? 'Tap to weigh in' : 'Connect your Bluetooth scale'}
+                    {SCALE_BLUETOOTH_ENABLED
+                      ? (savedScaleDevice ? 'Tap to weigh in' : 'Connect your Bluetooth scale')
+                      : 'Tap to log your weight'}
                   </Text>
                 )}
               </View>
               <View style={[styles.scaleCardArrow, { backgroundColor: '#6366F114' }]}>
-                <MaterialIcons name={savedScaleDevice ? 'bluetooth-connected' : 'chevron-right'} size={16} color="#6366F1" />
+                <MaterialIcons
+                  name={SCALE_BLUETOOTH_ENABLED && savedScaleDevice ? 'bluetooth-connected' : 'chevron-right'}
+                  size={16}
+                  color="#6366F1"
+                />
               </View>
             </View>
           </TouchableOpacity>
@@ -924,10 +960,18 @@ const BodyCompositionScreen = () => {
       )}
       <FitnessDisclaimer screenKey="body_composition" />
 
-      <ScaleConnectionModal
-        visible={scaleModalVisible}
-        onClose={() => setScaleModalVisible(false)}
-        onReadingSaved={handleScaleReadingSaved}
+      {SCALE_BLUETOOTH_ENABLED && (
+        <ScaleConnectionModal
+          visible={scaleModalVisible}
+          onClose={() => setScaleModalVisible(false)}
+          onReadingSaved={handleScaleReadingSaved}
+        />
+      )}
+
+      <ManualWeighInModal
+        visible={manualModalVisible}
+        onClose={() => setManualModalVisible(false)}
+        onSaved={handleScaleReadingSaved}
       />
     </View>
   );
@@ -958,6 +1002,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8,
   },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  headerRightBtns: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    gap: 8,
+    zIndex: 10,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', letterSpacing: 0.3 },
 
   // Smart Scale

@@ -273,9 +273,6 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
                       handleClose();
                     }}
                   >
-                    <View style={[styles.exerciseIconContainer, { backgroundColor: theme.primary + '20' }]}>
-                      <MaterialIcons name={exercise.icon} size={28} color={theme.primary} />
-                    </View>
                     <View style={styles.exerciseInfo}>
                       <Text style={[styles.exerciseName, { color: theme.text }]}>{exercise.name}</Text>
                       <Text style={[styles.exerciseCategory, { color: theme.textSecondary }]}>{exercise.bodyPart}</Text>

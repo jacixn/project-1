@@ -274,8 +274,6 @@ PODS:
     - Yoga
   - ExpoSecureStore (15.0.8):
     - ExpoModulesCore
-  - ExpoSensors (15.0.8):
-    - ExpoModulesCore
   - ExpoSpeech (14.0.8):
     - ExpoModulesCore
   - ExpoSplashScreen (31.0.13):
@@ -336,7 +334,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - MultiplatformBleAdapter (0.2.0)
   - RCTDeprecation (0.81.5)
   - RCTRequired (0.81.5)
   - RCTTypeSafety (0.81.5):
@@ -1616,29 +1613,6 @@ PODS:
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-  - react-native-ble-plx (3.5.1):
-    - hermes-engine
-    - MultiplatformBleAdapter (= 0.2.0)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
   - react-native-blur (4.4.1):
     - hermes-engine
     - RCTRequired
@@ -2608,7 +2582,6 @@ DEPENDENCIES:
   - ExpoMediaLibrary (from `../node_modules/expo-media-library/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
-  - ExpoSensors (from `../node_modules/expo-sensors/ios`)
   - ExpoSpeech (from `../node_modules/expo-speech/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoStoreReview (from `../node_modules/expo-store-review/ios`)
@@ -2652,7 +2625,6 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
-  - react-native-ble-plx (from `../node_modules/react-native-ble-plx`)
   - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
   - react-native-bottom-tabs (from `../node_modules/react-native-bottom-tabs`)
   - react-native-cloud-store (from `../node_modules/react-native-cloud-store`)
@@ -2706,7 +2678,6 @@ DEPENDENCIES:
 SPEC REPOS:
   trunk:
     - lottie-ios
-    - MultiplatformBleAdapter
     - SwiftUIIntrospect
     - ZXingObjC
 
@@ -2773,8 +2744,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-modules-core"
   ExpoSecureStore:
     :path: "../node_modules/expo-secure-store/ios"
-  ExpoSensors:
-    :path: "../node_modules/expo-sensors/ios"
   ExpoSpeech:
     :path: "../node_modules/expo-speech/ios"
   ExpoSplashScreen:
@@ -2860,8 +2829,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
-  react-native-ble-plx:
-    :path: "../node_modules/react-native-ble-plx"
   react-native-blur:
     :path: "../node_modules/@react-native-community/blur"
   react-native-bottom-tabs:
@@ -2993,7 +2960,6 @@ SPEC CHECKSUMS:
   ExpoMediaLibrary: a3093b04365b245bb23b25b6eba84eb6ab55fecb
   ExpoModulesCore: 031cf9b42fab2e84dcf34087dbd12ae666c100e0
   ExpoSecureStore: d32f751874a2ceb5aaeebeb3578e165c1ba2b24a
-  ExpoSensors: 8f9fe9a9ffd36ca9c2f0fe40dafc0a063f844420
   ExpoSpeech: d22b56570ccfab5a27112dc9691f1ac83537de26
   ExpoSplashScreen: bc3cffefca2716e5f22350ca109badd7e50ec14d
   ExpoStoreReview: 32bb43b6fae9c8db3e33cad69996dff3785eef5f
@@ -3004,7 +2970,6 @@ SPEC CHECKSUMS:
   LiquidGlass: dad23056ee45b1231dfa257db45150a5a75ef233
   lottie-ios: a881093fab623c467d3bce374367755c272bdd59
   lottie-react-native: 4079ce09a461053c6ff08dfafb9ad1d5eacc78cd
-  MultiplatformBleAdapter: b1fddd0d499b96b607e00f0faa8e60648343dc1d
   RCTDeprecation: 943572d4be82d480a48f4884f670135ae30bf990
   RCTRequired: 8f3cfc90cc25cf6e420ddb3e7caaaabc57df6043
   RCTTypeSafety: 16a4144ca3f959583ab019b57d5633df10b5e97c
@@ -3038,7 +3003,6 @@ SPEC CHECKSUMS:
   React-logger: 50fdb9a8236da90c0b1072da5c32ee03aeb5bf28
   React-Mapbuffer: 0164bc6ba0866e6314d86851620e6f1f95a1b4fb
   React-microtasksnativemodule: f5972fb404f7c363ff34b2292e72a716956c590c
-  react-native-ble-plx: 2fdb9ea56ce356a9cbbccfcd5d9b4d670fda28da
   react-native-blur: 89dfefbd5f99e8dabbae0272137e7dd7c7d8a742
   react-native-bottom-tabs: c43b25bdbd6aba79b0e3aa335850de3e8702ff2d
   react-native-cloud-store: bf8067ba89fa64215670edde7307112f573a7315

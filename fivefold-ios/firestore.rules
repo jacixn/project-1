@@ -20,6 +20,53 @@ service cloud.firestore {
                     || (isAuthenticated()
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['referralCount']));
       allow delete: if isOwner(userId);
+
+      // AI usage counters — owner reads for UI display; writes blocked (Cloud Functions only).
+      match /ai_usage/{dateKey} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      // Saved Bible verses — per-doc storage, owner-only read/write.
+      // Subcollection layout avoids the 1 MiB user-doc cap so users can
+      // save unlimited verses without write amplification.
+      match /saved_verses/{verseId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Workout history — per-doc storage, owner-only read/write.
+      // Per-doc layout avoids re-uploading whole history on every workout.
+      match /workouts/{workoutId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Food log — one doc per date (YYYY-MM-DD), owner-only.
+      match /food_log/{dateKey} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Journal notes — one doc per note id, owner-only.
+      match /journal/{noteId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Personal prayers (Bible-tab simplePrayers) — one doc per prayer, owner-only.
+      match /prayers_personal/{prayerId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Active todos — one doc per todo, owner-only.
+      match /todos/{todoId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Misc per-item subcollections — owner-only.
+      match /favorite_verses/{itemId} { allow read, write: if isOwner(userId); }
+      match /food_favorites/{itemId} { allow read, write: if isOwner(userId); }
+      match /scale_history/{itemId} { allow read, write: if isOwner(userId); }
+      match /scheduled_workouts/{itemId} { allow read, write: if isOwner(userId); }
+      match /visions/{itemId} { allow read, write: if isOwner(userId); }
+      match /prayer_boards/{itemId} { allow read, write: if isOwner(userId); }
     }
 
     // --- Usernames (username -> userId mapping) ---
