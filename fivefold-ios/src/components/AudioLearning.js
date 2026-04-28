@@ -38,8 +38,8 @@ const STORIES_CONFIG = {
   get URL() {
     return `https://raw.githubusercontent.com/${this.GITHUB_USERNAME}/${this.REPO_NAME}/${this.BRANCH}/${this.FILE_PATH}`;
   },
-  CACHE_KEY: 'audio_stories_data_v1',
-  CACHE_TIMESTAMP_KEY: 'audio_stories_timestamp_v1',
+  CACHE_KEY: 'audio_stories_data_v2',
+  CACHE_TIMESTAMP_KEY: 'audio_stories_timestamp_v2',
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
@@ -389,10 +389,12 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   };
 
   const fetchStoriesFromRemote = async () => {
-    const url = STORIES_CONFIG.URL;
+    // Cache-bust via query param — iOS URLSession ignores Cache-Control: no-cache
+    // for already-cached URLs in some cases. Unique URL per call guarantees fresh.
+    const url = `${STORIES_CONFIG.URL}?t=${Date.now()}`;
     console.log('📥 Fetching audio stories from GitHub:', url);
     const response = await fetch(url, {
-      headers: { 'Cache-Control': 'no-cache' },
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
     });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
