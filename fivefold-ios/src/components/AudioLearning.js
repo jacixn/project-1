@@ -47,6 +47,7 @@ const STORIES_CONFIG = {
 const storyImages = {
   'david-goliath': require('../assets/audio-stories/david-goliath.png'),
   'samson': require('../assets/audio-stories/samson.png'),
+  'jonah-whale': require('../assets/audio-stories/jonah-whale.png'),
 };
 
 const { width, height } = Dimensions.get('window');
@@ -710,6 +711,12 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
                     style={styles.storyGridImage}
                     resizeMode="cover"
                   />
+                ) : story.thumbnail ? (
+                  <Image
+                    source={{ uri: story.thumbnail }}
+                    style={styles.storyGridImage}
+                    resizeMode="cover"
+                  />
                 ) : (
                   <LinearGradient
                     colors={story.gradient}
@@ -969,8 +976,14 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
           <View style={styles.musicAlbumWrapper}>
             <View style={[styles.musicAlbumShadow, { shadowColor: storyToShow.gradient[0] }]}>
               {storyImages[storyToShow.id] ? (
-                <Image 
-                  source={storyImages[storyToShow.id]} 
+                <Image
+                  source={storyImages[storyToShow.id]}
+                  style={styles.musicAlbumImage}
+                  resizeMode="cover"
+                />
+              ) : storyToShow.thumbnail ? (
+                <Image
+                  source={{ uri: storyToShow.thumbnail }}
                   style={styles.musicAlbumImage}
                   resizeMode="cover"
                 />
