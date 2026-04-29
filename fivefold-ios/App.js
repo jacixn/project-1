@@ -415,35 +415,46 @@ const ThemedApp = () => {
     splashBgOpacity.setValue(1);
     splashOpacity.setValue(1);
 
+    // Brief hold (200ms) registers the brand, then scale ramps continuously to
+    // an extreme target (150) using ease-in.quad so the late portion of the
+    // timeline has the largest visible scale-deltas — the icon never appears
+    // to "settle". The viewport is already fully inside the transparent
+    // cross-cutout long before the animation ends (cross covers iPad Pro 13"
+    // at scale ~23), but the rect keeps blowing up past the unmount, so the
+    // user perceives motion right through the handoff to the live app.
+    //
+    // Backdrop fades out aggressively (380ms, linear) inside the same parallel
+    // block so the cross-cutout reveals the app the moment the icon hits
+    // screen-size, not after the zoom finishes.
+    // Brief hold (icon at scale 1, matching the static native iOS splash exactly),
+    // then a small anticipation shrink (1 → 0.82) — squash-and-stretch principle —
+    // before the main zoom blasts off to scale 220. The shrink gives the zoom a
+    // springy, deliberate kick instead of starting from a static frame.
+    //
+    // Backdrop fades inside the parallel zoom block so the cross-cutout reveals
+    // the app the moment the icon hits screen-size.
     Animated.sequence([
-      // Phase 1: Hold — icon centered, backdrop solid (350ms)
-      Animated.delay(350),
-      // Phase 2: Zoom-through — icon scales massively while backdrop fades, so the
-      // cross-cutout punches through to the app behind (1100ms, accelerating)
-      Animated.parallel([
-        Animated.timing(splashScale, {
-          toValue: 28,
-          duration: 1100,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.sequence([
-          Animated.delay(220),
-          Animated.timing(splashBgOpacity, {
-            toValue: 0,
-            duration: 700,
-            easing: Easing.in(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]),
-      ]),
-      // Phase 3: Final fade — icon overlay disappears entirely (180ms)
-      Animated.timing(splashOpacity, {
-        toValue: 0,
-        duration: 180,
-        easing: Easing.in(Easing.quad),
+      Animated.delay(120),
+      Animated.timing(splashScale, {
+        toValue: 0.82,
+        duration: 220,
+        easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
+      Animated.parallel([
+        Animated.timing(splashScale, {
+          toValue: 367,
+          duration: 750,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(splashBgOpacity, {
+          toValue: 0,
+          duration: 280,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start(() => {
       global.__SPLASH_DONE__ = true;
       DeviceEventEmitter.emit('splashFinished');
@@ -1307,17 +1318,25 @@ const ThemedApp = () => {
             alignItems: 'center',
           }}
         >
-          {/* Solid backdrop matching the icon body color. Fades out during the
-              zoom so the cross-cutout in the icon punches through to the app
-              behind, instead of just showing more backdrop. */}
+          {/* Backdrop gradient matches the native iOS SplashScreen.storyboard image
+              (SplashScreenLegacy.imageset) so the handoff from native splash to
+              animated splash is seamless. Fades out during the zoom so the
+              cross-cutout in the icon punches through to the app behind. */}
           <Animated.View
             style={{
               position: 'absolute',
               top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: '#FFFFFF',
               opacity: splashBgOpacity,
             }}
-          />
+          >
+            <LinearGradient
+              colors={['#5EDF89', '#32C372', '#159A5A']}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={{ flex: 1 }}
+            />
+          </Animated.View>
 
           {/* AppIcon — starts centered at fixed size, scales up massively. The
               cross is transparent in the source PNG so it becomes the reveal
@@ -1325,8 +1344,8 @@ const ThemedApp = () => {
           <Animated.Image
             source={require('./assets/animated-icon.png')}
             style={{
-              width: 220,
-              height: 220,
+              width: 132,
+              height: 132,
               transform: [{ scale: splashScale }],
             }}
             resizeMode="contain"

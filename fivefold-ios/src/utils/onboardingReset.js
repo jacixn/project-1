@@ -482,6 +482,21 @@ export const deleteAccountCompletely = async (password = null, onProgress = null
 
     // ── Step 6: Clear all local data ──
     progress(6);
+
+    // ── Step 6a: Purge iCloud (CloudKit/Documents + KV-store) ──
+    // Must run BEFORE local AsyncStorage clear, otherwise the auto-sync
+    // interceptor on userStorage.setRaw would re-upload deletions as empty
+    // values. Also disable auto-sync so any straggling local writes during
+    // the cleanup below don't push to iCloud.
+    try {
+      const { default: iCloudSyncService } = await import('../services/iCloudSyncService');
+      iCloudSyncService.disableAutoSync();
+      const purgeResult = await iCloudSyncService.purgeAllUserData(uid);
+      console.log('[Delete] ✓ iCloud purge:', purgeResult);
+    } catch (e) {
+      console.warn('[Delete] iCloud purge failed:', e.message);
+    }
+
     try {
       // Clear SecureStore credentials for this user
       const SecureStore = await import('expo-secure-store');

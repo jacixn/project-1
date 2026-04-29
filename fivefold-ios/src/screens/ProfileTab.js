@@ -9105,8 +9105,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerLogo: {
-    width: 32,
-    height: 32,
+    width: 24,
+    height: 24,
     position: 'absolute',
     left: 20,
     top: -10,

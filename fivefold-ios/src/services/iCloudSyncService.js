@@ -17,6 +17,9 @@ import {
   unlink,
   createDir,
   download,
+  readDir,
+  kvGetAllItems,
+  kvRemoveItem,
 } from 'react-native-cloud-store';
 import { Platform, AppState } from 'react-native';
 import userStorage from '../utils/userStorage';
@@ -814,6 +817,105 @@ class ICloudSyncService {
         console.warn(`[iCloud] Auto-sync failed for ${key}:`, error.message);
       }
     }, 1500); // 1.5 second debounce
+  }
+
+  /**
+   * Purge every iCloud file owned by the given uid, plus any unrecognised
+   * legacy files in our data directory. Also clears any KV-store items.
+   *
+   * MUST be called BEFORE clearing local storage during account deletion,
+   * and BEFORE the Firebase Auth user is deleted — once auto-sync is still
+   * active, every AsyncStorage write will trigger an iCloud re-upload.
+   * The caller should disableAutoSync() first, then call this.
+   */
+  async purgeAllUserData(uid) {
+    if (Platform.OS !== 'ios') {
+      return { success: true, reason: 'Not iOS' };
+    }
+    if (!this.isAvailable || !this.containerPath) {
+      // Try to re-check availability — user may have deleted account from
+      // another device and we still want to nuke local iCloud cache.
+      try {
+        this.isAvailable = await this.checkAvailability();
+        if (!this.containerPath) {
+          this.containerPath = await getDefaultICloudContainerPath();
+        }
+      } catch (_) {}
+      if (!this.isAvailable || !this.containerPath) {
+        return { success: false, reason: 'iCloud not available' };
+      }
+    }
+
+    // Cancel any pending debounced syncs so they can't re-write after purge.
+    Object.values(this._pendingSyncs).forEach(clearTimeout);
+    this._pendingSyncs = {};
+
+    let deletedFiles = 0;
+    let skippedOtherUser = 0;
+    let kvDeleted = 0;
+
+    const dataDir = `${this.containerPath}/Documents/biblely_data`;
+
+    try {
+      const dirExists = await exist(dataDir);
+      if (dirExists) {
+        let files = [];
+        try {
+          files = await readDir(dataDir);
+        } catch (e) {
+          // readDir may fail on empty dir on some iOS versions — fall back
+          // to deleting each known SYNC_KEY file individually.
+          files = SYNC_KEYS.map(k => `${dataDir}/${k}.json`);
+        }
+
+        for (const filePath of files) {
+          try {
+            const fileExists = await exist(filePath);
+            if (!fileExists) continue;
+
+            // Read uid metadata. If file is for a different user (shared
+            // Apple ID rare case), don't delete it — leave their data alone.
+            // If file has no uid (legacy untagged), delete it: orphaned data
+            // we can't attribute, safer to clear.
+            try {
+              await download(filePath);
+              const raw = await readFile(filePath);
+              const parsed = JSON.parse(raw);
+              if (parsed.uid && parsed.uid !== uid) {
+                skippedOtherUser++;
+                continue;
+              }
+            } catch (_) {
+              // Unreadable — treat as orphan, delete.
+            }
+
+            await unlink(filePath);
+            deletedFiles++;
+          } catch (e) {
+            console.warn(`[iCloud] Could not purge ${filePath}:`, e.message);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[iCloud] readDir failed during purge:', e.message);
+    }
+
+    // Wipe iCloud KV-store items (separate from Documents-based file storage).
+    try {
+      const allKv = await kvGetAllItems();
+      const kvKeys = allKv ? Object.keys(allKv) : [];
+      for (const k of kvKeys) {
+        try {
+          await kvRemoveItem(k);
+          kvDeleted++;
+        } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[iCloud] KV-store purge failed:', e.message);
+    }
+
+    console.log(`[iCloud] Purge complete — files: ${deletedFiles} deleted, ${skippedOtherUser} skipped (other user); KV: ${kvDeleted} deleted`);
+    return { success: true, deletedFiles, skippedOtherUser, kvDeleted };
   }
 
   /**

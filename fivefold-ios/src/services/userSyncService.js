@@ -24,6 +24,14 @@ import { db, auth } from '../config/firebase';
 import userStorage from '../utils/userStorage';
 import { getStoredData, saveData } from '../utils/localStorage';
 
+// Returns true only if the Firebase auth user matches the requested userId.
+// Sync functions write to users/{userId}; the Firestore rule requires
+// request.auth.uid == userId. After sign-out / account deletion, queued
+// debounced syncs (App.js firebaseSyncTimerRef, 5s window) can fire with a
+// stale userId — without this guard they hit "Missing or insufficient
+// permissions" and surface in the dev-client error overlay.
+const authMatches = (userId) => !!auth.currentUser && auth.currentUser.uid === userId;
+
 // Storage keys that are synced to cloud
 const SYNC_KEYS = {
   userStats: 'userStats',
@@ -561,7 +569,8 @@ const cleanHistoryData = (data) => {
  */
 export const syncUserStatsToCloud = async (userId) => {
   if (!userId) return false;
-  
+  if (!authMatches(userId)) return false;
+
   try {
     // Get local stats from multiple sources
     // Note: getStoredData adds 'fivefold_' prefix automatically
@@ -1613,6 +1622,7 @@ export const getSyncStatus = async (userId) => {
  */
 export const syncSavedVersesToCloud = async (userId) => {
   if (!userId) return false;
+  if (!authMatches(userId)) return false;
 
   try {
     const savedVersesStr = await userStorage.getRaw('savedBibleVerses');
@@ -1638,6 +1648,7 @@ export const syncSavedVersesToCloud = async (userId) => {
  */
 export const syncJournalNotesToCloud = async (userId) => {
   if (!userId) return false;
+  if (!authMatches(userId)) return false;
   try {
     const journalNotesStr = await userStorage.getRaw('journalNotes');
     if (!journalNotesStr) return true;
@@ -1661,6 +1672,7 @@ export const syncJournalNotesToCloud = async (userId) => {
  */
 export const syncPrayersToCloud = async (userId) => {
   if (!userId) return false;
+  if (!authMatches(userId)) return false;
   try {
     let prayersStr = await userStorage.getRaw('fivefold_simplePrayers');
     if (!prayersStr) prayersStr = await userStorage.getRaw('simplePrayers');
@@ -1685,7 +1697,8 @@ export const syncPrayersToCloud = async (userId) => {
  */
 export const syncThemePreferencesToCloud = async (userId) => {
   if (!userId) return false;
-  
+  if (!authMatches(userId)) return false;
+
   try {
     const theme = await userStorage.getRaw('fivefold_theme');
     const darkModeStr = await userStorage.getRaw('fivefold_dark_mode');
@@ -1717,7 +1730,8 @@ export const syncThemePreferencesToCloud = async (userId) => {
  */
 export const syncAllHistoryToCloud = async (userId) => {
   if (!userId) return false;
-  
+  if (!authMatches(userId)) return false;
+
   try {
     const updateData = { lastActive: serverTimestamp() };
     
@@ -2103,7 +2117,8 @@ export const syncAllHistoryToCloud = async (userId) => {
  */
 export const performFullSync = async (userId) => {
   if (!userId) return false;
-  
+  if (!authMatches(userId)) return false;
+
   try {
     // First, download and merge cloud data
     await downloadAndMergeCloudData(userId);
