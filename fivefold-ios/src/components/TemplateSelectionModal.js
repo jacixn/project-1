@@ -1608,7 +1608,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                           { color: theme.text },
                         ]}
                       >
-                        {exercise.sets} × {exercise.name}
+                        {exercise.sets} × {exercise.reps ? `${exercise.reps} ` : ''}{exercise.name}
                       </Text>
                       <Text
                         style={[
@@ -1616,7 +1616,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                           { color: theme.textSecondary },
                         ]}
                       >
-                        {exercise.bodyPart}
+                        {exercise.bodyPart}{exercise.weight && exercise.weight !== '0' && exercise.weight !== '' ? ` · ${exercise.weight} kg` : ''}
                       </Text>
                     </View>
                     <TouchableOpacity style={styles.detailExerciseHelp}>

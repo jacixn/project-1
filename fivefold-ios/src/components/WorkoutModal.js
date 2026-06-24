@@ -18,6 +18,7 @@ import {
   AppState,
   InteractionManager,
   DeviceEventEmitter,
+  Pressable,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
@@ -266,39 +267,48 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           setIsInitializing(false); // Done initializing - content is ready to render
           
           // THEN: Load previous workout data in background and update exercises
-          if (templateData?.id) {
-            try {
-              const previousData = await WorkoutService.getPreviousWorkout(templateData.id);
-              if (previousData) {
-                console.log('🏋️ Loaded previous workout data for template');
-                setPreviousWorkout(previousData);
-                
-                // Update exercises with previous data
-                const updatedExercises = initialExercises.map(exercise => {
-                  const previousExercise = previousData?.exercises?.find(ex => ex.name === exercise.name);
-                  if (previousExercise) {
-                    return {
-                      ...exercise,
-                      sets: exercise.sets.map((set, setIndex) => ({
-                        ...set,
-                        weight: previousExercise.sets?.[setIndex]?.weight || set.weight,
-                        reps: previousExercise.sets?.[setIndex]?.reps || set.reps,
-                        previous: previousExercise.sets?.[setIndex] ? {
-                          weight: previousExercise.sets[setIndex].weight,
-                          reps: previousExercise.sets[setIndex].reps
-                        } : null
-                      }))
-                    };
-                  }
-                  return exercise;
-                });
-                
-                setExercises(updatedExercises);
-                console.log('🏋️ Updated exercises with previous workout data');
-              }
-            } catch (error) {
-              console.error('Error loading previous workout:', error);
+          // Per-exercise lookup: scans all workout history for each exercise's
+          // most recent sets — works even with no template or different template.
+          try {
+            let previousData = null;
+            if (templateData?.id) {
+              previousData = await WorkoutService.getPreviousWorkout(templateData.id);
+              if (previousData) setPreviousWorkout(previousData);
             }
+
+            const updatedExercises = await Promise.all(
+              initialExercises.map(async (exercise) => {
+                // Prefer template-bound previous match (same template, same slot)
+                let prevSets = null;
+                if (previousData?.exercises) {
+                  const match = previousData.exercises.find(ex => ex.name === exercise.name);
+                  if (match?.sets?.length) prevSets = match.sets;
+                }
+                // Fall back to per-exercise lookup across full history
+                if (!prevSets) {
+                  prevSets = await WorkoutService.getPreviousExerciseSets(exercise.name);
+                }
+                if (!prevSets || !prevSets.length) return exercise;
+
+                return {
+                  ...exercise,
+                  sets: exercise.sets.map((set, setIndex) => {
+                    const prev = prevSets[setIndex] || prevSets[prevSets.length - 1];
+                    return {
+                      ...set,
+                      weight: set.weight || prev?.weight || '',
+                      reps: set.reps || prev?.reps || '',
+                      previous: prev ? { weight: prev.weight, reps: prev.reps } : null,
+                    };
+                  }),
+                };
+              })
+            );
+
+            setExercises(updatedExercises);
+            console.log('🏋️ Updated exercises with previous workout data');
+          } catch (error) {
+            console.error('Error loading previous workout:', error);
           }
           
           // Allow sync after state updates complete
@@ -316,12 +326,12 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           if (activeWorkout?.name) {
             setWorkoutName(activeWorkout.name);
           }
-          if (activeWorkout?.exercises) {
+          if (Array.isArray(activeWorkout?.exercises)) {
             // Re-create animation values for completed sets
             // (they were stripped by cleanExercisesForSync when minimizing)
             const restoredExercises = activeWorkout.exercises.map(ex => ({
               ...ex,
-              sets: ex.sets.map(set => {
+              sets: (ex.sets || []).map(set => {
                 if (set.completed) {
                   // Re-add animation values so completed sets look correct
                   return {
@@ -492,6 +502,35 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       }
       return ex;
     }));
+  };
+
+  const handleRemoveSet = (exerciseId, setIndex) => {
+    const exercise = exercises.find(ex => ex.id === exerciseId);
+    if (!exercise) return;
+    if ((exercise.sets || []).length <= 1) {
+      hapticFeedback.error?.() || hapticFeedback.light();
+      Alert.alert('Cannot Remove', 'Each exercise must have at least one set. Use "Remove Exercise" instead.');
+      return;
+    }
+    hapticFeedback.light();
+    Alert.alert(
+      'Remove Set',
+      `Remove Set ${setIndex + 1} from "${exercise.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            hapticFeedback.medium?.() || hapticFeedback.light();
+            setExercises(prev => prev.map(ex => {
+              if (ex.id !== exerciseId) return ex;
+              return { ...ex, sets: ex.sets.filter((_, i) => i !== setIndex) };
+            }));
+          },
+        },
+      ]
+    );
   };
 
   const handleInputPress = (exerciseId, setIndex, field) => {
@@ -1690,12 +1729,17 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                           }}
                         />
                         
-                        {/* Set Number */}
-                        <View style={[styles.setNumber, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                        {/* Set Number (long-press to remove set) */}
+                        <TouchableOpacity
+                          style={[styles.setNumber, { backgroundColor: 'rgba(255,255,255,0.25)' }]}
+                          onLongPress={() => handleRemoveSet(exercise.id, setIndex)}
+                          delayLongPress={450}
+                          activeOpacity={0.7}
+                        >
                           <Text style={[styles.setNumberText, { color: '#FFFFFF', fontWeight: '700' }]}>
                             {setIndex + 1}
                           </Text>
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Previous */}
                         <View style={styles.previousCell}>
@@ -1738,12 +1782,17 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
                       </LinearGradient>
                     ) : (
                       <View style={[styles.setRow, { paddingVertical: 8 }]}>
-                        {/* Set Number */}
-                        <View style={[styles.setNumber, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                        {/* Set Number (long-press to remove set) */}
+                        <TouchableOpacity
+                          style={[styles.setNumber, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                          onLongPress={() => handleRemoveSet(exercise.id, setIndex)}
+                          delayLongPress={450}
+                          activeOpacity={0.7}
+                        >
                           <Text style={[styles.setNumberText, { color: theme.text }]}>
                             {setIndex + 1}
                           </Text>
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Previous */}
                         <View style={styles.previousCell}>
@@ -1817,6 +1866,59 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
               >
                 <Text style={[styles.addSetButtonText, { color: theme.textSecondary }]}>
                   + Add Set ({Math.floor(exercise.restTime / 60)}:{(exercise.restTime % 60).toString().padStart(2, '0')})
+                </Text>
+              </TouchableOpacity>
+
+              {/* Long-press hint (shown once 2+ sets exist) */}
+              {exercise.sets.length > 1 && (
+                <Text style={{
+                  color: theme.textSecondary,
+                  fontSize: 11,
+                  fontStyle: 'italic',
+                  textAlign: 'center',
+                  marginTop: 8,
+                  opacity: 0.6,
+                }}>
+                  Hold a set number to remove it
+                </Text>
+              )}
+
+              {/* Remove Exercise (subtle, bottom of card) */}
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.light();
+                  Alert.alert(
+                    'Remove Exercise',
+                    `Remove "${exercise.name}" from this workout?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => {
+                          hapticFeedback.medium?.() || hapticFeedback.light();
+                          setExercises(prev => prev.filter(ex => ex.id !== exercise.id));
+                        },
+                      },
+                    ]
+                  );
+                }}
+                activeOpacity={0.6}
+                hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
+                style={{
+                  alignSelf: 'center',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  marginTop: 8,
+                  opacity: 0.7,
+                }}
+              >
+                <MaterialIcons name="delete-outline" size={14} color="#FF3B30" />
+                <Text style={{ color: '#FF3B30', fontSize: 13, fontWeight: '600' }}>
+                  Remove Exercise
                 </Text>
               </TouchableOpacity>
             </View>

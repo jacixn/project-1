@@ -216,16 +216,27 @@ class WorkoutService {
         return;
       }
 
-      // Update exercise sets count based on workout
+      // Update each exercise from the actual workout: the set COUNT and — the part
+      // that was missing — the reps/weight the user actually performed, so the
+      // template's defaults track their last session (do 10 reps -> next start
+      // pre-fills 10, not the original 1).
+      const pickRef = (sets) => {
+        if (!Array.isArray(sets) || !sets.length) return null;
+        const withReps = sets.filter(s => s && s.reps != null && s.reps !== '');
+        const completed = withReps.filter(s => s.completed);
+        if (completed.length) return completed[completed.length - 1];
+        if (withReps.length) return withReps[withReps.length - 1];
+        return null;
+      };
       const updatedExercises = template.exercises.map(templateEx => {
-        const workoutEx = workout.exercises.find(ex => 
-          ex.name === templateEx.name
-        );
-        
+        const workoutEx = workout.exercises.find(ex => ex.name === templateEx.name);
         if (workoutEx) {
+          const ref = pickRef(workoutEx.sets);
           return {
             ...templateEx,
-            sets: workoutEx.sets.length, // Update to actual number of sets performed
+            sets: workoutEx.sets.length, // actual number of sets performed
+            reps: ref && ref.reps != null && ref.reps !== '' ? ref.reps : templateEx.reps,
+            weight: ref && ref.weight != null && ref.weight !== '' ? ref.weight : templateEx.weight,
           };
         }
         return templateEx;
@@ -253,13 +264,35 @@ class WorkoutService {
   static async getPreviousWorkout(templateId) {
     try {
       const history = await this.getWorkoutHistory();
-      
+
       // Find the most recent workout that matches this template
       const previousWorkout = history.find(w => w.templateId === templateId);
-      
+
       return previousWorkout || null;
     } catch (error) {
       console.error('Error getting previous workout:', error);
+      return null;
+    }
+  }
+
+  // Get most recent sets for an exercise across all workout history
+  // (used when template-bound lookup fails or no template is set)
+  static async getPreviousExerciseSets(exerciseName) {
+    try {
+      if (!exerciseName) return null;
+      const target = String(exerciseName).trim().toLowerCase();
+      const history = await this.getWorkoutHistory();
+      // history is newest-first (saveWorkout uses unshift)
+      for (const w of history) {
+        const exercises = w?.exercises || [];
+        const match = exercises.find(ex => String(ex?.name || '').trim().toLowerCase() === target);
+        if (!match) continue;
+        const sets = (match.sets || []).filter(s => s && (s.weight != null || s.reps != null));
+        if (sets.length > 0) return sets;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting previous exercise sets:', error);
       return null;
     }
   }
@@ -394,6 +427,8 @@ class WorkoutService {
     try {
       await userStorage.setRaw(SCHEDULED_WORKOUTS_KEY, JSON.stringify(scheduled));
       pushToCloud('scheduledWorkouts', scheduled);
+      // Mirror to iPhone Calendar if the user enabled it (no-op otherwise).
+      try { require('./calendarSync').syncGym(scheduled); } catch {}
       console.log('✅ Scheduled workouts saved');
     } catch (error) {
       console.error('Error saving scheduled workouts:', error);

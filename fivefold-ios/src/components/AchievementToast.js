@@ -140,7 +140,6 @@ const AchievementToast = forwardRef((props, ref) => {
       setAchievements([]);
       itemAnimsRef.current = [];
       isDismissingRef.current = false;
-      DeviceEventEmitter.emit('popupDismissed');
       DeviceEventEmitter.emit('achievementToastDismissed');
     });
   }, [clearPendingTimeouts]);
@@ -152,7 +151,6 @@ const AchievementToast = forwardRef((props, ref) => {
       setAchievements([]);
       itemAnimsRef.current = [];
       isDismissingRef.current = false;
-      DeviceEventEmitter.emit('popupDismissed');
       DeviceEventEmitter.emit('achievementToastDismissed');
     });
     return () => sub.remove();

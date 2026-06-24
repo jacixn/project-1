@@ -315,6 +315,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       pushToCloud('simplePrayers', prayerList);
       // Keep notifications in sync with the latest prayer times
       await notificationService.scheduleStoredPrayerReminders();
+      // Mirror to iPhone Calendar if the user enabled it (no-op otherwise).
+      try { require('../services/calendarSync').syncPrayers(prayerList); } catch {}
     } catch (error) {
       console.log('Error saving prayers:', error);
     }

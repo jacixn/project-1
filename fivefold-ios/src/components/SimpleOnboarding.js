@@ -42,6 +42,7 @@ import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import { sendVerificationCode, refreshEmailVerificationStatus, send2FASetupCode, confirm2FASetup } from '../services/authService';
 import { submitReferral } from '../services/referralService';
 import profanityFilter from '../services/profanityFilterService';
+import * as StoreReview from 'expo-store-review';
 
 const { width, height } = Dimensions.get('window');
 
@@ -341,6 +342,7 @@ const SCREEN_THEMES = {
   referral: { bg: '#FFF3E0', accent: '#E65100' },         // Warm orange - community/sharing
   howFound: { bg: '#EDE7F6', accent: '#5E35B1' },         // Purple
   gift: { bg: '#FCE4EC', accent: '#AD1457' },             // Pink
+  rate: { bg: '#FFF8E1', accent: '#FFB300' },             // Amber - rating stars
   paywall: { bg: '#E3F2FD', accent: '#1565C0' },          // Blue
   complete: { bg: '#E8F5E9', accent: '#2E7D32' },         // Green - success
 };
@@ -820,6 +822,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'referral',
     'howFound',
     'gift',
+    'rate',
     'complete'
   ] : [
     'splash',
@@ -841,6 +844,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     'referral',
     'howFound',
     'gift',
+    'rate',
     'complete'
   ];
 
@@ -852,6 +856,24 @@ const SimpleOnboarding = ({ onComplete }) => {
   // paints the destination color instead of a transparent default.
   const currentScreenName = screens[currentScreen];
   const currentScreenTheme = SCREEN_THEMES[currentScreenName] || SCREEN_THEMES.splash;
+
+  // Auto-fire native iOS StoreReview prompt when the rate screen mounts.
+  // Kept at parent level so rules-of-hooks aren't violated by inner screen fns.
+  useEffect(() => {
+    if (currentScreenName !== 'rate') return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const available = await StoreReview.isAvailableAsync();
+        if (!cancelled && available) {
+          await StoreReview.requestReview();
+        }
+      } catch (e) {
+        console.warn('[Onboarding] StoreReview failed:', e?.message);
+      }
+    }, 600);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [currentScreenName]);
 
   const handleUploadPhoto = async () => {
     try {
@@ -4134,6 +4156,44 @@ const SimpleOnboarding = ({ onComplete }) => {
   };
 
   // ============================================
+  // SCREEN: Rate (native iOS StoreReview popup)
+  // ============================================
+  const RateScreen = () => {
+    const screenTheme = SCREEN_THEMES.rate;
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
+        <ProgressBar screenTheme={screenTheme} />
+
+        <View style={styles.content}>
+          <MaterialIcons
+            name="star-rate"
+            size={72}
+            color={screenTheme.accent}
+            style={{ marginBottom: 16 }}
+          />
+
+          <Text style={[styles.screenTitle, { color: '#333' }]}>
+            What do you think of Biblely so far?
+          </Text>
+
+          <Text style={[styles.screenSubtitle, { color: '#666' }]}>
+            Your feedback helps us grow and reach more people
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={handleNext}
+          style={[styles.mainButton, { backgroundColor: screenTheme.accent }]}
+        >
+          <Text style={styles.mainButtonText}>Continue</Text>
+          <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  };
+
+  // ============================================
   // SCREEN: Complete
   // ============================================
   const CompleteScreen = () => {
@@ -4434,6 +4494,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       case 'referral': return <ReferralOnboardingScreen />;
       case 'howFound': return HowFoundScreen();
       case 'gift': return GiftScreen();
+      case 'rate': return RateScreen();
       case 'complete': return CompleteScreen();
       default: return SplashScreen();
     }

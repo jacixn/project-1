@@ -36,8 +36,6 @@ import {
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
 import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
-import FeedbackModal from './src/components/FeedbackModal';
-import feedbackService from './src/services/feedbackService';
 import InAppNotification from './src/components/InAppNotification';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -183,9 +181,6 @@ const AppNavigation = () => {
   const currentRoute = React.useContext(CurrentRouteContext);
   const [firstPlayer, setFirstPlayer] = useState(null); // 'workout' or 'audio' - tracks which came first
   const achievementToastRef = React.useRef(null);
-  const feedbackModalRef = React.useRef(null);
-  const pendingFeedbackRef = React.useRef(false);
-  const feedbackFallbackRef = React.useRef(null);
 
   // Track which player came first
   useEffect(() => {
@@ -255,46 +250,13 @@ const AppNavigation = () => {
       setWorkoutModalVisible(true);
     });
 
-    // ── Unified feedback prompt scheduling ──
-    // Uses refs so the pending state survives effect re-runs
-    // (maximizeWorkout is not memoized, causing frequent re-runs).
-    const tryShowFeedback = () => {
-      if (!pendingFeedbackRef.current) return;
-      pendingFeedbackRef.current = false;
-      if (feedbackFallbackRef.current) { clearTimeout(feedbackFallbackRef.current); feedbackFallbackRef.current = null; }
-      setTimeout(() => {
-        feedbackService.shouldShowPrompt().then(should => {
-          if (should) feedbackModalRef.current?.show();
-        });
-      }, 2000);
-    };
-
-    const scheduleFeedback = () => {
-      pendingFeedbackRef.current = true;
-      if (feedbackFallbackRef.current) clearTimeout(feedbackFallbackRef.current);
-      feedbackFallbackRef.current = setTimeout(tryShowFeedback, 15000);
-    };
-
     // Listen for batched achievements (multiple at once)
     const achievementBatchSubscription = DeviceEventEmitter.addListener('achievementsUnlockedBatch', (achievements) => {
       console.log('🏆 Achievement batch unlocked:', achievements.length);
       if (achievementToastRef.current) {
         achievementToastRef.current.showBatch(achievements);
       }
-      const ids = achievements.map(a => a.id);
-      if (feedbackService.shouldTriggerForAchievements(ids)) {
-        feedbackService.shouldShowPrompt().then(should => {
-          if (should) scheduleFeedback();
-        });
-      }
     });
-
-    // Show rating prompt after onboarding — wait for VOTD to close first
-    const onboardingDoneSubscription = DeviceEventEmitter.addListener('onboardingCompleted', () => {
-      scheduleFeedback();
-    });
-
-    const popupDismissedSubscription = DeviceEventEmitter.addListener('popupDismissed', tryShowFeedback);
 
     // Individual event fallback — only fires for legacy/external callers
     const achievementSubscription = DeviceEventEmitter.addListener('achievementUnlocked', (data) => {
@@ -305,8 +267,6 @@ const AppNavigation = () => {
       subscription.remove();
       achievementSubscription.remove();
       achievementBatchSubscription.remove();
-      onboardingDoneSubscription.remove();
-      popupDismissedSubscription.remove();
     };
   }, [hasActiveWorkout, maximizeWorkout]);
 
@@ -371,9 +331,6 @@ const AppNavigation = () => {
 
       {/* Global Achievement Notification */}
       <AchievementToast ref={achievementToastRef} />
-
-      {/* Global Feedback / Rating Modal */}
-      <FeedbackModal ref={feedbackModalRef} />
     </>
   );
 };
@@ -434,10 +391,10 @@ const ThemedApp = () => {
     // Backdrop fades inside the parallel zoom block so the cross-cutout reveals
     // the app the moment the icon hits screen-size.
     Animated.sequence([
-      Animated.delay(120),
+      Animated.delay(10),
       Animated.timing(splashScale, {
         toValue: 0.82,
-        duration: 220,
+        duration: 85,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
@@ -484,6 +441,9 @@ const ThemedApp = () => {
     const subscription = DeviceEventEmitter.addListener('userDataDownloaded', () => {
       console.log('[App] Received userDataDownloaded event, reloading theme...');
       reloadTheme?.();
+      // Cloud pulls overwrite prayers/reminders/workouts without going through
+      // their local setters, so refresh the calendar mirror too (no-op if off).
+      try { require('./src/services/calendarSync').syncAll(); } catch {}
     });
     
     return () => subscription.remove();
@@ -517,9 +477,17 @@ const ThemedApp = () => {
     console.log('📖 Processing widget verse:', decodedRef);
     
     global.__WIDGET_LAUNCH__ = true;
-    
-    DeviceEventEmitter.emit('closeAllModals');
-    
+
+    // Fire-and-forget UI cleanup. Guard it: emit() runs every mounted listener
+    // synchronously, so one listener throwing (e.g. a stray undefined setter) would
+    // otherwise propagate out and abort the navigation scheduled below — which is
+    // exactly what silently broke warm widget deep-links.
+    try {
+      DeviceEventEmitter.emit('closeAllModals');
+    } catch (e) {
+      console.warn('closeAllModals listener threw, continuing:', e);
+    }
+
     setTimeout(() => {
       if (navigationRef.current?.isReady()) {
         try {
@@ -999,6 +967,11 @@ const ThemedApp = () => {
           await Asset.loadAsync(wallpaperToLoad);
           console.log('Wallpaper preloaded into memory');
         }
+
+        // Warm the animated splash icon too. In a dev client this asset is served
+        // over Metro on first render; in release it is bundled. Harmless either way,
+        // removes a dev-only blank-icon edge case. Fire-and-forget.
+        Asset.loadAsync(require('./assets/animated-icon.png')).catch(() => {});
       } catch (error) {
         // Non-critical — wallpaper will still load normally, just slightly delayed
         console.log('Wallpaper preload skipped:', error.message);

@@ -92,8 +92,25 @@ const RemindersCard = ({
   const today = new Date().getDay();
   const dateStr = todayDateStr();
   const todayReminders = getRemindersForDay(reminders || [], today, dateStr);
-  const visibleReminders = todayReminders.slice(0, MAX_VISIBLE);
-  const remaining = todayReminders.length - MAX_VISIBLE;
+  // Smart ordering: surface what still needs doing. Incomplete reminders come
+  // first (so a finished top-3 no longer buries the ones left to do), each group
+  // sorted by time so the soonest shows first. Completed ones sink to the bottom
+  // and overflow into "+N more". Uses stored completion (not the optimistic
+  // pendingIds) so a just-tapped row finishes its animation in place, then
+  // reorders on the next data refresh instead of jumping mid-tap.
+  const minutesOfTime = (t) => {
+    if (!t || typeof t !== 'string') return 0;
+    const [h, m] = t.split(':').map((n) => parseInt(n, 10));
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  };
+  const sortedReminders = [...todayReminders].sort((a, b) => {
+    const aDone = !!a.completions?.[dateStr];
+    const bDone = !!b.completions?.[dateStr];
+    if (aDone !== bDone) return aDone ? 1 : -1;
+    return minutesOfTime(a.time) - minutesOfTime(b.time);
+  });
+  const visibleReminders = sortedReminders.slice(0, MAX_VISIBLE);
+  const remaining = sortedReminders.length - MAX_VISIBLE;
   const completedCount = todayReminders.filter(r => r.completions?.[dateStr] || pendingIds.has(r.id)).length;
   const [floatingPoints, setFloatingPoints] = useState([]);
   const floatingIdRef = useRef(0);

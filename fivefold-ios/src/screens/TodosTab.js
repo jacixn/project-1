@@ -294,7 +294,6 @@ const TodosTab = () => {
     const handleCloseAllModals = () => {
       console.log('TodosTab: Closing all modals (widget navigation)');
       setShowFullCalendar(false);
-      setShowCompletionCelebration(false);
       setShowAboutModal(false);
     };
 

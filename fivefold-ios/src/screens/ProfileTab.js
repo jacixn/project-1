@@ -59,6 +59,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { moderateProfileImage, setUploadCooldown, clearUploadCooldown, recordRejection, resetRejectionCount, cacheCustomPhoto, abandonCachedPhoto, restoreCachedPhoto } from '../services/profileImageModeration';
 import { uploadProfilePicture } from '../services/storageService';
 import NotificationSettings from '../components/NotificationSettings';
+import calendarSync from '../services/calendarSync';
 import { FluidTransition, FluidCard, FluidButton } from '../components/FluidTransition';
 import { GlassCard, GlassHeader } from '../components/GlassEffect';
 import ScrollHeader from '../components/ScrollHeader';
@@ -84,7 +85,7 @@ import {
 import { REPORT_REASONS } from '../services/reportService';
 import bibleAudioService from '../services/bibleAudioService';
 import BibleReader from '../components/BibleReader';
-import FeedbackModal from '../components/FeedbackModal';
+import * as StoreReview from 'expo-store-review';
 import PrayerCompletionManager from '../utils/prayerCompletionManager';
 import AppStreakManager from '../utils/appStreakManager';
 import VerseDataManager from '../utils/verseDataManager';
@@ -319,6 +320,7 @@ const ProfileTab = () => {
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
+  const [calendarSyncEnabled, setCalendarSyncEnabled] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [referralInfo, setReferralInfo] = useState({ referredBy: null, referredByUsername: null, referredByDisplayName: null, referralCount: 0 });
@@ -407,7 +409,6 @@ const ProfileTab = () => {
 
   // Pull-to-refresh Lottie animation values
   const refreshLottieRef = useRef(null);
-  const feedbackModalRef = useRef(null);
   const refreshLottieScale = useRef(new Animated.Value(0)).current;
   const refreshLottieOpacity = useRef(new Animated.Value(0)).current;
   const refreshLottieRotate = useRef(new Animated.Value(0)).current;
@@ -1588,6 +1589,7 @@ const ProfileTab = () => {
     checkAiStatus();
     loadVibrationSetting();
     loadLiquidGlassSetting();
+    loadCalendarSyncSetting();
     loadCurrentBibleVersion();
     loadSavedVerses();
     loadAppStreak();
@@ -2631,10 +2633,37 @@ const ProfileTab = () => {
     await userStorage.setRaw('fivefold_liquidGlass', enabled.toString());
     global.liquidGlassUserPreference = enabled;
     hapticFeedback.light();
-    
+
     // Notify all components about the change
     DeviceEventEmitter.emit('liquidGlassChanged', enabled);
     console.log('💎 Broadcast: Liquid glass changed to', enabled);
+  };
+
+  const loadCalendarSyncSetting = async () => {
+    try {
+      setCalendarSyncEnabled(await calendarSync.isEnabled());
+    } catch (error) {
+      console.log('Error loading calendar sync setting:', error);
+    }
+  };
+
+  const handleCalendarSyncToggle = async (enabled) => {
+    hapticFeedback.light();
+    if (enabled) {
+      // Optimistic, but revert if permission is denied or setup fails.
+      setCalendarSyncEnabled(true);
+      const ok = await calendarSync.enable();
+      if (!ok) {
+        setCalendarSyncEnabled(false);
+        Alert.alert(
+          'Calendar Access Needed',
+          'To mirror your prayers, reminders and workouts, allow Biblely to access your calendar in Settings.'
+        );
+      }
+    } else {
+      setCalendarSyncEnabled(false);
+      await calendarSync.disable();
+    }
   };
 
   const handleBibleVersionSelect = async (versionId) => {
@@ -3630,9 +3659,6 @@ const ProfileTab = () => {
         visible={showNotificationSettings}
         onClose={() => setShowNotificationSettings(false)}
       />
-
-      {/* Feedback / Rate Modal */}
-      <FeedbackModal ref={feedbackModalRef} />
 
       {/* ══════════════════════════════════════════════════════════════
            ADMIN USER EXPERIENCE MODAL
@@ -5139,10 +5165,17 @@ const ProfileTab = () => {
                   justifyContent: 'space-between',
                   padding: 16,
                 }}
-              onPress={() => {
+              onPress={async () => {
                 hapticFeedback.buttonPress();
                 setShowSettingsModal(false);
-                setTimeout(() => feedbackModalRef.current?.show(), 350);
+                try {
+                  const available = await StoreReview.isAvailableAsync();
+                  if (available) {
+                    await StoreReview.requestReview();
+                  }
+                } catch (e) {
+                  console.warn('[ProfileTab] StoreReview failed:', e?.message);
+                }
               }}
                 activeOpacity={0.7}
             >
@@ -5217,6 +5250,59 @@ const ProfileTab = () => {
                 <Switch
                   value={isPublicProfile}
                   onValueChange={handleToggleLeaderboardVisibility}
+                  trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
+            {/* Calendar Sync */}
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '700',
+              color: theme.primary,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+              marginLeft: 4,
+            }}>
+              Calendar
+            </Text>
+            <View style={{
+              backgroundColor: theme.card,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 16,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: `${theme.primary}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <MaterialIcons name="event" size={20} color={theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>
+                      Sync to iPhone Calendar
+                    </Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
+                      Add your prayers, reminders and workouts to your calendar
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={calendarSyncEnabled}
+                  onValueChange={handleCalendarSyncToggle}
                   trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
                   thumbColor="#fff"
                 />

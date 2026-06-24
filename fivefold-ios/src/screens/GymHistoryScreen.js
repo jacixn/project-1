@@ -133,16 +133,21 @@ const GymHistoryScreen = () => {
     return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // ── Group history by date sections ──
+  // ── Group history by date sections (always newest -> oldest) ──
   const groupedHistory = () => {
+    const timeOf = (w) => (w?.completedAt ? new Date(w.completedAt).getTime() : 0);
+    // Sort everything newest-first up front so we never rely on the stored array
+    // order (cloud merges / dedupes can reorder it).
+    const sorted = [...history].sort((a, b) => timeOf(b) - timeOf(a));
     const groups = {};
-    history.forEach(w => {
+    sorted.forEach(w => {
       const d = w.completedAt ? new Date(w.completedAt) : new Date();
       const key = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
       if (!groups[key]) groups[key] = [];
       groups[key].push(w);
     });
-    return Object.entries(groups);
+    // Each group is already newest-first; order the sections by their newest item.
+    return Object.entries(groups).sort((a, b) => timeOf(b[1][0]) - timeOf(a[1][0]));
   };
 
   // ── Stats summary ──

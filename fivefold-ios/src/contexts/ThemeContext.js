@@ -210,9 +210,14 @@ export const ThemeProvider = ({ children }) => {
 
   const loadThemePreference = async () => {
     try {
-      const savedTheme = await userStorage.getRaw('fivefold_theme');
-      const savedDarkMode = await userStorage.getRaw('fivefold_dark_mode');
-      const savedWallpaper = await userStorage.getRaw('fivefold_wallpaper_index');
+      // Read all three preferences concurrently — they are independent AsyncStorage
+      // hits, and running them serially needlessly extended the pre-splash gate
+      // (this load blocks the auth/onboarding chain that gates NavigationContainer.onReady).
+      const [savedTheme, savedDarkMode, savedWallpaper] = await Promise.all([
+        userStorage.getRaw('fivefold_theme'),
+        userStorage.getRaw('fivefold_dark_mode'),
+        userStorage.getRaw('fivefold_wallpaper_index'),
+      ]);
       
       if (savedTheme && themes[savedTheme]) {
         setCurrentTheme(savedTheme);

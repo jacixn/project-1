@@ -105,8 +105,19 @@ const HabitsCard = ({
     ]).start(() => setFloatingPoints(prev => prev.filter(f => f.id !== id)));
   }, []);
 
-  const visibleHabits = (habits || []).slice(0, MAX_VISIBLE);
-  const remaining = (habits || []).length - MAX_VISIBLE;
+  // Smart ordering: incomplete habits first so finishing the top ones doesn't
+  // bury the habits still left to check in. Completed ones sink to the bottom and
+  // overflow into "+N more". Uses stored check-in (not optimistic pendingIds) so a
+  // just-tapped row finishes its animation in place, then reorders on the next
+  // data refresh. Stable sort keeps each group in its original order.
+  const sortedHabits = [...(habits || [])].sort((a, b) => {
+    const aDone = isCheckedInToday(a);
+    const bDone = isCheckedInToday(b);
+    if (aDone !== bDone) return aDone ? 1 : -1;
+    return 0;
+  });
+  const visibleHabits = sortedHabits.slice(0, MAX_VISIBLE);
+  const remaining = sortedHabits.length - MAX_VISIBLE;
   const totalActiveStreak = (habits || []).reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
 
   const userPrefersBlur =

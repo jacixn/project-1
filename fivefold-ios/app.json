@@ -2,7 +2,7 @@
   "expo": {
     "name": "Biblely",
     "slug": "fivefold-ios",
-    "version": "1.0.78",
+    "version": "1.0.79",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,8 +17,13 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.jesusxoi.biblely",
-      "buildNumber": "78",
+      "buildNumber": "79",
       "infoPlist": {
+        "NSCalendarsFullAccessUsageDescription": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
+        "NSCalendarsUsageDescription": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
+        "NSRemindersFullAccessUsageDescription": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
+        "NSRemindersUsageDescription": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
         "NSCameraUsageDescription": "Biblely needs access to your camera to take a profile photo and scan food for nutrition tracking.",
         "NSPhotoLibraryUsageDescription": "Biblely needs access to your photo library to choose a profile picture or import food photos for nutrition tracking.",
         "NSMicrophoneUsageDescription": "Biblely needs access to your microphone for voice input in chat.",
@@ -81,6 +86,13 @@
       ],
       "expo-localization",
       "expo-font",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
+          "remindersPermission": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync."
+        }
+      ],
       [
         "expo-alternate-app-icons",
         [

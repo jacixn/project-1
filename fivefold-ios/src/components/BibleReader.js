@@ -3770,6 +3770,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       
 
       <View style={styles.youversionVersesContainer}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, marginBottom: 8, opacity: 0.55 }}>
+          <MaterialIcons name="touch-app" size={14} color={theme.textSecondary} />
+          <Text style={{ color: theme.textSecondary, fontSize: 12, marginLeft: 6, fontStyle: 'italic' }}>
+            Tap and hold a verse for more options
+          </Text>
+        </View>
         {verses.map((verse, index) => {
         const isSimplified = verse.isSimplified && verse.simplifiedContent;
         const isHighlighted = highlightedVerse === parseInt(verse.number || verse.verse);

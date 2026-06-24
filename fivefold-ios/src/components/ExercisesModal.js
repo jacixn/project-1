@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   Alert,
   Linking,
   Dimensions,
+  Animated as RNAnimated,
+  PanResponder,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -51,13 +53,194 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [showBodyPartPicker, setShowBodyPartPicker] = useState(false);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [showExerciseDetail, setShowExerciseDetail] = useState(false);
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
   const [showCustomExercisesModal, setShowCustomExercisesModal] = useState(false);
-  
+
+  // Options popup mount + animation state (ported from NutritionScreen Add Food modal)
+  const [optionsMounted, setOptionsMounted] = useState(false);
+  const optionsBackdropAnim = useRef(new RNAnimated.Value(0)).current;
+  const optionsSlideAnim = useRef(new RNAnimated.Value(1)).current;
+  const optionsDragY = useRef(new RNAnimated.Value(0)).current;
+
+  const optionsPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, gs) =>
+      gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+    onPanResponderGrant: () => {
+      optionsDragY.setValue(0);
+    },
+    onPanResponderMove: RNAnimated.event(
+      [null, { dy: optionsDragY }],
+      { useNativeDriver: false }
+    ),
+    onPanResponderRelease: (_, gs) => {
+      if (gs.dy > 100 || gs.vy > 0.5) {
+        RNAnimated.parallel([
+          RNAnimated.timing(optionsDragY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          RNAnimated.timing(optionsBackdropAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setShowFilterMenu(false);
+          setOptionsMounted(false);
+          optionsDragY.setValue(0);
+          optionsSlideAnim.setValue(1);
+        });
+      } else {
+        RNAnimated.spring(optionsDragY, {
+          toValue: 0,
+          damping: 25,
+          stiffness: 300,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  }), []);
+
+  const openOptionsMenu = () => {
+    hapticFeedback.light();
+    optionsDragY.setValue(0);
+    setOptionsMounted(true);
+    setShowFilterMenu(true);
+    requestAnimationFrame(() => {
+      RNAnimated.parallel([
+        RNAnimated.timing(optionsBackdropAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        RNAnimated.spring(optionsSlideAnim, {
+          toValue: 0,
+          damping: 28,
+          stiffness: 300,
+          mass: 0.8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const closeOptionsMenu = (onClosed) => {
+    RNAnimated.parallel([
+      RNAnimated.timing(optionsBackdropAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(optionsSlideAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowFilterMenu(false);
+      setOptionsMounted(false);
+      optionsDragY.setValue(0);
+      optionsSlideAnim.setValue(1);
+      if (typeof onClosed === 'function') onClosed();
+    });
+  };
+
+  // Generic Picker popup state (Body Part / Category) — matches Add Food style
+  const [activePicker, setActivePicker] = useState(null); // 'bodyPart' | 'category' | null
+  const [pickerMounted, setPickerMounted] = useState(false);
+  const pickerBackdropAnim = useRef(new RNAnimated.Value(0)).current;
+  const pickerSlideAnim = useRef(new RNAnimated.Value(1)).current;
+  const pickerDragY = useRef(new RNAnimated.Value(0)).current;
+
+  const pickerPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, gs) =>
+      gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+    onPanResponderGrant: () => {
+      pickerDragY.setValue(0);
+    },
+    onPanResponderMove: RNAnimated.event(
+      [null, { dy: pickerDragY }],
+      { useNativeDriver: false }
+    ),
+    onPanResponderRelease: (_, gs) => {
+      if (gs.dy > 100 || gs.vy > 0.5) {
+        RNAnimated.parallel([
+          RNAnimated.timing(pickerDragY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          RNAnimated.timing(pickerBackdropAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setActivePicker(null);
+          setPickerMounted(false);
+          pickerDragY.setValue(0);
+          pickerSlideAnim.setValue(1);
+        });
+      } else {
+        RNAnimated.spring(pickerDragY, {
+          toValue: 0,
+          damping: 25,
+          stiffness: 300,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  }), []);
+
+  const openPicker = (type) => {
+    hapticFeedback.light();
+    pickerDragY.setValue(0);
+    setPickerMounted(true);
+    setActivePicker(type);
+    requestAnimationFrame(() => {
+      RNAnimated.parallel([
+        RNAnimated.timing(pickerBackdropAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        RNAnimated.spring(pickerSlideAnim, {
+          toValue: 0,
+          damping: 28,
+          stiffness: 300,
+          mass: 0.8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const closePicker = (onClosed) => {
+    RNAnimated.parallel([
+      RNAnimated.timing(pickerBackdropAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(pickerSlideAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setActivePicker(null);
+      setPickerMounted(false);
+      pickerDragY.setValue(0);
+      pickerSlideAnim.setValue(1);
+      if (typeof onClosed === 'function') onClosed();
+    });
+  };
+
   const detailScrollRef = useRef(null);
 
   // Bottom-sheet animation (UI-thread, glued to finger)
@@ -256,19 +439,12 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
 
   const handleBodyPartPress = () => {
     hapticFeedback.light();
-    setShowBodyPartPicker(true);
-    setShowFilterMenu(false);
+    closeOptionsMenu(() => openPicker('bodyPart'));
   };
 
   const handleCategoryPress = () => {
     hapticFeedback.light();
-    setShowCategoryPicker(true);
-    setShowFilterMenu(false);
-  };
-
-  const handleSortPress = () => {
-    hapticFeedback.light();
-    // Sort functionality - currently sorts alphabetically by default
+    closeOptionsMenu(() => openPicker('category'));
   };
 
   const renderExercise = (exercise) => (
@@ -320,7 +496,20 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
             <Text style={{ color: textPrimary, fontSize: 20, fontWeight: '700', letterSpacing: 0.3 }}>
               {selectionMode ? 'New' : 'Exercises'}
             </Text>
-            <View style={{ width: 44, height: 44 }} />
+            <TouchableOpacity
+              onPress={openOptionsMenu}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="more-horiz" size={22} color={textPrimary} />
+            </TouchableOpacity>
           </View>
 
           {/* Search Bar */}
@@ -367,186 +556,193 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
           </View>
         </View>
 
-        {/* Filter Menu - appears when three dots is tapped */}
-        {showFilterMenu && (
-          <View style={[styles.filterMenu, {
-            backgroundColor: theme.background,
-            borderBottomColor: theme.border,
-          }]}>
-            <TouchableOpacity
-              style={[styles.filterMenuItem, { borderBottomColor: theme.border }]}
-              onPress={() => {
-                hapticFeedback.light();
-                handleBodyPartPress();
-              }}
+        {/* Options Popup - Add-Food-style layered overlay + animated sheet */}
+        {optionsMounted && (
+          <View style={styles.optionsOverlayAbsolute} pointerEvents={showFilterMenu ? 'auto' : 'none'}>
+            <RNAnimated.View
+              style={[styles.optionsBackdrop, {
+                opacity: RNAnimated.multiply(
+                  optionsBackdropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] }),
+                  optionsDragY.interpolate({ inputRange: [0, 300], outputRange: [1, 0.2], extrapolate: 'clamp' }),
+                ),
+              }]}
             >
-              <MaterialIcons name="fitness-center" size={20} color={theme.textSecondary} />
-              <Text style={[styles.filterMenuText, { color: theme.text }]}>{selectedBodyPart}</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
+              <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeOptionsMenu()} />
+            </RNAnimated.View>
 
-            <TouchableOpacity
-              style={[styles.filterMenuItem, { borderBottomColor: theme.border }]}
-              onPress={() => {
-                hapticFeedback.light();
-                handleCategoryPress();
-              }}
-            >
-              <MaterialIcons name="category" size={20} color={theme.textSecondary} />
-              <Text style={[styles.filterMenuText, { color: theme.text }]}>{selectedCategory}</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.optionsKeyboardWrap} pointerEvents="box-none">
+              <RNAnimated.View
+                style={[
+                  styles.optionsSheetCard,
+                  {
+                    backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                    transform: [{
+                      translateY: RNAnimated.add(
+                        optionsSlideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, SCREEN_HEIGHT] }),
+                        optionsDragY.interpolate({ inputRange: [-1, 0, SCREEN_HEIGHT], outputRange: [0, 0, SCREEN_HEIGHT], extrapolate: 'clamp' }),
+                      ),
+                    }],
+                  },
+                ]}
+              >
+                <View {...optionsPanResponder.panHandlers}>
+                  <View style={[styles.optionsHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.12)' }]} />
 
-            <TouchableOpacity
-              style={[styles.filterMenuItem, { borderBottomColor: theme.border }]}
-              onPress={() => {
-                hapticFeedback.light();
-                setShowFilterMenu(false);
-                setShowAddExerciseModal(true);
-              }}
-            >
-              <MaterialIcons name="add-circle-outline" size={20} color={theme.textSecondary} />
-              <Text style={[styles.filterMenuText, { color: theme.text }]}>Add Custom Exercise</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
+                  <View style={styles.optionsHeader}>
+                    <Text style={[styles.optionsTitle, { color: theme.text }]}>Options</Text>
+                    <TouchableOpacity
+                      style={[styles.optionsCloseBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6' }]}
+                      onPress={() => closeOptionsMenu()}
+                    >
+                      <MaterialIcons name="close" size={18} color={theme.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
-            <TouchableOpacity
-              style={[styles.filterMenuItem, { borderBottomColor: theme.border }]}
-              onPress={async () => {
-                hapticFeedback.light();
-                setShowFilterMenu(false);
-                setShowCustomExercisesModal(true);
-              }}
-            >
-              <MaterialIcons name="star" size={20} color={theme.textSecondary} />
-              <Text style={[styles.filterMenuText, { color: theme.text }]}>My Custom Exercises</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.filterMenuItem]}
-              onPress={() => {
-                hapticFeedback.light();
-                handleSortPress();
-              }}
-            >
-              <MaterialIcons name="swap-vert" size={20} color={theme.textSecondary} />
-              <Text style={[styles.filterMenuText, { color: theme.text }]}>Sort Alphabetically</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.filterMenuItem]}
-              onPress={async () => {
-                hapticFeedback.light();
-                setShowFilterMenu(false);
-                await handleRefresh();
-              }}
-            >
-              <MaterialIcons name="refresh" size={20} color={theme.textSecondary} />
-              <Text style={[styles.filterMenuText, { color: theme.text }]}>Clear Cache & Refresh</Text>
-              <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
+                <ScrollView showsVerticalScrollIndicator={false} style={styles.optionsScroll} bounces={false}>
+                  <View style={styles.optionsList}>
+                    {[
+                      { icon: 'fitness-center', title: selectedBodyPart, desc: 'Filter by body part', tint: '#6366F1', onPress: handleBodyPartPress },
+                      { icon: 'category', title: selectedCategory, desc: 'Filter by category', tint: '#8B5CF6', onPress: handleCategoryPress },
+                      { icon: 'add-circle-outline', title: 'Add Custom Exercise', desc: 'Create your own exercise', tint: '#10B981', onPress: () => { hapticFeedback.light(); closeOptionsMenu(() => setShowAddExerciseModal(true)); } },
+                      { icon: 'star', title: 'My Custom Exercises', desc: 'View and manage your customs', tint: '#F59E0B', onPress: () => { hapticFeedback.light(); closeOptionsMenu(() => setShowCustomExercisesModal(true)); } },
+                      { icon: 'refresh', title: 'Clear Cache & Refresh', desc: 'Reload exercise data', tint: '#EF4444', onPress: () => { hapticFeedback.light(); closeOptionsMenu(() => handleRefresh()); } },
+                    ].map((item) => (
+                      <TouchableOpacity
+                        key={item.icon}
+                        activeOpacity={0.7}
+                        style={[
+                          styles.optionsCard,
+                          {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB',
+                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                          },
+                        ]}
+                        onPress={item.onPress}
+                      >
+                        <View style={[styles.optionsCardIcon, { backgroundColor: item.tint + '14' }]}>
+                          <MaterialIcons name={item.icon} size={24} color={item.tint} />
+                        </View>
+                        <View style={styles.optionsCardText}>
+                          <Text style={[styles.optionsCardTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
+                          <Text style={[styles.optionsCardDesc, { color: theme.textTertiary || theme.textSecondary }]} numberOfLines={2}>{item.desc}</Text>
+                        </View>
+                        <MaterialIcons name="chevron-right" size={20} color={theme.textTertiary || theme.textSecondary} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </RNAnimated.View>
+            </View>
           </View>
         )}
 
-        {/* Body Part Picker Modal */}
-        <Modal
-          visible={showBodyPartPicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowBodyPartPicker(false)}
-        >
-          <TouchableOpacity 
-            style={styles.pickerOverlay}
-            activeOpacity={0.7}
-            onPress={() => {
-              hapticFeedback.light();
-              setShowBodyPartPicker(false);
-            }}
-          >
-            <View style={[styles.pickerContainer, { backgroundColor: theme.background }]}>
-              <View style={[styles.pickerHeader, { borderBottomColor: theme.border }]}>
-                <Text style={[styles.pickerTitle, { color: theme.text }]}>Select Body Part</Text>
-                <TouchableOpacity onPress={() => setShowBodyPartPicker(false)}>
-                  <MaterialIcons name="close" size={24} color={theme.textSecondary} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.pickerList}>
-                {bodyParts.map((bodyPart) => (
-                  <TouchableOpacity
-                    key={bodyPart}
-                    style={[styles.pickerItem, { borderBottomColor: theme.border }]}
-                    onPress={() => {
-                      hapticFeedback.light();
-                      setSelectedBodyPart(bodyPart);
-                      setShowBodyPartPicker(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.pickerItemText,
-                      { color: bodyPart === selectedBodyPart ? theme.primary : theme.text }
-                    ]}>
-                      {bodyPart}
-                    </Text>
-                    {bodyPart === selectedBodyPart && (
-                      <MaterialIcons name="check" size={24} color={theme.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </TouchableOpacity>
-        </Modal>
+        {/* Body Part / Category Picker Popup - Add Food style */}
+        {pickerMounted && (() => {
+          const isBodyPart = activePicker === 'bodyPart';
+          const title = isBodyPart ? 'Select Body Part' : 'Select Category';
+          const items = isBodyPart ? bodyParts : categories;
+          const selected = isBodyPart ? selectedBodyPart : selectedCategory;
+          const setSelected = isBodyPart ? setSelectedBodyPart : setSelectedCategory;
+          const accent = isBodyPart ? '#6366F1' : '#8B5CF6';
 
-        {/* Category Picker Modal */}
-        <Modal
-          visible={showCategoryPicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowCategoryPicker(false)}
-        >
-          <TouchableOpacity 
-            style={styles.pickerOverlay}
-            activeOpacity={0.7}
-            onPress={() => {
-              hapticFeedback.light();
-              setShowCategoryPicker(false);
-            }}
-          >
-            <View style={[styles.pickerContainer, { backgroundColor: theme.background }]}>
-              <View style={[styles.pickerHeader, { borderBottomColor: theme.border }]}>
-                <Text style={[styles.pickerTitle, { color: theme.text }]}>Select Category</Text>
-                <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-                  <MaterialIcons name="close" size={24} color={theme.textSecondary} />
-                </TouchableOpacity>
+          return (
+            <View style={styles.optionsOverlayAbsolute} pointerEvents={activePicker ? 'auto' : 'none'}>
+              <RNAnimated.View
+                style={[styles.optionsBackdrop, {
+                  opacity: RNAnimated.multiply(
+                    pickerBackdropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] }),
+                    pickerDragY.interpolate({ inputRange: [0, 300], outputRange: [1, 0.2], extrapolate: 'clamp' }),
+                  ),
+                }]}
+              >
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closePicker()} />
+              </RNAnimated.View>
+
+              <View style={styles.optionsKeyboardWrap} pointerEvents="box-none">
+                <RNAnimated.View
+                  style={[
+                    styles.optionsSheetCard,
+                    {
+                      backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                      transform: [{
+                        translateY: RNAnimated.add(
+                          pickerSlideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, SCREEN_HEIGHT] }),
+                          pickerDragY.interpolate({ inputRange: [-1, 0, SCREEN_HEIGHT], outputRange: [0, 0, SCREEN_HEIGHT], extrapolate: 'clamp' }),
+                        ),
+                      }],
+                    },
+                  ]}
+                >
+                  <View {...pickerPanResponder.panHandlers}>
+                    <View style={[styles.optionsHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.12)' }]} />
+                    <View style={styles.optionsHeader}>
+                      <Text style={[styles.optionsTitle, { color: theme.text }]}>{title}</Text>
+                      <TouchableOpacity
+                        style={[styles.optionsCloseBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6' }]}
+                        onPress={() => closePicker()}
+                      >
+                        <MaterialIcons name="close" size={18} color={theme.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <ScrollView showsVerticalScrollIndicator={false} style={styles.optionsScroll} bounces={false}>
+                    <View style={styles.optionsList}>
+                      {items.map((item) => {
+                        const isSelected = item === selected;
+                        return (
+                          <TouchableOpacity
+                            key={item}
+                            activeOpacity={0.7}
+                            onPress={() => {
+                              hapticFeedback.light();
+                              setSelected(item);
+                              closePicker();
+                            }}
+                            style={[
+                              styles.optionsCard,
+                              {
+                                backgroundColor: isSelected
+                                  ? accent + '14'
+                                  : (isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB'),
+                                borderColor: isSelected
+                                  ? accent + '55'
+                                  : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
+                              },
+                            ]}
+                          >
+                            <View style={[styles.optionsCardIcon, { backgroundColor: accent + (isSelected ? '22' : '14') }]}>
+                              <MaterialIcons
+                                name={isBodyPart ? 'fitness-center' : 'category'}
+                                size={22}
+                                color={accent}
+                              />
+                            </View>
+                            <View style={styles.optionsCardText}>
+                              <Text
+                                style={[
+                                  styles.optionsCardTitle,
+                                  { color: isSelected ? accent : theme.text },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {item}
+                              </Text>
+                            </View>
+                            {isSelected && (
+                              <MaterialIcons name="check-circle" size={22} color={accent} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </RNAnimated.View>
               </View>
-              <ScrollView style={styles.pickerList}>
-                {categories.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[styles.pickerItem, { borderBottomColor: theme.border }]}
-                    onPress={() => {
-                      hapticFeedback.light();
-                      setSelectedCategory(category);
-                      setShowCategoryPicker(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.pickerItemText,
-                      { color: category === selectedCategory ? theme.primary : theme.text }
-                    ]}>
-                      {category}
-                    </Text>
-                    {category === selectedCategory && (
-                      <MaterialIcons name="check" size={24} color={theme.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
             </View>
-          </TouchableOpacity>
-        </Modal>
+          );
+        })()}
 
         {/* Content - starts from top so it goes UNDER the blurred header */}
         {loading ? (
@@ -814,13 +1010,27 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
           <ScrollView style={{ flex: 1 }}>
             {exercises.filter(ex => ex.isCustom).length === 0 ? (
               <View style={styles.emptyState}>
-                <MaterialIcons name="fitness-center" size={64} color={theme.textSecondary} style={{ opacity: 0.3 }} />
-                <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
+                <View style={[styles.emptyIconTile, { backgroundColor: '#10B98114' }]}>
+                  <MaterialIcons name="fitness-center" size={48} color="#10B981" />
+                </View>
+                <Text style={[styles.emptyStateText, { color: theme.text }]}>
                   No custom exercises yet
                 </Text>
                 <Text style={[styles.emptyStateSubtext, { color: theme.textSecondary }]}>
-                  Tap "Add Custom Exercise" to create one
+                  Create your own exercise to mix it in with{'\n'}the default library
                 </Text>
+                <TouchableOpacity
+                  style={[styles.emptyCtaBtn, { backgroundColor: '#10B981' }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    hapticFeedback.light();
+                    setShowCustomExercisesModal(false);
+                    setTimeout(() => setShowAddExerciseModal(true), 250);
+                  }}
+                >
+                  <MaterialIcons name="add" size={20} color="#FFF" />
+                  <Text style={styles.emptyCtaText}>Add Custom Exercise</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               exercises.filter(ex => ex.isCustom).map((exercise) => (
@@ -1196,18 +1406,129 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
+  },
+  emptyIconTile: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyStateText: {
     fontSize: 20,
-    fontWeight: '600',
-    marginTop: 16,
+    fontWeight: '700',
+    marginTop: 4,
     textAlign: 'center',
   },
   emptyStateSubtext: {
-    fontSize: 16,
+    fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyCtaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 24,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  emptyCtaText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  // Options Popup (ported from NutritionScreen Add Food modal)
+  optionsOverlayAbsolute: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
+  optionsBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
+  optionsKeyboardWrap: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  optionsSheetCard: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  optionsHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  optionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  optionsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  optionsCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  optionsScroll: {
+    paddingHorizontal: 20,
+  },
+  optionsList: {
+    gap: 10,
+    paddingBottom: 20,
+  },
+  optionsCard: {
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+  },
+  optionsCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  optionsCardText: {
+    flex: 1,
+  },
+  optionsCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  optionsCardDesc: {
+    fontSize: 12,
+    marginTop: 3,
+    lineHeight: 16,
   },
 });
 

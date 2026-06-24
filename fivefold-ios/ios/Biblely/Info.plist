@@ -21,7 +21,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.78</string>
+	<string>1.0.79</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -35,7 +35,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>78</string>
+	<string>79</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -45,6 +45,16 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 	</dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Biblely needs access to your camera to take a profile photo and scan food for nutrition tracking.</string>
 	<key>NSMicrophoneUsageDescription</key>

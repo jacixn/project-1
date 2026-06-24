@@ -978,8 +978,12 @@ const GymTab = () => {
                 const isSaturday = today.getDay() === 6;
                 const lastTs = lastWeighIn?.timestamp ? new Date(lastWeighIn.timestamp) : null;
                 const daysSince = lastTs ? Math.floor((today - lastTs) / 86400000) : 999;
-                const overdue = daysSince >= 7;
-                if (!isSaturday && !overdue) return null;
+                // Weekly check-in: show on Saturday ONLY, and hide once logged this
+                // week. weighInDates stores the Saturday-of-the-week for each log,
+                // so on Saturday today's key is this week's key.
+                const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                const doneThisWeek = weighInDates.has(todayKey);
+                if (!isSaturday || doneThisWeek) return null;
                 const subtitle = lastWeighIn
                   ? `Last: ${lastWeighIn.weightKg?.toFixed(1)} kg${lastWeighIn.bodyFatPercent ? ` · ${lastWeighIn.bodyFatPercent.toFixed(1)}% fat` : ''}${daysSince === 0 ? ' · today' : ` · ${daysSince}d ago`}`
                   : 'Log your first weigh-in';

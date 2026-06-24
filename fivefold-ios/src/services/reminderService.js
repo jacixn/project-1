@@ -21,6 +21,8 @@ const persist = async (reminders) => {
   const data = { reminders };
   await saveData(STORAGE_KEY, data);
   pushToCloud(STORAGE_KEY, data);
+  // Mirror to iPhone Calendar if the user enabled it (no-op otherwise).
+  try { require('./calendarSync').syncReminders(reminders); } catch {}
 };
 
 export const addReminder = async ({ title, time, type, days, icon, color }) => {
