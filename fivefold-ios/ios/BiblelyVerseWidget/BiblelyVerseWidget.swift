@@ -102,41 +102,43 @@ struct VerseWidgetView: View {
             switch family {
             case .accessoryRectangular:
                 // Lock screen rectangular widget
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Image("WidgetLogo")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
-                        Text(entry.reference)
-                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 13, height: 13)
+                        Text(entry.reference.uppercased())
+                            .font(.system(size: 11, weight: .heavy))
                             .minimumScaleFactor(0.7)
                     }
                     Text(entry.text)
-                        .font(.system(size: 10, weight: .medium))
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.6)
+                        .font(.system(size: 11, weight: .medium, design: .serif))
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.7)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .widgetURL(verseURL)
-                
+
             case .accessoryCircular:
                 // Lock screen circular widget
                 VStack(spacing: 1) {
-                    Image(systemName: "book.fill")
-                        .font(.system(size: 16))
+                    Image("WidgetLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 16, height: 16)
                     Text(entry.reference.components(separatedBy: " ").last ?? "")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
                 .widgetURL(verseURL)
-                
+
             case .accessoryInline:
                 // Lock screen inline widget (single line of text)
-                Text("\(entry.reference)")
+                Text(entry.reference)
                     .widgetURL(verseURL)
-                
+
             default:
                 homeScreenView
             }
@@ -144,52 +146,48 @@ struct VerseWidgetView: View {
             homeScreenView
         }
     }
-    
+
     private var homeScreenView: some View {
-        // Home screen widgets
-        GeometryReader { geometry in
-            ZStack {
-                // Background gradient - dark elegant theme
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.08, blue: 0.12),
-                        Color(red: 0.12, green: 0.10, blue: 0.18)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                
-                VStack(alignment: .leading, spacing: family == .systemSmall ? 6 : 10) {
-                    // Reference with accent color
-                    Text(entry.reference)
-                        .font(.system(size: family == .systemSmall ? 11 : 13, weight: .bold))
-                        .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85))
-                    
-                    // Verse text
-                    Text(entry.text)
-                        .font(.system(size: getFontSize(), weight: .medium))
-                        .foregroundColor(.white.opacity(0.95))
-                        .lineLimit(getLineLimit())
-                        .lineSpacing(2)
-                        .minimumScaleFactor(0.8)
-                    
+        WidgetCanvas(WidgetUI.verse) {
+            VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 12) {
+                // Reference as an accent pill plus header glyph
+                HStack(spacing: 8) {
+                    Image(systemName: "book.fill")
+                        .font(.system(size: family == .systemSmall ? 12 : 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                    Text(entry.reference.uppercased())
+                        .font(.system(size: family == .systemSmall ? 11 : 12, weight: .heavy))
+                        .tracking(0.5)
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Spacer(minLength: 0)
-                    
-                    // App branding with logo
-                    HStack {
-                        Spacer()
-                        Image("WidgetLogo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 16, height: 16)
-                            .opacity(0.6)
-                        Text("Biblely")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(Color.white.opacity(0.35))
-                    }
                 }
-                .padding(family == .systemSmall ? 12 : 16)
+
+                // Verse text is the hero, elegant serif
+                Text(entry.text)
+                    .font(.system(size: getFontSize(), weight: .semibold, design: .serif))
+                    .foregroundColor(.white)
+                    .lineLimit(getLineLimit())
+                    .lineSpacing(family == .systemSmall ? 2 : 3)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Spacer(minLength: 0)
+
+                // Subtle Biblely branding
+                HStack(spacing: 5) {
+                    Rectangle()
+                        .fill(WidgetUI.hairline)
+                        .frame(width: 18, height: 1)
+                    Text("BIBLELY")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundColor(.white.opacity(0.5))
+                    Spacer(minLength: 0)
+                }
             }
+            .padding(family == .systemSmall ? 12 : 16)
         }
         .widgetURL(verseURL)
     }
@@ -243,7 +241,7 @@ struct BiblelyVerseWidget: Widget {
         StaticConfiguration(kind: kind, provider: VerseProvider()) { entry in
             if #available(iOS 17.0, *) {
                 VerseWidgetView(entry: entry)
-                    .containerBackground(.clear, for: .widget)
+                    .containerBackground(for: .widget) { ZStack { WidgetUI.verse; WidgetUI.sheen } }
             } else {
                 VerseWidgetView(entry: entry)
             }

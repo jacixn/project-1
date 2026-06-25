@@ -321,6 +321,8 @@ const ProfileTab = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [liquidGlassEnabled, setLiquidGlassEnabled] = useState(true);
   const [calendarSyncEnabled, setCalendarSyncEnabled] = useState(false);
+  const [quickTaskCalEnabled, setQuickTaskCalEnabled] = useState(true);
+  const [quickTaskTime, setQuickTaskTime] = useState('18:00');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [referralInfo, setReferralInfo] = useState({ referredBy: null, referredByUsername: null, referredByDisplayName: null, referralCount: 0 });
@@ -2642,9 +2644,23 @@ const ProfileTab = () => {
   const loadCalendarSyncSetting = async () => {
     try {
       setCalendarSyncEnabled(await calendarSync.isEnabled());
+      setQuickTaskCalEnabled((await userStorage.getRaw('quick_todo_calendar_enabled')) !== 'false'); // default ON
+      setQuickTaskTime((await userStorage.getRaw('quick_todo_default_time')) || '18:00');
     } catch (error) {
       console.log('Error loading calendar sync setting:', error);
     }
+  };
+
+  const handleQuickTaskCalToggle = async (enabled) => {
+    hapticFeedback.light();
+    setQuickTaskCalEnabled(enabled);
+    await userStorage.setRaw('quick_todo_calendar_enabled', enabled ? 'true' : 'false');
+  };
+
+  const handleQuickTaskTimeSelect = async (timeStr) => {
+    hapticFeedback.light();
+    setQuickTaskTime(timeStr);
+    await userStorage.setRaw('quick_todo_default_time', timeStr);
   };
 
   const handleCalendarSyncToggle = async (enabled) => {
@@ -5296,7 +5312,7 @@ const ProfileTab = () => {
                       Sync to iPhone Calendar
                     </Text>
                     <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
-                      Add your prayers, reminders and workouts to your calendar
+                      Add your prayers, reminders, workouts and tasks to your calendar
                     </Text>
                   </View>
                 </View>
@@ -5307,6 +5323,45 @@ const ProfileTab = () => {
                   thumbColor="#fff"
                 />
               </View>
+
+              {/* Quick task default time */}
+              <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${theme.primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                    <MaterialIcons name="schedule" size={20} color={theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Add quick tasks to calendar</Text>
+                    <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>Quick tasks get this time so they show on your calendar</Text>
+                  </View>
+                </View>
+                <Switch
+                  value={quickTaskCalEnabled}
+                  onValueChange={handleQuickTaskCalToggle}
+                  trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+              {quickTaskCalEnabled && (
+                <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                  <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginBottom: 8 }}>Default time</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {[['09:00', '9 AM'], ['12:00', '12 PM'], ['15:00', '3 PM'], ['18:00', '6 PM'], ['21:00', '9 PM']].map(([val, label]) => {
+                      const active = quickTaskTime === val;
+                      return (
+                        <TouchableOpacity
+                          key={val}
+                          onPress={() => handleQuickTaskTimeSelect(val)}
+                          style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, borderWidth: 1, backgroundColor: active ? theme.primary : 'transparent', borderColor: active ? theme.primary : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }}
+                        >
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: active ? '#fff' : modalTextColor }}>{label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* ADMIN ANALYTICS - Only visible to admin */}

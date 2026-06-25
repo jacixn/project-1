@@ -1,6 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Animated } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Animated, Platform, DeviceEventEmitter } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { BlurView } from 'expo-blur';
 import {
   LiquidGlassView,
@@ -57,9 +58,27 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
   } : {};
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [customDateTime, setCustomDateTime] = useState(null);
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [pendingTasks, setPendingTasks] = useState([]);
   const [floatingPoints, setFloatingPoints] = useState([]);
   const floatingIdRef = useRef(0);
+
+  // Open the quick-add form when launched from the "Add Task" home-screen widget.
+  // Cold launch: App.js sets a global flag, checked once this list mounts.
+  // Warm: App.js emits 'openQuickAddTodo' after navigating here.
+  useEffect(() => {
+    const openAdd = () => { setIsAdding(true); };
+    if (global.__PENDING_ADD_TODO__) {
+      global.__PENDING_ADD_TODO__ = false;
+      setTimeout(openAdd, 250);
+    }
+    const sub = DeviceEventEmitter.addListener('openQuickAddTodo', () => {
+      global.__PENDING_ADD_TODO__ = false;
+      openAdd();
+    });
+    return () => sub.remove();
+  }, []);
 
   const showFloatingPoints = useCallback((points, tierColor) => {
     const id = ++floatingIdRef.current;
@@ -86,9 +105,10 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
 
   const handleAddTodo = async () => {
     if (!newTodo.trim()) return;
-    
+
     hapticFeedback.light();
-    
+    const chosenDateTime = customDateTime;
+
     const pendingTask = {
       id: Date.now().toString(),
       text: newTodo.trim(),
@@ -102,7 +122,9 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
     // Clear input and close form immediately so user can add more
     setNewTodo('');
     setIsAdding(false);
-    
+    setCustomDateTime(null);
+    setShowSchedulePicker(false);
+
     // Run analysis in background
     try {
       const scoring = await scoreTask(pendingTask.text);
@@ -119,7 +141,16 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
         completed: false,
         createdAt: pendingTask.createdAt
       };
-      
+
+      // If the user picked an exact date/time, attach it (skips the auto default
+      // time in handleTodoAdd and places it on the calendar at this moment).
+      if (chosenDateTime) {
+        const d = chosenDateTime;
+        completedTodo.scheduledDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        completedTodo.scheduledTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        completedTodo.scheduledDateTime = d.toISOString();
+      }
+
       // Remove from pending and add to actual todos
       setPendingTasks(prev => prev.filter(t => t.id !== pendingTask.id));
       onTodoAdd(completedTodo);
@@ -202,6 +233,57 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
             onChangeText={setNewTodo}
             autoFocus
           />
+
+          {/* Optional: pick an exact date & time (otherwise the default time is used) */}
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.light();
+              if (!customDateTime) {
+                const d = new Date();
+                d.setHours(18, 0, 0, 0);
+                if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+                setCustomDateTime(d);
+              }
+              setShowSchedulePicker(s => !s);
+            }}
+            style={[styles.scheduleRow, { borderColor: theme.border }]}
+          >
+            <MaterialIcons name="event" size={18} color={theme.primary} />
+            <Text style={[styles.scheduleText, { color: customDateTime ? textColor : textTertiaryColor }]} numberOfLines={1}>
+              {customDateTime
+                ? customDateTime.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : 'Set date & time (optional)'}
+            </Text>
+            {customDateTime && (
+              <TouchableOpacity
+                onPress={() => { hapticFeedback.light(); setCustomDateTime(null); setShowSchedulePicker(false); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialIcons name="close" size={18} color={textTertiaryColor} />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+          {showSchedulePicker && (
+            <>
+              <DateTimePicker
+                value={customDateTime || new Date()}
+                mode="datetime"
+                display="spinner"
+                minimumDate={new Date()}
+                onChange={(_, selected) => {
+                  if (Platform.OS === 'android') setShowSchedulePicker(false);
+                  if (selected) setCustomDateTime(selected);
+                }}
+                textColor={textColor}
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity onPress={() => setShowSchedulePicker(false)} style={{ alignSelf: 'flex-end', padding: 8 }}>
+                  <Text style={{ color: theme.primary, fontWeight: '600' }}>Done</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+
           <View style={styles.formActions}>
             <TouchableOpacity 
               style={[styles.saveButton, { backgroundColor: theme.primary }]} 
@@ -213,8 +295,10 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
               style={[styles.cancelButton, { borderColor: theme.border }]} 
               onPress={() => { 
                 hapticFeedback.light(); // Light feedback when canceling
-                setIsAdding(false); 
-                setNewTodo(''); 
+                setIsAdding(false);
+                setNewTodo('');
+                setCustomDateTime(null);
+                setShowSchedulePicker(false);
               }}
             >
               <Text style={[styles.cancelButtonText, { color: textSecondaryColor }]}>Cancel</Text>
@@ -421,6 +505,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
   },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  scheduleText: { flex: 1, fontSize: 14, fontWeight: '500' },
   formActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',

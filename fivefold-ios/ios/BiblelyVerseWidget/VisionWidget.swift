@@ -95,93 +95,70 @@ struct VisionWidgetSmallView: View {
     let entry: VisionEntry
 
     var body: some View {
-        if let data = entry.data, data.totalActive > 0 {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.06, blue: 0.16),
-                        Color(red: 0.14, green: 0.10, blue: 0.24)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        WidgetCanvas(WidgetUI.vision) {
+            if let data = entry.data, data.totalActive > 0 {
+                let hero = data.visions.first
+                VStack(alignment: .leading, spacing: 10) {
+                    WidgetHeader(icon: "sparkles", title: "Vision")
 
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Image("WidgetLogo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
-                            .opacity(0.6)
-                        Text("Vision")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Color(red: 0.55, green: 0.35, blue: 0.85))
-                        Spacer()
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Text("\(data.totalActive)")
-                        .font(.system(size: 38, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-
-                    Text(data.totalActive == 1 ? "active goal" : "active goals")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
-
-                    // Nearest goal preview
-                    if let first = data.visions.first {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(first.title)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                                .lineLimit(1)
-
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(Color.white.opacity(0.1))
-                                        .frame(height: 4)
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(categoryColor(for: first.category))
-                                        .frame(width: geo.size.width * CGFloat(min(first.progressPercent, 100)) / 100.0, height: 4)
-                                }
+                    if let hero = hero {
+                        HStack(alignment: .center, spacing: 12) {
+                            WidgetRing(
+                                progress: Double(min(hero.progressPercent, 100)) / 100.0,
+                                size: 52,
+                                line: 6,
+                                tint: .white
+                            ) {
+                                Text("\(hero.progressPercent)%")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
                             }
-                            .frame(height: 4)
-                        }
-                        .padding(.top, 2)
-                    }
 
-                    if data.totalAchieved > 0 {
-                        Text("\(data.totalAchieved) achieved")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.green.opacity(0.6))
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(hero.title)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .lineLimit(2)
+                                WidgetPill(text: hero.category)
+                            }
+                            Spacer(minLength: 0)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        HStack {
+                            Text(hero.timeRemaining)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+                            Spacer()
+                            Text("\(data.totalActive) active")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    } else {
+                        Spacer(minLength: 0)
+                        Text("\(data.totalActive)")
+                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Text(data.totalActive == 1 ? "active goal" : "active goals")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
                     }
                 }
                 .padding(12)
-            }
-        } else {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.06, blue: 0.16),
-                        Color(red: 0.14, green: 0.10, blue: 0.24)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
-                VStack(spacing: 8) {
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    WidgetHeader(icon: "sparkles", title: "Vision")
+                    Spacer(minLength: 0)
                     Image(systemName: "scope")
-                        .font(.system(size: 28))
-                        .foregroundColor(Color(red: 0.55, green: 0.35, blue: 0.85).opacity(0.6))
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.85))
                     Text("Set your vision")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
                     Text("Open the app to add goals")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.4))
-                        .multilineTextAlignment(.center)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 .padding(12)
             }
@@ -195,119 +172,94 @@ struct VisionWidgetMediumView: View {
     let entry: VisionEntry
 
     var body: some View {
-        if let data = entry.data, data.totalActive > 0 {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.06, blue: 0.16),
-                        Color(red: 0.14, green: 0.10, blue: 0.24)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        WidgetCanvas(WidgetUI.vision) {
+            if let data = entry.data, data.totalActive > 0 {
+                VStack(alignment: .leading, spacing: 8) {
+                    WidgetHeader(
+                        icon: "sparkles",
+                        title: "Vision",
+                        trailing: "\(data.totalActive) active"
+                    )
 
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Image("WidgetLogo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
-                            .opacity(0.6)
-                        Text("Vision")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Color(red: 0.55, green: 0.35, blue: 0.85))
-                        Spacer()
-                        if data.totalAchieved > 0 {
-                            Text("\(data.totalAchieved) achieved")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.green.opacity(0.6))
+                    let visibleVisions = Array(data.visions.prefix(2))
+                    VStack(spacing: 7) {
+                        ForEach(Array(visibleVisions.enumerated()), id: \.offset) { _, vision in
+                            VisionRowTile(vision: vision)
                         }
-                        Text("\(data.totalActive) goal\(data.totalActive == 1 ? "" : "s")")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.4))
-                    }
-                    .padding(.bottom, 8)
-
-                    let visibleVisions = Array(data.visions.prefix(3))
-                    ForEach(Array(visibleVisions.enumerated()), id: \.offset) { index, vision in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(vision.title)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.9))
-                                    .lineLimit(1)
-                                Spacer()
-                                Text("\(vision.progressPercent)%")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundColor(categoryColor(for: vision.category))
-                            }
-
-                            HStack(spacing: 0) {
-                                GeometryReader { geo in
-                                    ZStack(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(Color.white.opacity(0.08))
-                                            .frame(height: 4)
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(categoryColor(for: vision.category))
-                                            .frame(width: geo.size.width * CGFloat(min(vision.progressPercent, 100)) / 100.0, height: 4)
-                                    }
-                                }
-                                .frame(height: 4)
-
-                                Text(vision.timeRemaining)
-                                    .font(.system(size: 9, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.35))
-                                    .frame(width: 65, alignment: .trailing)
-                            }
-                        }
-                        .padding(.vertical, 4)
-
-                        if index < visibleVisions.count - 1 {
-                            Divider()
-                                .background(Color.white.opacity(0.06))
-                        }
-                    }
-
-                    if data.totalActive > 3 {
-                        Text("and \(data.totalActive - 3) more...")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.3))
-                            .padding(.top, 4)
                     }
 
                     Spacer(minLength: 0)
-                }
-                .padding(14)
-            }
-        } else {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.06, blue: 0.16),
-                        Color(red: 0.14, green: 0.10, blue: 0.24)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
 
+                    if data.totalAchieved > 0 || data.totalActive > 2 {
+                        HStack {
+                            if data.totalAchieved > 0 {
+                                Text("\(data.totalAchieved) achieved")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            Spacer()
+                            if data.totalActive > 2 {
+                                Text("and \(data.totalActive - 2) more")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+            } else {
                 HStack(spacing: 16) {
                     Image(systemName: "scope")
-                        .font(.system(size: 36))
-                        .foregroundColor(Color(red: 0.55, green: 0.35, blue: 0.85).opacity(0.6))
+                        .font(.system(size: 36, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.85))
                     VStack(alignment: .leading, spacing: 4) {
                         Text("What's your vision?")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.white)
                         Text("Open the app to set life goals and track your progress towards them.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.4))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
                             .lineLimit(2)
                     }
+                    Spacer(minLength: 0)
                 }
                 .padding(16)
             }
         }
+    }
+}
+
+// MARK: - Vision Row Tile
+
+private struct VisionRowTile: View {
+    let vision: VisionItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(vision.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Spacer()
+                Text("\(vision.progressPercent)%")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+            }
+
+            WidgetBar(progress: Double(min(vision.progressPercent, 100)) / 100.0, height: 4)
+
+            HStack {
+                WidgetPill(text: vision.category)
+                Spacer()
+                Text(vision.timeRemaining)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.white.opacity(0.65))
+            }
+        }
+        .padding(9)
+        .background(WidgetUI.tile)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -345,7 +297,7 @@ struct VisionWidget: Widget {
         StaticConfiguration(kind: kind, provider: VisionProvider()) { entry in
             if #available(iOS 17.0, *) {
                 VisionWidgetView(entry: entry)
-                    .containerBackground(.clear, for: .widget)
+                    .containerBackground(for: .widget) { ZStack { WidgetUI.vision; WidgetUI.sheen } }
             } else {
                 VisionWidgetView(entry: entry)
             }

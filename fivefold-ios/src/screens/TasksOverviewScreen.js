@@ -19,6 +19,8 @@ import {
   LayoutAnimation,
   UIManager,
   Platform,
+  TextInput,
+  Modal,
 } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -37,6 +39,8 @@ import { auth, db } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { updateTodoWidget } from '../utils/widgetBridge';
 import { pushToCloud } from '../services/userSyncService';
+import { scoreTask } from '../utils/todoScorer';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -174,6 +178,11 @@ const TasksOverviewScreen = () => {
   const [userStats, setUserStats] = useState({ points: 0, level: 1, completedTasks: 0 });
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState({});
+  const [editingTask, setEditingTask] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [editDateTime, setEditDateTime] = useState(null);
+  const [showEditPicker, setShowEditPicker] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
   const [floatingPoints, setFloatingPoints] = useState([]);
   const floatingIdRef = useRef(0);
 
@@ -280,6 +289,7 @@ const TasksOverviewScreen = () => {
     // Persist in background — don't await to keep UI snappy
     saveData('todos', updatedTodos).catch(() => {});
     pushToCloud('todos', updatedTodos);
+    try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
     saveData('userStats', updatedStats).catch(() => {});
     userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
     updateTodoWidget().catch(() => {});
@@ -324,9 +334,63 @@ const TasksOverviewScreen = () => {
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
     pushToCloud('todos', updatedTodos);
+    try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
     updateTodoWidget().catch(() => {});
     DeviceEventEmitter.emit('todosChanged');
   }, [todos]);
+
+  // Open the edit sheet for a task
+  const openEdit = (todo) => {
+    hapticFeedback.light();
+    setEditingTask(todo);
+    setEditText(todo.text || '');
+    setEditDateTime(todo.scheduledDateTime ? new Date(todo.scheduledDateTime) : null);
+    setShowEditPicker(false);
+  };
+
+  // Save edits: re-score if the text changed, update date/time, persist + sync.
+  const saveEdit = useCallback(async () => {
+    if (!editingTask || !editText.trim() || editSaving) return;
+    setEditSaving(true);
+    hapticFeedback.light();
+    const newText = editText.trim();
+    const patch = { text: newText };
+    if (newText !== editingTask.text) {
+      try {
+        const s = await scoreTask(newText);
+        patch.points = s.points;
+        patch.tier = s.tier;
+        patch.source = s.source || 'ai';
+        patch.reasoning = s.reasoning || s.rationale || 'Smart analysis';
+        patch.timeEstimate = s.timeEstimate || 'Unknown';
+        patch.confidence = s.confidence || 85;
+      } catch {}
+    }
+    const pad = (n) => String(n).padStart(2, '0');
+    const updatedTodos = todos.map(t => {
+      if (t.id !== editingTask.id) return t;
+      const merged = { ...t, ...patch };
+      if (editDateTime) {
+        const d = editDateTime;
+        merged.scheduledDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        merged.scheduledTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        merged.scheduledDateTime = d.toISOString();
+      } else {
+        delete merged.scheduledDate;
+        delete merged.scheduledTime;
+        delete merged.scheduledDateTime;
+      }
+      return merged;
+    });
+    setTodos(updatedTodos);
+    await saveData('todos', updatedTodos);
+    pushToCloud('todos', updatedTodos);
+    try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
+    updateTodoWidget().catch(() => {});
+    DeviceEventEmitter.emit('todosChanged');
+    setEditingTask(null);
+    setEditSaving(false);
+  }, [editingTask, editText, editDateTime, editSaving, todos]);
 
   // Group tasks by date
   const groupedTasks = useMemo(() => {
@@ -506,6 +570,15 @@ const TasksOverviewScreen = () => {
                   <Text style={[styles.confLabel, { color: textTertiary }]}>{todo.confidence}%</Text>
                 </View>
               )}
+
+              <TouchableOpacity
+                onPress={() => openEdit(todo)}
+                style={[styles.editTaskBtn, { borderColor: theme.primary + '55' }]}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="edit" size={16} color={theme.primary} />
+                <Text style={[styles.editTaskText, { color: theme.primary }]}>Edit task</Text>
+              </TouchableOpacity>
             </>
           )}
         </TouchableOpacity>
@@ -618,12 +691,113 @@ const TasksOverviewScreen = () => {
           +{fp.points} pts
         </Animated.Text>
       ))}
+
+      {/* Edit task: change text (re-scores) and/or date+time */}
+      <Modal visible={!!editingTask} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditingTask(null)}>
+        <View style={[styles.container, { backgroundColor: bg }]}>
+          <View style={[styles.header, { paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 }]}>
+            <TouchableOpacity onPress={() => setEditingTask(null)} style={{ minWidth: 70, alignItems: 'flex-start' }}>
+              <Text style={{ color: textSecondary, fontSize: 16 }} numberOfLines={1}>Cancel</Text>
+            </TouchableOpacity>
+            <View style={styles.headerCenter}><Text style={[styles.headerTitle, { color: textPrimary }]}>Edit Task</Text></View>
+            <TouchableOpacity
+              onPress={saveEdit}
+              disabled={!editText.trim() || editSaving}
+              style={{ minWidth: 70, alignItems: 'flex-end', opacity: (editText.trim() && !editSaving) ? 1 : 0.4 }}
+            >
+              <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }} numberOfLines={1}>{editSaving ? 'Saving' : 'Save'}</Text>
+            </TouchableOpacity>
+          </View>
+          <Animated.ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+            <Text style={[styles.editLabel, { color: textSecondary }]}>Task</Text>
+            <TextInput
+              style={[styles.editInput, { color: textPrimary, backgroundColor: cardBg, borderColor: cardBorder }]}
+              value={editText}
+              onChangeText={setEditText}
+              placeholder="What do you need to do?"
+              placeholderTextColor={textTertiary}
+              multiline
+              autoFocus
+            />
+            <Text style={[styles.editHint, { color: textTertiary }]}>Changing the text re-runs the smart analysis (points and tier).</Text>
+
+            <Text style={[styles.editLabel, { color: textSecondary, marginTop: 24 }]}>When</Text>
+            <TouchableOpacity
+              onPress={() => {
+                hapticFeedback.light();
+                if (!editDateTime) { const d = new Date(); d.setHours(18, 0, 0, 0); if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1); setEditDateTime(d); }
+                setShowEditPicker(s => !s);
+              }}
+              style={[styles.editWhenRow, { backgroundColor: cardBg, borderColor: cardBorder }]}
+            >
+              <MaterialIcons name="event" size={18} color={theme.primary} />
+              <Text style={[styles.editWhenText, { color: editDateTime ? textPrimary : textTertiary }]} numberOfLines={1}>
+                {editDateTime ? editDateTime.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No date (Anytime)'}
+              </Text>
+              {editDateTime && (
+                <TouchableOpacity onPress={() => { hapticFeedback.light(); setEditDateTime(null); setShowEditPicker(false); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <MaterialIcons name="close" size={18} color={textTertiary} />
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+            {showEditPicker && (
+              <>
+                <DateTimePicker
+                  value={editDateTime || new Date()}
+                  mode="datetime"
+                  display="spinner"
+                  minimumDate={new Date()}
+                  onChange={(_, sel) => { if (Platform.OS === 'android') setShowEditPicker(false); if (sel) setEditDateTime(sel); }}
+                  textColor={textPrimary}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity onPress={() => setShowEditPicker(false)} style={{ alignSelf: 'flex-end', padding: 8 }}>
+                    <Text style={{ color: theme.primary, fontWeight: '600' }}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </Animated.ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  editTaskBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  editTaskText: { fontSize: 14, fontWeight: '600' },
+  editLabel: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  editInput: {
+    fontSize: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  editHint: { fontSize: 12, marginTop: 8 },
+  editWhenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  editWhenText: { flex: 1, fontSize: 16, fontWeight: '500' },
 
   // Header — matches VisionScreen pattern
   header: {

@@ -78,47 +78,77 @@ struct BodyCompProvider: TimelineProvider {
     }
 }
 
-// MARK: - Score Ring View
+// MARK: - Shared status color (private, prefixed to avoid symbol collisions)
 
-struct ScoreRingView: View {
-    let score: Int
-    let ringSize: CGFloat
-    let lineWidth: CGFloat
-
-    private var progress: Double {
-        Double(min(score, 100)) / 100.0
+private func bodyCompStatusColor(_ status: String) -> Color {
+    switch status.lowercased() {
+    case "normal", "fitness", "athletic", "healthy", "high", "very high", "well hydrated":
+        return Color(hex: "34D399")
+    case "overweight", "average", "elevated", "below average":
+        return Color(hex: "FBBF24")
+    case "obese", "above average":
+        return Color(hex: "F87171")
+    default:
+        return .white
     }
+}
 
-    private var scoreColor: Color {
-        if score >= 80 { return Color(red: 0.23, green: 0.51, blue: 0.96) }
-        if score >= 70 { return Color(red: 0.06, green: 0.72, blue: 0.51) }
-        if score >= 40 { return Color(red: 0.96, green: 0.62, blue: 0.04) }
-        return Color(red: 0.94, green: 0.27, blue: 0.27)
-    }
+// MARK: - Stat tile (private, prefixed)
+
+private struct BodyCompStatTile: View {
+    let label: String
+    let value: String
+    var status: String? = nil
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.white.opacity(0.08), lineWidth: lineWidth)
-
-            Circle()
-                .trim(from: 0, to: CGFloat(progress))
-                .stroke(
-                    scoreColor,
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-
-            VStack(spacing: 1) {
-                Text("\(score)")
-                    .font(.system(size: ringSize * 0.28, weight: .bold, design: .rounded))
-                    .foregroundColor(scoreColor)
-                Text("SCORE")
-                    .font(.system(size: ringSize * 0.08, weight: .bold))
-                    .foregroundColor(.white.opacity(0.4))
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label.uppercased())
+                .font(.system(size: 8, weight: .bold))
+                .tracking(0.5)
+                .foregroundColor(.white.opacity(0.6))
+            Text(value)
+                .font(.system(size: 19, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+            if let status = status {
+                Text(status.uppercased())
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(0.3)
+                    .foregroundColor(bodyCompStatusColor(status))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
-        .frame(width: ringSize, height: ringSize)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .background(WidgetUI.tile)
+    }
+}
+
+// MARK: - Empty state (private, prefixed)
+
+private struct BodyCompEmptyView: View {
+    var compact: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            WidgetHeader(icon: "heart.fill", title: "Body")
+            Spacer(minLength: 0)
+            Image(systemName: "figure.stand")
+                .font(.system(size: compact ? 26 : 30, weight: .semibold))
+                .foregroundColor(.white.opacity(0.85))
+            Text("Set up profile")
+                .font(.system(size: compact ? 13 : 15, weight: .bold))
+                .foregroundColor(.white)
+            Text(compact ? "Add your body data in the app." : "Add your body data in Fuel to see your health score and metrics.")
+                .font(.system(size: compact ? 10 : 12, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 }
 
@@ -128,96 +158,52 @@ struct BodyCompWidgetSmallView: View {
     let entry: BodyCompEntry
 
     var body: some View {
-        if let data = entry.data, data.hasProfile {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.07, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.22)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
-                VStack(spacing: 6) {
-                    HStack {
-                        Image("WidgetLogo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
-                            .opacity(0.6)
-                        Text("Body")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Color(red: 0.39, green: 0.40, blue: 0.95))
-                        Spacer()
-                    }
-
-                    Spacer(minLength: 0)
-
-                    ScoreRingView(
-                        score: data.healthScore,
-                        ringSize: 76,
-                        lineWidth: 6
-                    )
-
-                    Spacer(minLength: 0)
-
-                    HStack {
-                        VStack(spacing: 1) {
-                            Text("\(data.bodyAge)")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            Text("Age")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
-                        Spacer()
-                        VStack(spacing: 1) {
-                            Text(String(format: "%.1f", data.bmi))
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            Text("BMI")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
-                        Spacer()
-                        VStack(spacing: 1) {
-                            Text(String(format: "%.0f%%", data.bodyFat))
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            Text("Fat")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
-                    }
-                }
-                .padding(12)
-            }
-        } else {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.07, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.22)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
+        WidgetCanvas(WidgetUI.body) {
+            if let data = entry.data, data.hasProfile {
                 VStack(spacing: 8) {
-                    Image(systemName: "figure.stand")
-                        .font(.system(size: 28))
-                        .foregroundColor(Color(red: 0.39, green: 0.40, blue: 0.95).opacity(0.6))
-                    Text("Set up profile")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
-                    Text("Add your body data\nin the app")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.4))
-                        .multilineTextAlignment(.center)
+                    WidgetHeader(icon: "heart.fill", title: "Body", trailing: String(format: "%.0f KG", data.weight))
+
+                    Spacer(minLength: 0)
+
+                    WidgetRing(progress: Double(min(data.healthScore, 100)) / 100.0, size: 78, line: 7, tint: .white) {
+                        VStack(spacing: 0) {
+                            Text("\(data.healthScore)")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text("SCORE")
+                                .font(.system(size: 7, weight: .bold))
+                                .tracking(0.5)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    HStack(spacing: 0) {
+                        bodyCompMini("\(data.bodyAge)", "AGE")
+                        Spacer()
+                        bodyCompMini(String(format: "%.1f", data.bmi), "BMI")
+                        Spacer()
+                        bodyCompMini(String(format: "%.0f%%", data.bodyFat), "FAT")
+                    }
                 }
                 .padding(12)
+            } else {
+                BodyCompEmptyView(compact: true)
+                    .padding(12)
             }
+        }
+    }
+
+    private func bodyCompMini(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .tracking(0.4)
+                .foregroundColor(.white.opacity(0.65))
         }
     }
 }
@@ -227,137 +213,51 @@ struct BodyCompWidgetSmallView: View {
 struct BodyCompWidgetMediumView: View {
     let entry: BodyCompEntry
 
-    private func statusColor(_ status: String) -> Color {
-        switch status.lowercased() {
-        case "normal", "fitness", "athletic", "healthy", "high", "very high", "well hydrated":
-            return Color(red: 0.06, green: 0.72, blue: 0.51)
-        case "overweight", "average", "elevated", "below average":
-            return Color(red: 0.96, green: 0.62, blue: 0.04)
-        case "obese", "above average":
-            return Color(red: 0.94, green: 0.27, blue: 0.27)
-        default:
-            return Color(red: 0.23, green: 0.51, blue: 0.96)
-        }
-    }
-
     var body: some View {
-        if let data = entry.data, data.hasProfile {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.07, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.22)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        WidgetCanvas(WidgetUI.body) {
+            if let data = entry.data, data.hasProfile {
+                VStack(spacing: 10) {
+                    WidgetHeader(icon: "heart.fill", title: "Body", trailing: String(format: "%.0f KG", data.weight))
 
-                HStack(spacing: 16) {
-                    // Left: Health score ring
-                    VStack(spacing: 6) {
-                        ScoreRingView(
-                            score: data.healthScore,
-                            ringSize: 86,
-                            lineWidth: 7
-                        )
-                        Text("Health Score")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.4))
-                    }
-
-                    // Right: Metrics grid
-                    VStack(spacing: 0) {
-                        HStack {
-                            Image("WidgetLogo")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 12, height: 12)
-                                .opacity(0.6)
-                            Text("Body")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(red: 0.39, green: 0.40, blue: 0.95))
-                            Spacer()
-                            Text(String(format: "%.0f kg", data.weight))
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
-                        .padding(.bottom, 8)
-
-                        // Metric rows
-                        HStack(spacing: 12) {
-                            MetricBadge(label: "Body Age", value: "\(data.bodyAge)", color: data.bodyAge <= 35 ? Color(red: 0.23, green: 0.51, blue: 0.96) : Color(red: 0.96, green: 0.62, blue: 0.04))
-                            MetricBadge(label: "BMI", value: String(format: "%.1f", data.bmi), status: data.bmiStatus, color: statusColor(data.bmiStatus))
-                        }
-                        .padding(.bottom, 6)
-
-                        HStack(spacing: 12) {
-                            MetricBadge(label: "Body Fat", value: String(format: "%.1f%%", data.bodyFat), status: data.bodyFatStatus, color: statusColor(data.bodyFatStatus))
-                            MetricBadge(label: "Muscle", value: String(format: "%.1f%%", data.muscleRate), status: data.muscleStatus, color: statusColor(data.muscleStatus))
+                    HStack(spacing: 14) {
+                        VStack(spacing: 6) {
+                            WidgetRing(progress: Double(min(data.healthScore, 100)) / 100.0, size: 86, line: 8, tint: .white) {
+                                VStack(spacing: 0) {
+                                    Text("\(data.healthScore)")
+                                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                    Text("SCORE")
+                                        .font(.system(size: 7, weight: .bold))
+                                        .tracking(0.5)
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                            }
+                            Text("Body Age \(data.bodyAge)")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white.opacity(0.85))
                         }
 
-                        Spacer(minLength: 0)
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                BodyCompStatTile(label: "BMI", value: String(format: "%.1f", data.bmi), status: data.bmiStatus)
+                                BodyCompStatTile(label: "Body Fat", value: String(format: "%.1f%%", data.bodyFat), status: data.bodyFatStatus)
+                            }
+                            HStack(spacing: 8) {
+                                BodyCompStatTile(label: "Muscle", value: String(format: "%.1f%%", data.muscleRate), status: data.muscleStatus)
+                                BodyCompStatTile(label: "Weight", value: String(format: "%.0f kg", data.weight))
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                }
-                .padding(14)
-            }
-        } else {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.07, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.22)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
 
-                HStack(spacing: 16) {
-                    Image(systemName: "figure.stand")
-                        .font(.system(size: 36))
-                        .foregroundColor(Color(red: 0.39, green: 0.40, blue: 0.95).opacity(0.6))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Body Composition")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
-                        Text("Set up your profile in Fuel to see your health score and body metrics.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.4))
-                            .lineLimit(2)
-                    }
+                    Spacer(minLength: 0)
                 }
                 .padding(16)
+            } else {
+                BodyCompEmptyView(compact: false)
+                    .padding(16)
             }
         }
-    }
-}
-
-// MARK: - Metric Badge (reusable for medium view)
-
-struct MetricBadge: View {
-    let label: String
-    let value: String
-    var status: String? = nil
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundColor(color)
-            if let status = status {
-                Text(status)
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundColor(color.opacity(0.8))
-                    .textCase(.uppercase)
-            }
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundColor(.white.opacity(0.4))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .background(Color.white.opacity(0.04))
-        .cornerRadius(10)
     }
 }
 
@@ -395,7 +295,7 @@ struct BodyCompWidget: Widget {
         StaticConfiguration(kind: kind, provider: BodyCompProvider()) { entry in
             if #available(iOS 17.0, *) {
                 BodyCompWidgetView(entry: entry)
-                    .containerBackground(.clear, for: .widget)
+                    .containerBackground(for: .widget) { ZStack { WidgetUI.body; WidgetUI.sheen } }
             } else {
                 BodyCompWidgetView(entry: entry)
             }

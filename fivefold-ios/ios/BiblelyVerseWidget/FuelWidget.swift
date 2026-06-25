@@ -80,63 +80,13 @@ struct FuelProvider: TimelineProvider {
     }
 }
 
-// MARK: - Calorie Ring View (reusable)
+// MARK: - Private helper views (file-scoped, prefixed to avoid duplicate symbols)
 
-struct CalorieRingView: View {
-    let consumed: Int
-    let target: Int
-    let ringSize: CGFloat
-    let lineWidth: CGFloat
-
-    private var progress: Double {
-        guard target > 0 else { return 0 }
-        return min(Double(consumed) / Double(target), 1.0)
-    }
-
-    private var isOver: Bool {
-        consumed > target
-    }
-
-    private var remaining: Int {
-        max(target - consumed, 0)
-    }
-
-    var body: some View {
-        ZStack {
-            // Background ring
-            Circle()
-                .stroke(Color.white.opacity(0.1), lineWidth: lineWidth)
-
-            // Progress ring
-            Circle()
-                .trim(from: 0, to: CGFloat(progress))
-                .stroke(
-                    isOver ? Color.red : Color.green,
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-
-            // Center text
-            VStack(spacing: 1) {
-                Text("\(remaining)")
-                    .font(.system(size: ringSize * 0.22, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                Text("left")
-                    .font(.system(size: ringSize * 0.1, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-        }
-        .frame(width: ringSize, height: ringSize)
-    }
-}
-
-// MARK: - Macro Bar View
-
-struct MacroBarView: View {
+private struct FuelMacroRow: View {
     let label: String
     let consumed: Int
     let target: Int
-    let color: Color
+    let tint: Color
 
     private var progress: Double {
         guard target > 0 else { return 0 }
@@ -144,29 +94,58 @@ struct MacroBarView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 10, weight: .semibold))
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(0.6)
                     .foregroundColor(.white.opacity(0.7))
                 Spacer()
-                Text("\(consumed)/\(target)g")
+                Text("\(consumed)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                + Text(" / \(target)g")
                     .font(.system(size: 9, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.white.opacity(0.55))
             }
+            WidgetBar(progress: progress, tint: tint, height: 5)
+        }
+    }
+}
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.1))
-                        .frame(height: 5)
+private struct FuelEmptyState: View {
+    let compact: Bool
 
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(color)
-                        .frame(width: geo.size.width * CGFloat(progress), height: 5)
+    var body: some View {
+        if compact {
+            VStack(spacing: 8) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundColor(.white)
+                Text("Set up Fuel")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                Text("Open the app to start tracking")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.65))
+                    .multilineTextAlignment(.center)
+            }
+        } else {
+            HStack(spacing: 16) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Set up Fuel")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("Open the app to set up your nutrition profile and start tracking.")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.65))
+                        .lineLimit(2)
                 }
+                Spacer(minLength: 0)
             }
-            .frame(height: 5)
         }
     }
 }
@@ -176,82 +155,56 @@ struct MacroBarView: View {
 struct FuelWidgetSmallView: View {
     let entry: FuelEntry
 
+    private func remaining(_ data: FuelData) -> Int {
+        max(data.caloriesTarget - data.caloriesConsumed, 0)
+    }
+
+    private func ringProgress(_ data: FuelData) -> Double {
+        guard data.caloriesTarget > 0 else { return 0 }
+        return min(Double(data.caloriesConsumed) / Double(data.caloriesTarget), 1.0)
+    }
+
     var body: some View {
-        if let data = entry.data, data.hasProfile {
-            ZStack {
-                // Background
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.06, green: 0.09, blue: 0.08),
-                        Color(red: 0.10, green: 0.14, blue: 0.10)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        WidgetCanvas(WidgetUI.fuel) {
+            if let data = entry.data, data.hasProfile {
+                VStack(spacing: 0) {
+                    WidgetHeader(icon: "fork.knife", title: "Fuel", trailing: "\(data.foodCount)")
 
-                VStack(spacing: 6) {
-                    // Header
-                    HStack {
-                        Image("WidgetLogo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
-                            .opacity(0.6)
-                        Text("Fuel")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Color.green.opacity(0.8))
-                        Spacer()
-                    }
+                    Spacer(minLength: 6)
 
-                    Spacer(minLength: 0)
-
-                    // Calorie ring
-                    CalorieRingView(
-                        consumed: data.caloriesConsumed,
-                        target: data.caloriesTarget,
-                        ringSize: 80,
-                        lineWidth: 7
+                    WidgetRing(
+                        progress: ringProgress(data),
+                        size: 84,
+                        line: 9,
+                        tint: .white,
+                        center: {
+                            VStack(spacing: 0) {
+                                Text("\(remaining(data))")
+                                    .font(.system(size: 23, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text("LEFT")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .tracking(1)
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
                     )
 
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 6)
 
-                    // Bottom stats
-                    HStack {
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
                         Text("\(data.caloriesConsumed)")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
-                        Text("/ \(data.caloriesTarget) cal")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
+                        Text(" / \(data.caloriesTarget) cal")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.6))
                     }
                 }
                 .padding(12)
-            }
-        } else {
-            // No profile placeholder
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.06, green: 0.09, blue: 0.08),
-                        Color(red: 0.10, green: 0.14, blue: 0.10)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
-                VStack(spacing: 8) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(.green.opacity(0.6))
-                    Text("Set up Fuel")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
-                    Text("Open the app to get started")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.4))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(12)
+            } else {
+                FuelEmptyState(compact: true)
+                    .padding(12)
             }
         }
     }
@@ -260,100 +213,71 @@ struct FuelWidgetSmallView: View {
 struct FuelWidgetMediumView: View {
     let entry: FuelEntry
 
-    var body: some View {
-        if let data = entry.data, data.hasProfile {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.06, green: 0.09, blue: 0.08),
-                        Color(red: 0.10, green: 0.14, blue: 0.10)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+    private func remaining(_ data: FuelData) -> Int {
+        max(data.caloriesTarget - data.caloriesConsumed, 0)
+    }
 
+    private func ringProgress(_ data: FuelData) -> Double {
+        guard data.caloriesTarget > 0 else { return 0 }
+        return min(Double(data.caloriesConsumed) / Double(data.caloriesTarget), 1.0)
+    }
+
+    var body: some View {
+        WidgetCanvas(WidgetUI.fuel) {
+            if let data = entry.data, data.hasProfile {
                 HStack(spacing: 16) {
-                    // Left: Calorie ring
-                    VStack(spacing: 6) {
-                        CalorieRingView(
-                            consumed: data.caloriesConsumed,
-                            target: data.caloriesTarget,
-                            ringSize: 90,
-                            lineWidth: 8
+                    // Left: calorie ring hero
+                    VStack(spacing: 8) {
+                        WidgetRing(
+                            progress: ringProgress(data),
+                            size: 96,
+                            line: 10,
+                            tint: .white,
+                            center: {
+                                VStack(spacing: 0) {
+                                    Text("\(remaining(data))")
+                                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                    Text("LEFT")
+                                        .font(.system(size: 8, weight: .bold))
+                                        .tracking(1)
+                                        .foregroundColor(.white.opacity(0.6))
+                                }
+                            }
                         )
                         Text("\(data.caloriesConsumed) / \(data.caloriesTarget) cal")
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
                             .foregroundColor(.white.opacity(0.7))
                     }
 
-                    // Right: Macro bars
-                    VStack(spacing: 10) {
-                        // Header
-                        HStack {
-                            Image("WidgetLogo")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 12, height: 12)
-                                .opacity(0.6)
-                            Text("Fuel")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color.green.opacity(0.8))
-                            Spacer()
-                            Text("\(data.foodCount) meals")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
+                    // Right: header + macro bars
+                    VStack(alignment: .leading, spacing: 10) {
+                        WidgetHeader(icon: "fork.knife", title: "Fuel", trailing: "\(data.foodCount) meals")
 
-                        MacroBarView(
+                        FuelMacroRow(
                             label: "Protein",
                             consumed: data.proteinConsumed,
                             target: data.proteinTarget,
-                            color: Color(red: 0.35, green: 0.65, blue: 1.0)
+                            tint: Color(hex: "5AA9FF")
                         )
-
-                        MacroBarView(
+                        FuelMacroRow(
                             label: "Carbs",
                             consumed: data.carbsConsumed,
                             target: data.carbsTarget,
-                            color: Color(red: 1.0, green: 0.75, blue: 0.3)
+                            tint: Color(hex: "FFC04D")
                         )
-
-                        MacroBarView(
+                        FuelMacroRow(
                             label: "Fat",
                             consumed: data.fatConsumed,
                             target: data.fatTarget,
-                            color: Color(red: 0.9, green: 0.4, blue: 0.4)
+                            tint: Color(hex: "FF7A7A")
                         )
                     }
                 }
-                .padding(14)
-            }
-        } else {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.06, green: 0.09, blue: 0.08),
-                        Color(red: 0.10, green: 0.14, blue: 0.10)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
-                HStack(spacing: 16) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 36))
-                        .foregroundColor(.green.opacity(0.6))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Set up Fuel")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
-                        Text("Open the app to set up your nutrition profile and start tracking.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.4))
-                            .lineLimit(2)
-                    }
-                }
                 .padding(16)
+            } else {
+                FuelEmptyState(compact: false)
+                    .padding(16)
             }
         }
     }
@@ -391,7 +315,7 @@ struct FuelWidget: Widget {
         StaticConfiguration(kind: kind, provider: FuelProvider()) { entry in
             if #available(iOS 17.0, *) {
                 FuelWidgetView(entry: entry)
-                    .containerBackground(.clear, for: .widget)
+                    .containerBackground(for: .widget) { ZStack { WidgetUI.fuel; WidgetUI.sheen } }
             } else {
                 FuelWidgetView(entry: entry)
             }

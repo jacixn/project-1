@@ -19,7 +19,7 @@ const CAL_NAME = 'Biblely';
 const CAL_COLOR = '#32C372';
 
 // Event length per domain (minutes).
-const DURATION = { prayer: 30, reminder: 30, gym: 60 };
+const DURATION = { prayer: 30, reminder: 30, gym: 60, todo: 30 };
 
 const DAY_INDEX = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -301,9 +301,39 @@ const reconcile = (namespace, desired) => serialize(async () => {
 
 // ── per-domain entry points (called from each domain's storage setter) ──────────
 
+// To-dos: only SCHEDULED ones (with a date+time) can be placed. Quick dateless
+// to-dos and completed ones contribute nothing. 30-min timed block each.
+const buildTodos = (list) => {
+  const now = Date.now();
+  const out = [];
+  for (const t of list || []) {
+    if (!t || t.id == null || t.completed) continue;
+    let start = null;
+    if (t.scheduledDateTime) {
+      const d = new Date(t.scheduledDateTime); // ISO -> correct local instant
+      if (!isNaN(d.getTime())) start = d;
+    } else if (t.scheduledDate) {
+      const [y, mo, dd] = String(t.scheduledDate).split('-').map(Number);
+      if (y) start = new Date(y, mo - 1, dd, 9, 0, 0, 0); // date-only -> 9am default
+    }
+    if (!start) continue;
+    if (start.getTime() + DURATION.todo * 60000 < now) continue; // skip past
+    out.push({
+      stableKey: `todo__${t.id}`,
+      title: t.text || 'Task',
+      start,
+      end: new Date(start.getTime() + DURATION.todo * 60000),
+      recurring: false,
+      frequency: null,
+    });
+  }
+  return out;
+};
+
 export const syncPrayers = (list) => reconcile('prayer', buildPrayers(list || []));
 export const syncReminders = (list) => reconcile('reminder', buildReminders(list || []));
 export const syncGym = (list) => reconcile('gym', buildGym(list || []));
+export const syncTodos = (list) => reconcile('todo', buildTodos(list || []));
 
 // Backfill every domain from its current stored data (used on enable + cloud pull).
 export const syncAll = async () => {
@@ -315,10 +345,12 @@ export const syncAll = async () => {
     const prayers = (await getStoredData('simplePrayers')) || [];
     const reminders = await reminderService.loadReminders();
     const scheduled = await WorkoutService.getScheduledWorkouts();
+    const todos = (await getStoredData('todos')) || [];
 
     await syncPrayers(prayers);
     await syncReminders(reminders);
     await syncGym(scheduled);
+    await syncTodos(todos);
   } catch {}
 };
 
@@ -366,5 +398,6 @@ export default {
   syncPrayers,
   syncReminders,
   syncGym,
+  syncTodos,
   syncAll,
 };

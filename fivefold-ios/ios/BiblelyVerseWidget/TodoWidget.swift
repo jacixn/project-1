@@ -100,90 +100,87 @@ extension Color {
 
 // MARK: - Small Widget View
 
+private struct TodoTaskRow: View {
+    let todo: TodoItem
+    var compact: Bool = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(Color.tierColor(for: todo.tier))
+                .frame(width: 3, height: compact ? 13 : 16)
+
+            Text(todo.text)
+                .font(.system(size: compact ? 12 : 13, weight: .medium))
+                .foregroundColor(.white)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            if todo.isUnscheduled == true {
+                WidgetPill(text: "Anytime")
+            } else if let time = todo.scheduledTime {
+                Text(time)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.75))
+            }
+        }
+    }
+}
+
 struct TodoWidgetSmallView: View {
     let entry: TodoEntry
 
     var body: some View {
-        if let data = entry.data, data.totalCount > 0 {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.20)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        WidgetCanvas(WidgetUI.todo) {
+            if let data = entry.data, data.totalCount > 0 {
+                VStack(alignment: .leading, spacing: 0) {
+                    WidgetHeader(icon: "checklist", title: "Tasks")
 
-                VStack(alignment: .leading, spacing: 6) {
-                    // Header
-                    HStack {
-                        Image("WidgetLogo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
-                            .opacity(0.6)
-                        Text("To-Do")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85))
-                        Spacer()
+                    Spacer(minLength: 0)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text("\(data.totalCount)")
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Text(data.totalCount == 1 ? "task" : "tasks")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.65))
+                    }
+
+                    if data.completedCount > 0 {
+                        Text("\(data.completedCount) done today")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.55))
+                            .padding(.top, 1)
                     }
 
                     Spacer(minLength: 0)
 
-                    // Count badge — total pending (today + unscheduled)
-                    Text("\(data.totalCount)")
-                        .font(.system(size: 38, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-
-                    Text(data.totalCount == 1 ? "task pending" : "tasks pending")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
-
-                    // Next task preview
                     if let first = data.todos.first {
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(Color.tierColor(for: first.tier))
-                                .frame(width: 6, height: 6)
-                            Text(first.text)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                                .lineLimit(1)
-                        }
-                        .padding(.top, 2)
-                    }
-
-                    if data.completedCount > 0 {
-                        Text("\(data.completedCount) done")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.green.opacity(0.6))
+                        TodoTaskRow(todo: first, compact: true)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 8)
+                            .background(WidgetUI.tile)
+                            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                     }
                 }
                 .padding(12)
-            }
-        } else {
-            // Empty state
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.20)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 28))
-                        .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85).opacity(0.6))
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    WidgetHeader(icon: "checklist", title: "Tasks")
+                    Spacer(minLength: 0)
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                    Text("All clear")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.top, 6)
                     Text("No pending tasks")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
-                    Text("Add tasks in the app")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.4))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                    Spacer(minLength: 0)
                 }
                 .padding(12)
             }
@@ -197,109 +194,68 @@ struct TodoWidgetMediumView: View {
     let entry: TodoEntry
 
     var body: some View {
-        if let data = entry.data, data.totalCount > 0 {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.20)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        WidgetCanvas(WidgetUI.todo) {
+            if let data = entry.data, data.totalCount > 0 {
+                VStack(alignment: .leading, spacing: 10) {
+                    WidgetHeader(
+                        icon: "checklist",
+                        title: "Tasks",
+                        trailing: "\(data.totalCount) pending"
+                    )
 
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header row
-                    HStack {
-                        Image("WidgetLogo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 12, height: 12)
-                            .opacity(0.6)
-                        Text("To-Do")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85))
-                        Spacer()
-                        if data.completedCount > 0 {
-                            Text("\(data.completedCount) done")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.green.opacity(0.6))
-                        }
-                        Text("\(data.totalCount) task\(data.totalCount == 1 ? "" : "s")")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.4))
-                    }
-                    .padding(.bottom, 8)
-
-                    // Task list (up to 4 items)
                     let visibleTodos = Array(data.todos.prefix(4))
-                    ForEach(Array(visibleTodos.enumerated()), id: \.offset) { index, todo in
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(Color.tierColor(for: todo.tier))
-                                .frame(width: 7, height: 7)
-
-                            Text(todo.text)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
-                                .lineLimit(1)
-
-                            Spacer()
-
-                            if todo.isUnscheduled == true {
-                                Text("Anytime")
-                                    .font(.system(size: 9, weight: .medium))
-                                    .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85).opacity(0.6))
-                            } else if let time = todo.scheduledTime {
-                                Text(time)
-                                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.35))
+                    VStack(spacing: 0) {
+                        ForEach(Array(visibleTodos.enumerated()), id: \.offset) { index, todo in
+                            TodoTaskRow(todo: todo)
+                                .padding(.vertical, 7)
+                            if index < visibleTodos.count - 1 {
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.10))
+                                    .frame(height: 1)
                             }
                         }
-                        .padding(.vertical, 4)
-
-                        if index < visibleTodos.count - 1 {
-                            Divider()
-                                .background(Color.white.opacity(0.06))
-                        }
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(WidgetUI.tile)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    if data.totalCount > 4 {
-                        Text("and \(data.totalCount - 4) more...")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.3))
-                            .padding(.top, 4)
+                    HStack {
+                        if data.totalCount > 4 {
+                            Text("and \(data.totalCount - 4) more")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+                        Spacer()
+                        if data.completedCount > 0 {
+                            Text("\(data.completedCount) done today")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
                     }
 
                     Spacer(minLength: 0)
                 }
-                .padding(14)
-            }
-        } else {
-            // Empty state
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.08, green: 0.07, blue: 0.14),
-                        Color(red: 0.12, green: 0.10, blue: 0.20)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
-                HStack(spacing: 16) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 36))
-                        .foregroundColor(Color(red: 0.6, green: 0.5, blue: 0.85).opacity(0.6))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("All clear!")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
-                        Text("No pending tasks. Open the app to add some.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.4))
-                            .lineLimit(2)
+                .padding(16)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    WidgetHeader(icon: "checklist", title: "Tasks")
+                    Spacer(minLength: 0)
+                    HStack(spacing: 14) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 38, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("All clear")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("No pending tasks. Open the app to add some.")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
+                                .lineLimit(2)
+                        }
                     }
+                    Spacer(minLength: 0)
                 }
                 .padding(16)
             }
@@ -341,7 +297,7 @@ struct TodoWidget: Widget {
         StaticConfiguration(kind: kind, provider: TodoProvider()) { entry in
             if #available(iOS 17.0, *) {
                 TodoWidgetView(entry: entry)
-                    .containerBackground(.clear, for: .widget)
+                    .containerBackground(for: .widget) { ZStack { WidgetUI.todo; WidgetUI.sheen } }
             } else {
                 TodoWidgetView(entry: entry)
             }
@@ -349,5 +305,69 @@ struct TodoWidget: Widget {
         .configurationDisplayName("Tasks")
         .description("See all your pending tasks at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
+// MARK: - Add Task Widget (one tap to the quick-add form)
+
+struct AddTaskEntry: TimelineEntry {
+    let date: Date
+}
+
+struct AddTaskProvider: TimelineProvider {
+    func placeholder(in context: Context) -> AddTaskEntry { AddTaskEntry(date: Date()) }
+    func getSnapshot(in context: Context, completion: @escaping (AddTaskEntry) -> Void) {
+        completion(AddTaskEntry(date: Date()))
+    }
+    func getTimeline(in context: Context, completion: @escaping (Timeline<AddTaskEntry>) -> Void) {
+        completion(Timeline(entries: [AddTaskEntry(date: Date())], policy: .never))
+    }
+}
+
+struct AddTaskWidgetView: View {
+    var body: some View {
+        WidgetCanvas(WidgetUI.add) {
+            VStack(alignment: .leading, spacing: 0) {
+                WidgetHeader(icon: "checklist", title: "Tasks")
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "plus")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundColor(.white)
+
+                Text("Add Task")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.top, 6)
+
+                Text("Tap to capture a new task")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+        }
+        .widgetURL(URL(string: "biblely://addtodo"))
+    }
+}
+
+struct AddTaskWidget: Widget {
+    let kind: String = "BiblelyAddTaskWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: AddTaskProvider()) { _ in
+            if #available(iOS 17.0, *) {
+                AddTaskWidgetView()
+                    .containerBackground(for: .widget) { ZStack { WidgetUI.add; WidgetUI.sheen } }
+            } else {
+                AddTaskWidgetView()
+            }
+        }
+        .configurationDisplayName("Add Task")
+        .description("Tap to quickly add a new task.")
+        .supportedFamilies([.systemSmall])
     }
 }

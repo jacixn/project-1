@@ -489,10 +489,35 @@ const TodosTab = () => {
   };
 
   const handleTodoAdd = useCallback(async (newTodo) => {
-    const updatedTodos = [...todos, newTodo];
+    let todo = newTodo;
+    // Quick tasks have no date. If the user left "add quick tasks to calendar" on
+    // (default), stamp them with the next occurrence of their default time (today
+    // if that time is still ahead, otherwise tomorrow) so they show on the calendar.
+    // Already-scheduled tasks (from the calendar view) are left untouched.
+    if (todo && !todo.scheduledDate && !todo.scheduledDateTime) {
+      try {
+        const enabled = (await userStorage.getRaw('quick_todo_calendar_enabled')) !== 'false'; // default ON
+        if (enabled) {
+          const timeStr = (await userStorage.getRaw('quick_todo_default_time')) || '18:00';
+          const [h, m] = timeStr.split(':').map(Number);
+          const now = new Date();
+          const slot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number.isFinite(h) ? h : 18, Number.isFinite(m) ? m : 0, 0, 0);
+          if (slot.getTime() <= now.getTime()) slot.setDate(slot.getDate() + 1); // next occurrence
+          todo = {
+            ...todo,
+            scheduledDate: `${slot.getFullYear()}-${String(slot.getMonth() + 1).padStart(2, '0')}-${String(slot.getDate()).padStart(2, '0')}`,
+            scheduledTime: `${String(slot.getHours()).padStart(2, '0')}:${String(slot.getMinutes()).padStart(2, '0')}`,
+            scheduledDateTime: slot.toISOString(),
+          };
+        }
+      } catch {}
+    }
+    const updatedTodos = [...todos, todo];
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
     pushToCloud('todos', updatedTodos);
+    // Mirror scheduled to-dos to iPhone Calendar (no-op if off / not scheduled).
+    try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
     updateTodoWidget().catch(() => {});
   }, [todos]);
   handleTodoAddRef.current = handleTodoAdd;
@@ -532,6 +557,8 @@ const TodosTab = () => {
       // Persist in background — don't await to keep UI snappy
       saveData('todos', updatedTodos).catch(() => {});
       pushToCloud('todos', updatedTodos);
+      // Completing a task removes it from the calendar mirror (no-op if off).
+      try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
       saveData('userStats', updatedStats).catch(() => {});
       userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
       updateTodoWidget().catch(() => {});
@@ -602,6 +629,8 @@ const TodosTab = () => {
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
     pushToCloud('todos', updatedTodos);
+    // Mirror scheduled to-dos to iPhone Calendar (no-op if off / not scheduled).
+    try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
     updateTodoWidget().catch(() => {});
   }, [todos]);
 

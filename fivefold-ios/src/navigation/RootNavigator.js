@@ -545,7 +545,9 @@ const RootNavigator = () => {
   // When NOT authenticated, `loading` may fire during password-reset — the AuthScreen
   // handles that with its own local spinner; we must NOT replace it with a full-screen overlay.
   if (initializing || checkingOnboarding || (loading && isAuthenticated)) {
-    return <View style={{ flex: 1, backgroundColor: '#111827' }} />;
+    // Match the splash green so if the splash zoom reveals this placeholder during
+    // a slow cold start, it stays on-brand instead of flashing navy.
+    return <View style={{ flex: 1, backgroundColor: '#33C473' }} />;
   }
   
   // If not authenticated, show only the Auth screen

@@ -10,13 +10,14 @@ import {
   Platform,
   KeyboardAvoidingView,
   Switch,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import { DAY_SHORT } from '../services/reminderService';
+import { DAY_SHORT, BUILTIN_REMINDER_PRESETS, loadReminderPresets, saveReminderPreset, deleteReminderPreset } from '../services/reminderService';
 
 const ICON_OPTIONS = [
   'notifications', 'restaurant', 'local-cafe', 'fitness-center',
@@ -39,6 +40,18 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
   const [icon, setIcon] = useState('notifications');
   const [color, setColor] = useState('#3B82F6');
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [oneTimeDates, setOneTimeDates] = useState([new Date()]);
+  const [draftDate, setDraftDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [userPresets, setUserPresets] = useState([]);
+  const [presetSaved, setPresetSaved] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      loadReminderPresets().then(setUserPresets).catch(() => {});
+      setPresetSaved(false);
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (editingReminder) {
@@ -51,6 +64,13 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
       setDays(editingReminder.days || [0, 1, 2, 3, 4, 5, 6]);
       setIcon(editingReminder.icon || 'notifications');
       setColor(editingReminder.color || '#3B82F6');
+      // Restore the one-time date (stored YYYY-MM-DD) with a LOCAL constructor.
+      if (editingReminder.type === 'one-time' && editingReminder.date) {
+        const [y, mo, dd] = editingReminder.date.split('-').map(Number);
+        setOneTimeDates([new Date(y, mo - 1, dd)]);
+      } else {
+        setOneTimeDates([new Date()]);
+      }
     } else {
       setTitle('');
       const d = new Date();
@@ -60,6 +80,7 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
       setDays([0, 1, 2, 3, 4, 5, 6]);
       setIcon('notifications');
       setColor('#3B82F6');
+      setOneTimeDates([new Date()]);
     }
   }, [editingReminder, visible]);
 
@@ -79,21 +100,36 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
       return;
     }
     const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const saveData = {
-      title: title.trim(),
-      time: timeStr,
-      type,
-      days: type === 'one-time' ? [now.getDay()] : days,
-      icon,
-      color,
-    };
+    const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     if (type === 'one-time') {
-      saveData.date = todayStr;
+      const dates = oneTimeDates.length ? oneTimeDates : [new Date()];
+      const base = { title: title.trim(), time: timeStr, type, icon, color };
+      // One reminder per picked date. Editing stays single (edits one reminder).
+      const list = dates.map(d => ({ ...base, days: [d.getDay()], date: fmtDate(d) }));
+      onSave(editingReminder ? list[0] : list);
+    } else {
+      onSave({ title: title.trim(), time: timeStr, type, days, icon, color });
     }
-    onSave(saveData);
     onClose();
+  };
+
+  const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const addDraftDate = (dateArg) => {
+    const chosen = dateArg instanceof Date ? dateArg : draftDate;
+    hapticFeedback.light();
+    setOneTimeDates(prev => {
+      const key = dateKey(chosen);
+      if (prev.some(d => dateKey(d) === key)) return prev; // dedupe
+      return [...prev, new Date(chosen)].sort((a, b) => a - b);
+    });
+    setShowDatePicker(false);
+  };
+
+  const removeDate = (key) => {
+    hapticFeedback.light();
+    setOneTimeDates(prev => (prev.length <= 1 ? prev : prev.filter(d => dateKey(d) !== key)));
   };
 
   const selectPreset = (preset) => {
@@ -101,6 +137,46 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
     if (preset === 'everyday') setDays([0, 1, 2, 3, 4, 5, 6]);
     else if (preset === 'weekdays') setDays([1, 2, 3, 4, 5]);
     else if (preset === 'weekends') setDays([0, 6]);
+  };
+
+  // Tap a quick-start preset: pre-fill the whole form so the user can tweak + save.
+  const applyPreset = (preset) => {
+    hapticFeedback.medium();
+    setTitle(preset.title || '');
+    setIcon(preset.icon || 'notifications');
+    setColor(preset.color || '#3B82F6');
+    setType(preset.type || 'recurring');
+    setDays(Array.isArray(preset.days) ? preset.days : [0, 1, 2, 3, 4, 5, 6]);
+    const [h, m] = (preset.time || '08:00').split(':').map(Number);
+    const d = new Date();
+    d.setHours(Number.isFinite(h) ? h : 8, Number.isFinite(m) ? m : 0, 0, 0);
+    setTime(d);
+    setPresetSaved(false);
+  };
+
+  // Save the current form as a reusable preset.
+  const handleSaveAsPreset = async () => {
+    if (!title.trim()) return;
+    hapticFeedback.success();
+    const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
+    await saveReminderPreset({ title: title.trim(), icon, color, time: timeStr, type, days });
+    setUserPresets(await loadReminderPresets());
+    setPresetSaved(true);
+  };
+
+  // Long-press a user-saved preset to remove it (built-ins can't be deleted).
+  const handleDeletePreset = (preset) => {
+    if (preset.builtin) return;
+    hapticFeedback.light();
+    Alert.alert('Delete Preset', `Remove "${preset.title}" from your presets?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          await deleteReminderPreset(preset.id);
+          setUserPresets(await loadReminderPresets());
+        },
+      },
+    ]);
   };
 
   const cardBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)';
@@ -130,6 +206,32 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
         </View>
 
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
+          {/* Quick start presets — tap to pre-fill, long-press a saved one to delete */}
+          {!editingReminder && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Quick start</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickRow}
+                keyboardShouldPersistTaps="handled"
+              >
+                {[...BUILTIN_REMINDER_PRESETS, ...userPresets].map(p => (
+                  <TouchableOpacity
+                    key={p.id}
+                    onPress={() => applyPreset(p)}
+                    onLongPress={() => handleDeletePreset(p)}
+                    delayLongPress={400}
+                    style={[styles.quickChip, { backgroundColor: (p.color || color) + '18', borderColor: (p.color || color) + '55' }]}
+                  >
+                    <MaterialIcons name={p.icon || 'notifications'} size={16} color={p.color || color} />
+                    <Text style={[styles.quickChipText, { color: theme.text }]} numberOfLines={1}>{p.title}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Title */}
           <Text style={[styles.label, { color: theme.textSecondary }]}>Title</Text>
           <TextInput
@@ -137,7 +239,7 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
             placeholder="e.g. Eat dinner, Take a shower..."
             placeholderTextColor={theme.textTertiary}
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(t) => { setTitle(t); setPresetSaved(false); }}
             autoFocus={!editingReminder}
             maxLength={80}
           />
@@ -195,6 +297,72 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Date(s) (for one-time) — pick one or more days; one reminder per date */}
+          {type === 'one-time' && (
+            <>
+              <Text style={[styles.label, { color: theme.textSecondary, marginTop: 24 }]}>
+                {oneTimeDates.length > 1 ? `Dates (${oneTimeDates.length})` : 'Date'}
+              </Text>
+              {oneTimeDates.map((d) => {
+                const key = dateKey(d);
+                return (
+                  <View key={key} style={[styles.dateChipRow, { backgroundColor: inputBg, borderColor: theme.border }]}>
+                    <MaterialIcons name="event" size={20} color={color} />
+                    <Text style={[styles.timeText, { color: theme.text }]}>
+                      {d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                    {oneTimeDates.length > 1 && (
+                      <TouchableOpacity onPress={() => removeDate(key)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <MaterialIcons name="close" size={18} color={theme.textTertiary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })}
+              {!showDatePicker ? (
+                <TouchableOpacity
+                  style={[styles.addDateBtn, { borderColor: color + '66' }]}
+                  onPress={() => { hapticFeedback.light(); setDraftDate(new Date()); setShowDatePicker(true); }}
+                >
+                  <MaterialIcons name="add" size={18} color={color} />
+                  <Text style={[styles.addDateText, { color }]}>Add date</Text>
+                </TouchableOpacity>
+              ) : Platform.OS === 'ios' ? (
+                <View style={[styles.datePickerCard, { backgroundColor: inputBg, borderColor: theme.border }]}>
+                  <DateTimePicker
+                    value={draftDate}
+                    mode="date"
+                    display="spinner"
+                    minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+                    onChange={(_, selected) => { if (selected) setDraftDate(selected); }}
+                    textColor={theme.text}
+                    style={{ alignSelf: 'stretch' }}
+                  />
+                  <View style={styles.datePickerActions}>
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.datePickerCancel}>
+                      <Text style={{ color: theme.textSecondary, fontSize: 16 }}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={addDraftDate} style={[styles.datePickerAdd, { backgroundColor: color }]}>
+                      <MaterialIcons name="check" size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Add this date</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <DateTimePicker
+                  value={draftDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+                  onChange={(_, selected) => {
+                    if (selected) addDraftDate(selected);
+                    else setShowDatePicker(false);
+                  }}
+                />
+              )}
+            </>
+          )}
 
           {/* Days (for recurring) */}
           {type === 'recurring' && (
@@ -276,6 +444,18 @@ const CreateReminderModal = ({ visible, onClose, onSave, editingReminder }) => {
             ))}
           </View>
 
+          {/* Save the current setup as a reusable preset */}
+          <TouchableOpacity
+            onPress={handleSaveAsPreset}
+            disabled={!title.trim()}
+            style={[styles.savePresetBtn, { backgroundColor: inputBg, borderColor: theme.border, opacity: title.trim() ? 1 : 0.4 }]}
+          >
+            <MaterialIcons name={presetSaved ? 'check-circle' : 'bookmark-add'} size={18} color={presetSaved ? '#10B981' : color} />
+            <Text style={[styles.savePresetText, { color: theme.text }]}>
+              {presetSaved ? 'Saved to presets' : 'Save as preset'}
+            </Text>
+          </TouchableOpacity>
+
           <View style={{ height: 60 }} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -316,6 +496,52 @@ const styles = StyleSheet.create({
   },
   timeText: { flex: 1, fontSize: 16, fontWeight: '500' },
   doneBtn: { alignSelf: 'flex-end', padding: 8 },
+  dateChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 10,
+    marginBottom: 8,
+  },
+  addDateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginTop: 2,
+  },
+  addDateText: { fontSize: 15, fontWeight: '600' },
+  datePickerCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    gap: 12,
+  },
+  datePickerCancel: { paddingVertical: 10, paddingHorizontal: 8 },
+  datePickerAdd: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
   typeRow: { flexDirection: 'row', gap: 10 },
   typeBtn: {
     flex: 1,
@@ -328,6 +554,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   typeBtnText: { fontSize: 15, fontWeight: '500' },
+  quickRow: { gap: 8, paddingRight: 8 },
+  quickChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    maxWidth: 180,
+  },
+  quickChipText: { fontSize: 13, fontWeight: '600' },
+  savePresetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 28,
+  },
+  savePresetText: { fontSize: 15, fontWeight: '600' },
   presetsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   presetBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   presetText: { fontSize: 13, fontWeight: '500' },

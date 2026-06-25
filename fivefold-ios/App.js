@@ -419,18 +419,17 @@ const ThemedApp = () => {
     });
   }, []);
 
-  // Safety: if onReady never fires, force-hide native + animated splash after 6s
+  // Safety: if onReady is slow to fire, still PLAY the zoom rather than hard-cutting
+  // to the app. runSplashZoom self-guards via splashZoomRan, so this is a no-op if
+  // onReady already ran it. The old code here force-hid the splash WITHOUT running
+  // the animation, which is exactly why the zoom was sometimes skipped (flash, then
+  // app, no animation) on slow cold starts.
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (!splashZoomRan.current) {
-        ExpoSplashScreen.hideAsync().catch(() => {});
-        global.__SPLASH_DONE__ = true;
-        DeviceEventEmitter.emit('splashFinished');
-        setSplashDone(true);
-      }
+      runSplashZoom();
     }, 6000);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [runSplashZoom]);
 
   useEffect(() => {
     runHistoryCleanup();
@@ -546,6 +545,20 @@ const ThemedApp = () => {
           }
         };
         navigate();
+      } else if (url.startsWith('biblely://addtodo')) {
+        // Add-task widget tapped — go to Todos and open the quick-add form.
+        console.log('📋 Add-task widget tap — opening quick add');
+        global.__PENDING_ADD_TODO__ = true; // TodoList opens the form on mount
+        const navigate = () => {
+          if (navigationRef.current?.isReady()) {
+            navigationRef.current.navigate('Todos');
+          } else {
+            pendingNavigationRef.current = { tab: 'Todos' };
+          }
+        };
+        navigate();
+        // Warm case (list already mounted): nudge it to open now.
+        setTimeout(() => DeviceEventEmitter.emit('openQuickAddTodo'), 400);
       } else if (url.startsWith('biblely://todos')) {
         // Todo widget tapped — navigate to Todos tab
         console.log('📋 Todo widget tap — navigating to Todos');
