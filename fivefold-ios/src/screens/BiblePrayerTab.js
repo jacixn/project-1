@@ -76,7 +76,6 @@ const withOpacity = (hex, opacity = 1) => {
 // const { width } = Dimensions.get('window');
 
 // Components
-import PrayerCard from '../components/PrayerCard';
 import SimplePrayerCard from '../components/SimplePrayerCard';
 import BibleReader from '../components/BibleReader';
 import BibleStudyModal from '../components/BibleStudyModal';
@@ -211,9 +210,6 @@ const BiblePrayerTab = () => {
   const [showBibleStudy, setShowBibleStudy] = useState(false);
   const [showPrayerScreen, setShowPrayerScreen] = useState(false);
   const [selectedPrayer, setSelectedPrayer] = useState(null);
-  const [showFriendChat, setShowFriendChat] = useState(false);
-  const [verseToInterpret, setVerseToInterpret] = useState(null);
-  const [verseReference, setVerseReference] = useState(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const mainScrollRef = useRef(null);
   useTabBarScrollToTop(mainScrollRef);
@@ -719,22 +715,8 @@ const BiblePrayerTab = () => {
       handleNavigateToVerse(verseRef);
     });
 
-    const openChatListener = DeviceEventEmitter.addListener('openAiChatFromBibleStudy', (versePayload) => {
-      setTimeout(() => {
-        navigation.navigate('FriendChat', { initialVerse: versePayload });
-      }, 200);
-    });
-
-    const openAiFromBibleListener = DeviceEventEmitter.addListener('openAiChatFromBible', ({ verseContent }) => {
-      setTimeout(() => {
-        navigation.navigate('FriendChat', { initialVerse: verseContent || null });
-      }, 300);
-    });
-
     return () => {
       openBibleListener.remove();
-      openChatListener.remove();
-      openAiFromBibleListener.remove();
     };
   }, []);
 
@@ -910,29 +892,6 @@ const BiblePrayerTab = () => {
     }, 260);
   }, []);
 
-  const handleDiscussVerse = () => {
-    console.log('💬 Discuss button pressed!');
-    console.log('💬 Daily verse:', dailyVerse);
-    hapticFeedback.medium();
-    
-    // Set the verse data first
-    const verseData = {
-      text: dailyVerse.text,
-      content: dailyVerse.text,
-      reference: dailyVerse.reference,
-      version: dailyVerse.version
-    };
-    
-    console.log('💬 Setting verse data:', verseData);
-    
-    // Close verse modal
-    setShowVerseModal(false);
-    
-    // Open Friend chat via stack navigation
-    console.log('💬 Opening Friend chat now');
-    navigation.navigate('FriendChat', { initialVerse: verseData });
-  };
-
   const handleGoToVerse = () => {
     console.log('📖 Go to Verse button pressed!');
     console.log('📖 Daily verse reference:', dailyVerse.reference);
@@ -957,6 +916,27 @@ const BiblePrayerTab = () => {
     // Small delay for smooth transition
     setTimeout(() => {
       openShareCard();
+    }, 300);
+  };
+
+  const handleDiscussVerse = () => {
+    hapticFeedback.light();
+
+    // Close verse modal and open the Guide chat for this verse
+    setShowVerseModal(false);
+
+    const cleanText = (dailyVerse.text || '').replace(/\s+/g, ' ').trim();
+
+    // Small delay for smooth transition
+    setTimeout(() => {
+      navigation.navigate('BibleChat', {
+        initialVerse: {
+          text: cleanText,
+          content: cleanText,
+          reference: dailyVerse.reference,
+          version: dailyVerse.version || undefined,
+        },
+      });
     }, 300);
   };
 
@@ -1039,24 +1019,16 @@ const BiblePrayerTab = () => {
     setShowPrayerScreen(true);
   }, []);
 
-  const handleInterpretVerse = useCallback((verse) => {
-    console.log('🔍 Interpreting verse:', verse);
-    hapticFeedback.medium();
-    
-    // Store the verse for interpretation
-    setVerseToInterpret(verse);
-    
-    // Close prayer screen and open friend chat
-    setShowPrayerScreen(false);
-    setSelectedPrayer(null);
-    navigation.navigate('FriendChat');
-  }, [navigation]);
-
   // Handle navigation to specific Bible verse
   const handleNavigateToVerse = useCallback((verseRef, mode = 'navigate') => {
     console.log('📖 BiblePrayerTab: Navigating to verse:', verseRef, 'mode:', mode);
-    const ref = mode === 'search' ? { searchQuery: verseRef } : verseRef;
-    navigation.navigate('BibleReader', { verseRef: ref });
+    if (mode === 'search') {
+      // Search runs over the books sheet
+      navigation.navigate('BibleReader', { verseRef: { searchQuery: verseRef } });
+      return;
+    }
+    // A verse reference opens the reading sheet directly
+    navigation.navigate('BibleChapter', { verseRef, verseTapTs: Date.now() });
   }, [navigation]);
 
   const handlePrayerComplete = useCallback(async (prayerName) => {
@@ -1589,11 +1561,8 @@ const BiblePrayerTab = () => {
           prayer={selectedPrayer}
           onPrayerComplete={handlePrayerComplete}
           prayerHistory={prayerHistory}
-          onInterpretVerse={handleInterpretVerse}
         />
       )}
-
-      {/* Friend Chat - now navigated via stack navigator for swipe-back support */}
 
       {/* Verse of the Day Modal */}
       <Modal
@@ -1856,38 +1825,6 @@ const BiblePrayerTab = () => {
 
                     {/* Secondary buttons row */}
                     <View style={{ flexDirection: 'row', gap: 10 }}>
-                      {/* Discuss Button */}
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          backgroundColor: 'rgba(255, 255, 255, 0.07)',
-                          borderRadius: 14,
-                          paddingVertical: 14,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                          borderWidth: 1,
-                          borderColor: 'rgba(255, 255, 255, 0.15)',
-                        }}
-                        onPress={handleDiscussVerse}
-                        activeOpacity={0.8}
-                        accessibilityLabel="Discuss verse"
-                        accessibilityRole="button"
-                      >
-                        <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
-                        <Text style={{
-                          fontSize: 14,
-                          fontWeight: '700',
-                          color: '#FFFFFF',
-                          textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                          textShadowOffset: { width: 0, height: 1 },
-                          textShadowRadius: 2,
-                        }}>
-                          Discuss
-                        </Text>
-                      </TouchableOpacity>
-
                       {/* Share Button */}
                       <TouchableOpacity
                         style={{
@@ -1917,6 +1854,38 @@ const BiblePrayerTab = () => {
                           color: '#FFFFFF',
                         }}>
                           Share
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Discuss Button */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                          borderRadius: 14,
+                          paddingVertical: 14,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          borderWidth: 1,
+                          borderColor: 'rgba(255, 255, 255, 0.15)',
+                        }}
+                        onPress={handleDiscussVerse}
+                        activeOpacity={0.8}
+                        accessibilityLabel="Discuss verse"
+                        accessibilityRole="button"
+                      >
+                        <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '700',
+                          textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 2,
+                          color: '#FFFFFF',
+                        }}>
+                          Discuss
                         </Text>
                       </TouchableOpacity>
                     </View>

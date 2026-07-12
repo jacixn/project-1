@@ -359,23 +359,12 @@ const QuizGames = ({ visible, onClose, asScreen = false }) => {
     }
 
     return (
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            colors={[theme.primary]}
-            tintColor={theme.primary}
-            title="Pull to refresh"
-            titleColor={theme.textSecondary}
-          />
-        }
       >
         <Text style={[styles.sectionTitle, { color: theme.text }]}>SELECT A CATEGORY</Text>
-        <Text style={[styles.pullToRefreshHint, { color: theme.primary }]}>Pull down to refresh</Text>
-        
+
         {categories.map((category) => (
           <TouchableOpacity
             key={category.id}
@@ -849,7 +838,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 18,
     paddingBottom: 20,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 2,

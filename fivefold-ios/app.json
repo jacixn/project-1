@@ -44,7 +44,8 @@
           "CloudKit",
           "CloudDocuments"
         ],
-        "com.apple.developer.ubiquity-kvstore-identifier": "$(TeamIdentifierPrefix)com.jesusxoi.biblely"
+        "com.apple.developer.ubiquity-kvstore-identifier": "$(TeamIdentifierPrefix)com.jesusxoi.biblely",
+        "com.apple.developer.usernotifications.time-sensitive": true
       },
       "usesIcloudStorage": true
     },

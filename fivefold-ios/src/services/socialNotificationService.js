@@ -20,7 +20,6 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { getFriendsData } from './friendsService';
 import * as Notifications from 'expo-notifications';
 import { getAuth } from 'firebase/auth';
 
@@ -173,89 +172,10 @@ export const sendPushToUser = async (userId, { title, body, data = {} }) => {
 };
 
 /**
- * Send push notification to all friends
- * @param {string} userId - Sender's Firebase UID
- * @param {Object} notification - Notification data
- * @returns {Promise<number>} - Number of notifications sent
- */
-export const sendPushToFriends = async (userId, { title, body, data = {} }) => {
-  if (!userId) return 0;
-
-  try {
-    // Get friends list
-    const friendsData = await getFriendsData(userId);
-    const friendIds = friendsData.friendsList || [];
-    
-    if (friendIds.length === 0) {
-      console.log('[SocialNotif] No friends to notify');
-      return 0;
-    }
-
-    // Get all friends' push tokens
-    const tokens = [];
-    for (const friendId of friendIds) {
-      const token = await getPushToken(friendId);
-      if (token) {
-        tokens.push(token);
-      }
-    }
-
-    if (tokens.length === 0) {
-      console.log('[SocialNotif] No friends have push tokens');
-      return 0;
-    }
-
-    // Send to all tokens
-    const messages = tokens.map(token => ({
-      to: token,
-      sound: 'default',
-      title,
-      body,
-      data: {
-        ...data,
-        fromUserId: userId,
-        timestamp: Date.now(),
-      },
-    }));
-
-    const response = await fetch(EXPO_PUSH_URL, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(messages),
-    });
-
-    const result = await response.json();
-    const successCount = result.data?.filter(r => r.status === 'ok').length || 0;
-    
-    console.log(`[SocialNotif] Sent to ${successCount}/${tokens.length} friends`);
-    return successCount;
-  } catch (error) {
-    console.error('Error sending push to friends:', error);
-    return 0;
-  }
-};
-
-/**
  * Notification Templates
  */
 export const NotificationTemplates = {
   // Prayer notifications
-  newPrayerRequest: (senderName) => ({
-    title: 'New Prayer Request',
-    body: `${senderName} shared a prayer request`,
-    data: { type: 'prayer_request' },
-  }),
-
-  prayingForYou: (senderName) => ({
-    title: 'Someone is Praying',
-    body: `${senderName} is praying for you`,
-    data: { type: 'praying' },
-  }),
-
   prayerComment: (senderName) => ({
     title: 'New Comment',
     body: `${senderName} commented on your prayer`,
@@ -263,32 +183,11 @@ export const NotificationTemplates = {
   }),
 
   // Message notifications
-  newMessage: (senderName, senderId) => ({
-    title: 'New Message',
-    body: `${senderName} sent you a message`,
-    data: { type: 'message', senderId, senderName },
-  }),
-
   sharedVerse: (senderName) => ({
     title: 'Verse Shared',
     body: `${senderName} shared a Bible verse with you`,
     data: { type: 'shared_verse' },
   }),
-
-  // Encouragement notifications
-  encouragement: (senderName, type) => {
-    const messages = {
-      praying: `${senderName} is praying for you`,
-      strong: `${senderName} says "Stay strong!"`,
-      bless: `${senderName} says "God bless you!"`,
-      love: `${senderName} sent you love`,
-    };
-    return {
-      title: 'Encouragement',
-      body: messages[type] || `${senderName} sent you encouragement`,
-      data: { type: 'encouragement', encouragementType: type },
-    };
-  },
 
   // Challenge notifications
   challengeReceived: (senderName, category) => ({
@@ -305,13 +204,6 @@ export const NotificationTemplates = {
     data: { type: 'challenge_result', won },
   }),
 
-  // Streak notifications
-  streakMilestone: (senderName, days) => ({
-    title: 'Streak Celebration',
-    body: `${senderName} hit a ${days}-day streak!`,
-    data: { type: 'streak_milestone', days },
-  }),
-
   // Friend notifications
   friendRequest: (senderName) => ({
     title: 'Friend Request',
@@ -326,87 +218,10 @@ export const NotificationTemplates = {
   }),
 };
 
-/**
- * Send prayer request notification to friends
- * @param {string} userId - Sender's user ID
- * @param {string} displayName - Sender's display name
- * @returns {Promise<number>} - Number sent
- */
-export const notifyFriendsOfPrayer = async (userId, displayName) => {
-  const notification = NotificationTemplates.newPrayerRequest(displayName);
-  return sendPushToFriends(userId, notification);
-};
-
-/**
- * Notify user that someone is praying for them
- * @param {string} recipientId - Prayer owner's user ID
- * @param {string} senderName - Person praying
- * @returns {Promise<boolean>} - Success
- */
-export const notifyPrayingForYou = async (recipientId, senderName) => {
-  const notification = NotificationTemplates.prayingForYou(senderName);
-  return sendPushToUser(recipientId, notification);
-};
-
-/**
- * Send encouragement notification
- * @param {string} recipientId - Recipient's user ID
- * @param {string} senderName - Sender's name
- * @param {string} type - Encouragement type
- * @returns {Promise<boolean>} - Success
- */
-export const notifyEncouragement = async (recipientId, senderName, type) => {
-  const notification = NotificationTemplates.encouragement(senderName, type);
-  return sendPushToUser(recipientId, notification);
-};
-
-/**
- * Send message notification
- * @param {string} recipientId - Recipient's user ID
- * @param {string} senderName - Sender's name
- * @param {string} senderId - Sender's user ID
- * @returns {Promise<boolean>} - Success
- */
-export const notifyNewMessage = async (recipientId, senderName, senderId) => {
-  const notification = NotificationTemplates.newMessage(senderName, senderId);
-  return sendPushToUser(recipientId, notification);
-};
-
-/**
- * Send challenge notification
- * @param {string} recipientId - Challenged user's ID
- * @param {string} senderName - Challenger's name
- * @param {string} category - Quiz category
- * @returns {Promise<boolean>} - Success
- */
-export const notifyChallenge = async (recipientId, senderName, category) => {
-  const notification = NotificationTemplates.challengeReceived(senderName, category);
-  return sendPushToUser(recipientId, notification);
-};
-
-/**
- * Notify friends of streak milestone
- * @param {string} userId - User who hit milestone
- * @param {string} displayName - User's name
- * @param {number} days - Streak days
- * @returns {Promise<number>} - Number sent
- */
-export const notifyStreakMilestone = async (userId, displayName, days) => {
-  const notification = NotificationTemplates.streakMilestone(displayName, days);
-  return sendPushToFriends(userId, notification);
-};
-
 export default {
   savePushToken,
   clearPushToken,
   getPushToken,
   sendPushToUser,
-  sendPushToFriends,
   NotificationTemplates,
-  notifyFriendsOfPrayer,
-  notifyPrayingForYou,
-  notifyEncouragement,
-  notifyNewMessage,
-  notifyChallenge,
-  notifyStreakMilestone,
 };

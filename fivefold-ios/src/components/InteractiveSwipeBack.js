@@ -1,160 +1,104 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect, useLayoutEffect } from 'react';
 import { View, PanResponder, Animated, Dimensions } from 'react-native';
 import { hapticFeedback } from '../utils/haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const InteractiveSwipeBack = ({ 
-  children, 
-  previousPage = null, // Content to show underneath when swiping
-  onSwipeBack, 
+/**
+ * Left-edge swipe-back gesture wrapper.
+ *
+ * Used by screens whose native swipe-back gesture is disabled because they
+ * manage internal navigation state (e.g. BibleReader's books -> verses views).
+ * The wrapper never claims a touch on start (taps on edge-adjacent buttons
+ * still work) — it only claims once a rightward, mostly-horizontal drag that
+ * STARTED at the left edge is detected. Content tracks the finger; releasing
+ * past the threshold (or flicking) commits and fires onSwipeBack.
+ *
+ * The tree shape is constant regardless of `enabled` so toggling it never
+ * remounts children (which would wipe their state).
+ */
+const InteractiveSwipeBack = ({
+  children,
+  onSwipeBack,
   enabled = true,
-  swipeAreaWidth = SCREEN_WIDTH * 0.15, // 15% of screen width from left edge - APPLIED TO ALL!
-  threshold = 0.6 // 60% of screen width to trigger back
+  backgroundColor = 'transparent',
+  edgeWidth = 32,
+  threshold = 0.33,
+  resetKey,
 }) => {
   const translateX = useRef(new Animated.Value(0)).current;
-  const [isDragging, setIsDragging] = useState(false);
-  const gestureStartX = useRef(0);
-  const lastHapticValue = useRef(0);
+
+  // Refs keep the PanResponder (created once) reading fresh values
+  const enabledRef = useRef(enabled);
+  const onSwipeBackRef = useRef(onSwipeBack);
+  useEffect(() => { enabledRef.current = enabled; }, [enabled]);
+  useEffect(() => { onSwipeBackRef.current = onSwipeBack; }, [onSwipeBack]);
+
+  // After a committed swipe the content sits fully offscreen; the parent
+  // changes resetKey when it swaps the view underneath, and snapping back to
+  // 0 here (before paint) avoids flashing the dismissed page or a blank frame
+  const isFirstReset = useRef(true);
+  useLayoutEffect(() => {
+    if (isFirstReset.current) {
+      isFirstReset.current = false;
+      return;
+    }
+    translateX.setValue(0);
+  }, [resetKey, translateX]);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: (evt) => {
-        if (!enabled) return false;
-        
-        // Only respond to touches starting near the left edge
-        const { pageX } = evt.nativeEvent;
-        return pageX <= swipeAreaWidth;
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        if (!enabledRef.current) return false;
+        const { dx, dy, x0 } = gestureState;
+        return x0 <= edgeWidth && dx > 12 && Math.abs(dx) > Math.abs(dy) * 1.5;
       },
-
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        if (!enabled) return false;
-        
-        const { dx, dy } = gestureState;
-        // Only respond if it's more horizontal than vertical movement and rightward
-        return Math.abs(dx) > Math.abs(dy) && dx > 10;
-      },
-
-      onPanResponderGrant: (evt) => {
-        gestureStartX.current = evt.nativeEvent.pageX;
-        setIsDragging(true);
-        lastHapticValue.current = 0;
-        // Initial haptic feedback when starting swipe
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
         hapticFeedback.light();
       },
-
-      onPanResponderMove: (evt, gestureState) => {
-        const { dx } = gestureState;
-        
-        // Only allow rightward movement (positive dx)
-        if (dx >= 0) {
-          // Real-time page movement - user can see the page sliding
-          const clampedDx = Math.min(dx, SCREEN_WIDTH); // Don't go beyond screen width
-          translateX.setValue(clampedDx);
-          
-          // Haptic feedback at quarter intervals
-          const progress = clampedDx / SCREEN_WIDTH;
-          const hapticTrigger = Math.floor(progress * 4); // 0, 1, 2, 3 for 0%, 25%, 50%, 75%
-          
-          if (hapticTrigger > lastHapticValue.current) {
-            lastHapticValue.current = hapticTrigger;
-            if (hapticTrigger === 2) { // 50% - medium haptic
-              hapticFeedback.medium();
-            } else if (hapticTrigger === 3) { // 75% - stronger haptic (threshold approaching)
-              hapticFeedback.heavy();
-            } else {
-              hapticFeedback.light();
-            }
-          }
-        }
+      onPanResponderMove: (_, gestureState) => {
+        translateX.setValue(Math.max(0, Math.min(gestureState.dx, SCREEN_WIDTH)));
       },
-
-      onPanResponderRelease: (evt, gestureState) => {
-        const { dx } = gestureState;
-        setIsDragging(false);
-        
-        const thresholdDistance = SCREEN_WIDTH * threshold;
-        
-        if (dx >= thresholdDistance) {
-          // User dragged 60%+ to the right - commit to going back
-          hapticFeedback.success(); // Success haptic for completing action
+      onPanResponderRelease: (_, gestureState) => {
+        const { dx, vx } = gestureState;
+        const commit = dx >= SCREEN_WIDTH * threshold || (dx > 40 && vx > 0.5);
+        if (commit) {
+          hapticFeedback.success();
           Animated.timing(translateX, {
-            toValue: SCREEN_WIDTH, // Slide completely off screen to the right
-            duration: 250,
+            toValue: SCREEN_WIDTH,
+            duration: 200,
             useNativeDriver: true,
           }).start(() => {
-            translateX.setValue(0); // Reset for next time
-            onSwipeBack && onSwipeBack();
+            // translateX stays at SCREEN_WIDTH until the parent swaps the
+            // view and changes resetKey (see useLayoutEffect above)
+            if (onSwipeBackRef.current) onSwipeBackRef.current();
           });
         } else {
-          // User didn't reach 60% - snap back to original position
-          hapticFeedback.gentle(); // Gentle feedback for canceling
           Animated.spring(translateX, {
             toValue: 0,
             tension: 120,
-            friction: 8,
+            friction: 9,
             useNativeDriver: true,
           }).start();
         }
       },
-
       onPanResponderTerminate: () => {
-        // If gesture is interrupted, snap back
-        setIsDragging(false);
         Animated.spring(translateX, {
           toValue: 0,
           tension: 120,
-          friction: 8,
+          friction: 9,
           useNativeDriver: true,
         }).start();
       },
     })
   ).current;
 
-  if (!enabled) {
-    return <View style={{ flex: 1 }}>{children}</View>;
-  }
-
   return (
-    <View style={{ flex: 1, backgroundColor: '#1a1a1a' }} {...panResponder.panHandlers}>
-      {/* Previous page content underneath - ALWAYS visible when there's previous page */}
-      {previousPage && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 0,
-          backgroundColor: '#1a1a1a', // Ensure no white background
-        }}>
-          {previousPage}
-        </View>
-      )}
-      
-      {/* Current page with ONLY swipe animation - no entrance animation */}
-      <Animated.View 
-        style={{ 
-          flex: 1,
-          backgroundColor: isDragging ? 'transparent' : '#1a1a1a', // Make transparent during dragging to show previous page
-          transform: [
-            { translateX } // ONLY swipe gesture - no entrance animation conflict
-          ],
-          zIndex: 1,
-          shadowColor: '#000',
-          shadowOffset: { width: -5, height: 0 },
-          shadowOpacity: isDragging ? 0.3 : 0,
-          shadowRadius: 10,
-          elevation: isDragging ? 8 : 0,
-        }}
-      >
-        {/* Current page content */}
-        <View style={{ 
-          flex: 1, 
-          backgroundColor: children?.props?.style?.backgroundColor || '#1a1a1a' // Use child's background or default
-        }}>
-          {children}
-        </View>
+    <View style={{ flex: 1, backgroundColor }} {...panResponder.panHandlers}>
+      <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>
+        {children}
       </Animated.View>
     </View>
   );

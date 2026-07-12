@@ -27,14 +27,22 @@ import userStorage from '../utils/userStorage';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import notificationService from '../services/notificationService';
-import AddPrayerModal from './AddPrayerModal';
-import EditPrayerModal from './EditPrayerModal';
+import { savePrayersList, getTwoRandomVerses, PRAYERS_CHANGED } from '../services/simplePrayersService';
+import { isPrayerDayEnabled, daysUntilNextPrayerDay, formatPrayerDays } from '../utils/prayerDays';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
 import AchievementService from '../services/achievementService';
 import { addSeasonalPoints } from '../services/seasonService';
-import { pushToCloud } from '../services/userSyncService';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatDurationShort } from '../utils/duration';
+
+// 'YYYY-MM-DD' -> "Jul 15" for the prayer card meta line.
+const prettyPrayerDate = (s) => {
+  if (!s || typeof s !== 'string') return '';
+  const [y, mo, d] = s.split('-').map(Number);
+  if (!y || !mo || !d) return '';
+  return new Date(y, mo - 1, d).toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
 
 // Animated Prayer Components (follows Rules of Hooks)
 const AnimatedPrayerButton = ({ children, onPress, style, ...props }) => {
@@ -130,12 +138,9 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [prayers, setPrayers] = useState([]);
   const [lastResetDate, setLastResetDate] = useState(new Date().toDateString());
   const [showPrayerModal, setShowPrayerModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [newPrayerName, setNewPrayerName] = useState('');
   const [newPrayerTime, setNewPrayerTime] = useState('');
   const [selectedPrayer, setSelectedPrayer] = useState(null);
-  const [editingPrayer, setEditingPrayer] = useState(null);
   const [showNotTimeCard, setShowNotTimeCard] = useState(false);
   const [pendingPrayer, setPendingPrayer] = useState(null);
   const [timeUntilWindow, setTimeUntilWindow] = useState('');
@@ -150,8 +155,6 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const [fetchedVerses, setFetchedVerses] = useState({}); // { 'reference': { text: '...', version: 'NIV' } }
   const [loadingVerses, setLoadingVerses] = useState(true);
   const [bibleVersion, setBibleVersion] = useState('KJV');
-  
-  // Discussion states
 
   const isSameDay = (dateA, dateB) => {
     return (
@@ -165,6 +168,21 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   useEffect(() => {
     loadPrayers();
     // Note: We don't pre-load verses anymore - they're fetched only when needed (when creating/viewing prayers)
+  }, []);
+
+  // The Add/Edit wizard screens persist via simplePrayersService; pick up
+  // every change (including their background verse backfill) here. Legacy
+  // prayers predate the type field, so backfill it like loadPrayers does or
+  // completion logic would misroute them.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(PRAYERS_CHANGED, (list) => {
+      if (Array.isArray(list)) {
+        const withType = list.map(p => ({ ...p, type: p.type || 'persistent' }));
+        const { cleanedPrayers } = clearStaleCompletions(withType);
+        setPrayers(cleanedPrayers);
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   // Listen for Bible version changes from Settings
@@ -260,7 +278,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   const resetCompletedPrayersFromStorage = async () => {
     try {
       const stored = (await getStoredData('simplePrayers')) || [];
-      const { cleanedPrayers, changed } = clearStaleCompletions(stored);
+      const withType = stored.map(p => ({ ...p, type: p.type || 'persistent' }));
+      const { cleanedPrayers, changed } = clearStaleCompletions(withType);
       if (changed) {
         await savePrayers(cleanedPrayers);
       }
@@ -309,14 +328,12 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     }
   };
 
+  // All side effects (cloud push, notification reschedule, Calendar mirror,
+  // change event) live in simplePrayersService so the wizard screens and this
+  // card can never drift apart
   const savePrayers = async (prayerList) => {
     try {
-      await saveData('simplePrayers', prayerList);
-      pushToCloud('simplePrayers', prayerList);
-      // Keep notifications in sync with the latest prayer times
-      await notificationService.scheduleStoredPrayerReminders();
-      // Mirror to iPhone Calendar if the user enabled it (no-op otherwise).
-      try { require('../services/calendarSync').syncPrayers(prayerList); } catch {}
+      await savePrayersList(prayerList);
     } catch (error) {
       console.log('Error saving prayers:', error);
     }
@@ -368,193 +385,14 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   };
 
   // Get 2 truly random verses from the ENTIRE Bible (optimized + validated)
-  const getTwoRandomVerses = async () => {
-    try {
-      console.log('🎲 Picking 2 random verses from curated list...');
-      
-      // Import curated verses
-      const CURATED_VERSES = require('../../daily-verses-references.json');
-      const curatedReferences = CURATED_VERSES.verses;
-      
-      // Pick 2 random references
-      const shuffled = [...curatedReferences].sort(() => Math.random() - 0.5);
-      const selectedRefs = shuffled.slice(0, 2);
-      
-      console.log(`✅ Selected 2 verses from ${curatedReferences.length} curated verses`);
-      
-      // Fetch the actual verse text for each reference
-      const versePromises = selectedRefs.map(async (reference, i) => {
-        try {
-          // Parse reference like "John 3:16" or "1 Corinthians 13:4"
-          const match = reference.match(/^((?:\d\s)?[\w\s]+)\s+(\d+):(\d+)(?:-(\d+))?$/);
-          
-          if (!match) {
-            console.error('Failed to parse reference:', reference);
-            return {
-              id: Date.now() + i,
-              reference: "Loading...",
-              text: "Verse is loading..."
-            };
-          }
-          
-          const bookName = match[1].trim();
-          const chapterNum = match[2];
-          const verseNum = match[3];
-          
-          // Convert book name to book ID
-          const bookId = bookName.toLowerCase()
-            .replace(/\s+/g, '')
-            .replace(/\d+/g, (num) => num);
-          
-          // Build chapter ID for githubBibleService
-          const chapterId = `${bookId}_${chapterNum}`;
-          
-          // Fetch verses for this chapter
-          const chapterVerses = await completeBibleService.getVerses(chapterId, 'kjv');
-          
-          if (!chapterVerses || chapterVerses.length === 0) {
-            console.warn('⚠️ No verses returned for', reference);
-            return {
-              id: Date.now() + i,
-              reference: reference,
-              text: "Verse is loading..."
-            };
-          }
-          
-          // Find the specific verse
-          const verseData = chapterVerses.find(v => {
-            const vNum = parseInt(String(v.number || v.verse || v.displayNumber || '').replace(/^Verse\s*/i, ''));
-            return vNum === parseInt(verseNum);
-          });
-          
-          if (!verseData) {
-            console.warn('⚠️ Verse not found:', reference);
-            return {
-              id: Date.now() + i,
-              reference: reference,
-              text: "Verse is loading..."
-            };
-          }
-          
-          console.log('✅ Fetched verse:', reference);
-          
-          return {
-            id: Date.now() + i,
-            reference: reference,
-            text: (verseData.text || verseData.content || '').trim()
-          };
-          
-        } catch (error) {
-          console.error('❌ Error fetching verse', reference, ':', error);
-          return {
-            id: Date.now() + i,
-            reference: "Loading...",
-            text: "Verse is loading..."
-          };
-        }
-      });
-      
-      const selectedVerses = await Promise.all(versePromises);
-      console.log('🎉 2 curated verses selected!');
-      return selectedVerses;
-      
-    } catch (error) {
-      console.error('❌ Error in getTwoRandomVerses:', error);
-      // Return fallback verses
-      return [
-        { id: 1, reference: "Psalm 46:10", text: "Be still, and know that I am God." },
-        { id: 2, reference: "Psalm 23:1", text: "The Lord is my shepherd, I lack nothing." }
-      ];
-    }
-  };
 
-  // Edit prayer
+  // Edit prayer: opens the native-modal wizard screen; it persists via
+  // simplePrayersService and this card refreshes on PRAYERS_CHANGED
   const editPrayer = (prayer) => {
-    setEditingPrayer(prayer);
-    setShowEditModal(true);
     hapticFeedback.light();
+    navigation.navigate('EditPrayer', { prayer });
   };
 
-  // Save edited prayer
-  const saveEditedPrayer = async (name, time, type) => {
-    const updatedPrayers = prayers.map(p => 
-      p.id === editingPrayer.id 
-        ? { ...p, name, time, type }
-        : p
-    );
-    
-    setPrayers(updatedPrayers);
-    await savePrayers(updatedPrayers);
-    
-    setShowEditModal(false);
-    setEditingPrayer(null);
-    hapticFeedback.success();
-  };
-
-  // Delete prayer
-  const deletePrayer = async () => {
-    const updatedPrayers = prayers.filter(p => p.id !== editingPrayer.id);
-    setPrayers(updatedPrayers);
-    await savePrayers(updatedPrayers);
-    
-    setShowEditModal(false);
-    setEditingPrayer(null);
-    hapticFeedback.success();
-  };
-
-  // Add new prayer
-  const addNewPrayer = async (prayerData) => {
-    try {
-      console.log('📝 Creating new prayer:', prayerData.name);
-      
-      // Close modal first with animation
-      setShowAddModal(false);
-      
-      // Wait for modal close animation to complete (300ms)
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Create prayer with placeholder verses first (for instant UI response)
-      const newPrayer = {
-        id: Date.now().toString(),
-        name: prayerData.name,
-        time: prayerData.time,
-        type: prayerData.type,
-        verses: [
-          { id: 1, reference: "Loading...", text: "Selecting your verses..." },
-          { id: 2, reference: "Loading...", text: "Selecting your verses..." }
-        ],
-        completedAt: null,
-        canComplete: false,
-      };
-
-      const updatedPrayers = [...prayers, newPrayer];
-      setPrayers(updatedPrayers);
-      await savePrayers(updatedPrayers);
-      hapticFeedback.success();
-      
-      // Now fetch random verses in background (don't block UI)
-      console.log('🎲 Fetching random verses in background...');
-      getTwoRandomVerses().then(async (randomVerses) => {
-        // Update the prayer with real verses
-        const prayersToUpdate = await getStoredData('simplePrayers') || [];
-        const prayerIndex = prayersToUpdate.findIndex(p => p.id === newPrayer.id);
-        
-        if (prayerIndex !== -1) {
-          prayersToUpdate[prayerIndex].verses = randomVerses;
-          setPrayers(prayersToUpdate);
-          await savePrayers(prayersToUpdate);
-          console.log('✅ Prayer verses updated:', randomVerses.map(v => v.reference).join(', '));
-        }
-      }).catch(error => {
-        console.error('❌ Error fetching verses:', error);
-        // Keep the placeholder verses if fetching fails
-      });
-      
-    } catch (error) {
-      console.error('❌ Error creating prayer:', error);
-      Alert.alert('Error', 'Failed to create prayer. Please try again.');
-    }
-  };
 
   // Remove prayer
   const removePrayer = (prayerId) => {
@@ -623,17 +461,26 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     }
   };
 
-  const discussVerse = (verse) => {
-    hapticFeedback.light();
-    navigation.navigate('FriendChat', {
-      initialVerse: { text: verse.text, reference: verse.reference },
-    });
-  };
-
   // Check if prayer is within time window (30 minutes before/after)
   const isPrayerTimeAvailable = (prayer) => {
     if (!prayer.time) return true; // No time set, always available
-    
+
+    // Recurring prayers limited to specific weekdays only open on those days
+    if (!isPrayerDayEnabled(prayer)) return false;
+
+    // One-time prayers tied to a specific date open ONLY on that exact date
+    // (within the time window below). A future date isn't open yet; a past date
+    // was missed and stays closed rather than reopening every day. Missing date =
+    // legacy behaviour (available every day at its time).
+    if (prayer.type === 'one-time' && prayer.date) {
+      const [dy, dmo, dd] = String(prayer.date).split('-').map(Number);
+      if (dy && dmo && dd) {
+        const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+        const target0 = new Date(dy, dmo - 1, dd); target0.setHours(0, 0, 0, 0);
+        if (target0.getTime() !== today0.getTime()) return false;
+      }
+    }
+
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
     
@@ -653,35 +500,68 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
   // Get time until prayer window opens
   const getTimeUntilPrayerWindow = (prayer) => {
     if (!prayer.time) return null;
-    
+
+    // Weekday-limited recurring prayers: count down to the next enabled day
+    if (!isPrayerDayEnabled(prayer)) {
+      const dayDiff = daysUntilNextPrayerDay(prayer);
+      if (dayDiff > 0) return dayDiff === 1 ? '1 day' : `${dayDiff} days`;
+    }
+
+    // One-time prayers on another day: count down for future dates; a past date
+    // was missed, so there's no upcoming window to report.
+    if (prayer.type === 'one-time' && prayer.date) {
+      const [dy, dmo, dd] = String(prayer.date).split('-').map(Number);
+      if (dy && dmo && dd) {
+        const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+        const target0 = new Date(dy, dmo - 1, dd); target0.setHours(0, 0, 0, 0);
+        const dayDiff = Math.round((target0.getTime() - today0.getTime()) / 86400000);
+        if (dayDiff > 0) return dayDiff === 1 ? '1 day' : `${dayDiff} days`;
+        if (dayDiff < 0) return null;
+      }
+    }
+
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
-    
+
     const [hours, minutes] = prayer.time.split(':').map(Number);
     const prayerTime = hours * 60 + minutes;
-    
+
+    // Days until the next occurrence once today's window is behind us.
+    // Weekday-limited prayers roll to the next enabled day (can be up to a
+    // week away); unrestricted prayers roll to tomorrow (offset 1).
+    const nextOccurrenceDays = () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return 1 + daysUntilNextPrayerDay(prayer, tomorrow);
+    };
+
     // Calculate minutes until prayer window starts (30 minutes before prayer time)
     const windowStart = prayerTime - 30;
     let minutesUntil;
-    
+
     if (windowStart > currentTime) {
       minutesUntil = windowStart - currentTime;
     } else if (windowStart < 0) { // Next day
-      minutesUntil = (24 * 60) + windowStart - currentTime;
+      minutesUntil = nextOccurrenceDays() * (24 * 60) + windowStart - currentTime;
     } else {
       // Check if we're past the window (30 minutes after)
       const windowEnd = prayerTime + 30;
       if (currentTime > windowEnd) {
-        // Next occurrence is tomorrow
-        minutesUntil = (24 * 60) + windowStart - currentTime;
+        // Next occurrence: tomorrow, or the next enabled weekday
+        minutesUntil = nextOccurrenceDays() * (24 * 60) + windowStart - currentTime;
       } else {
         return null; // We're in the window
       }
     }
-    
+
+    if (minutesUntil >= 24 * 60) {
+      const daysOut = Math.round(minutesUntil / (24 * 60));
+      return daysOut === 1 ? '1 day' : `${daysOut} days`;
+    }
+
     const hoursUntil = Math.floor(minutesUntil / 60);
     const minsUntil = minutesUntil % 60;
-    
+
     if (hoursUntil > 0) {
       return `${hoursUntil}h ${minsUntil}m`;
     } else {
@@ -866,7 +746,10 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       
       setPrayers(updatedPrayers);
       await savePrayers(updatedPrayers);
-      
+
+      // Praying stops any relentless escalation pings for this prayer today
+      notificationService.cancelItemEscalation({ type: 'prayer_reminder', prayerSlot: prayer.id }).catch(() => {});
+
       // Dismiss any AchievementToast before closing PrayerDetailModal to prevent
       // iOS UIKit deadlock (two Modals transitioning simultaneously = freeze).
       DeviceEventEmitter.emit('dismissAchievementToast');
@@ -953,8 +836,8 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
               <AnimatedPrayerButton
                 style={[styles.addButton, { backgroundColor: theme.primary }]}
                 onPress={() => {
-                  setShowAddModal(true);
                   hapticFeedback.light();
+                  navigation.navigate('AddPrayer');
                 }}
               >
                 <MaterialIcons name="add" size={24} color="#ffffff" />
@@ -1057,12 +940,15 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
                           <Text style={[styles.prayerTypeBadgeText, { 
                             color: prayer.type === 'one-time' ? (theme.warning || '#FF9500') : theme.primary 
                           }]}>
-                            {prayer.type === 'one-time' ? 'Once' : 'Daily'}
+                            {prayer.type === 'one-time' ? 'Once' : formatPrayerDays(prayer)}
                           </Text>
                         </View>
                       </View>
                       <Text style={[styles.prayerTime, { color: secondaryTextColor }]}>
-                        {prayer.time} {metaText}
+                        {prayer.time}
+                        {prayer.duration ? ` · ${formatDurationShort(prayer.duration)}` : ''}
+                        {prayer.type === 'one-time' && prayer.date ? ` · ${prettyPrayerDate(prayer.date)}` : ''}
+                        {metaText ? ` ${metaText}` : ''}
                       </Text>
                     </View>
                   </View>
@@ -1199,22 +1085,6 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
         </Modal>
       )}
 
-      {/* Edit Prayer Modal */}
-      <EditPrayerModal
-        visible={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSavePrayer={saveEditedPrayer}
-        onDeletePrayer={deletePrayer}
-        prayer={editingPrayer}
-      />
-
-
-      {/* Add Prayer Modal */}
-      <AddPrayerModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSave={addNewPrayer}
-      />
     </LiquidGlassContainer>
   );
 };

@@ -56,12 +56,13 @@ const storyImages = {
 
 const { width, height } = Dimensions.get('window');
 
-const AudioLearning = ({ visible, onClose, asScreen = false }) => {
+const AudioLearning = ({ visible, onClose, asScreen = false, detailMode = false, initialStory = null, onOpenStory }) => {
   const { theme, isDark } = useTheme();
-  
+
   // State
   const [stories, setStories] = useState([]);
-  const [selectedStory, setSelectedStory] = useState(null);
+  // In detailMode this component IS the audio-player native modal screen.
+  const [selectedStory, setSelectedStory] = useState(detailMode ? initialStory : null);
   const [isLoading, setIsLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -116,7 +117,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   // Header spacer height adapts to search bar visibility
   const headerSpacerHeight = searchBarAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [Platform.OS === 'ios' ? 115 : 90, Platform.OS === 'ios' ? 175 : 150],
+    outputRange: [Platform.OS === 'ios' ? 77 : 82, Platform.OS === 'ios' ? 137 : 142],
   });
 
   // Refs for callback access (to avoid stale closure issues)
@@ -132,6 +133,20 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
   useEffect(() => { storiesRef.current = stories; }, [stories]);
   useEffect(() => { sortOrderRef.current = sortOrder; }, [sortOrder]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
+
+  // Stop + unload audio when this player screen unmounts — e.g. dragging the
+  // native modal down to dismiss just pops the screen without calling closePlayer,
+  // so playback would otherwise keep going. Reads the ref (not the stale `sound`
+  // closure) so it always stops the CURRENT sound.
+  useEffect(() => {
+    return () => {
+      const s = soundRef.current;
+      if (s) {
+        s.stopAsync().catch(() => {});
+        s.unloadAsync().catch(() => {});
+      }
+    };
+  }, []);
 
   // Extract colors from image — supports bundled assets AND remote thumbnails
   const extractImageColors = async (story) => {
@@ -203,6 +218,12 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     extractImageColors(story);
   };
 
+  // As a native modal screen, open + play the passed story on mount.
+  useEffect(() => {
+    if (detailMode && initialStory) openPlayer(initialStory);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Function to close player smoothly
   const closePlayer = async () => {
     // Stop audio first - use ref to get current sound (avoids stale closure)
@@ -227,6 +248,8 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     setIsPlaying(false);
     setProgress(0);
     setPlaybackPosition(0);
+    // As the native modal player screen, closing = dismissing the screen.
+    if (detailMode) onClose?.();
   };
 
   // Pan responder for pull-down-to-dismiss on player
@@ -321,10 +344,17 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
 
   // Load stories on mount and cleanup when modal closes
   useEffect(() => {
-    if (visible) {
-      loadStories();
+    // A screen (asScreen) is always "open" — load its feed. Only a legacy RN
+    // <Modal> reports closed via visible=false; the else branch (stop audio +
+    // clear the story) must NOT run for a screen or it wipes the player's story
+    // on mount and the player renders blank.
+    if (visible || asScreen) {
+      // Every time the stories list is opened, force a fresh fetch (falls back to
+      // cache if the network fails) so users always see the latest. The player
+      // detail (detailMode) doesn't need the feed, so it uses the fast cache path.
+      loadStories(!detailMode);
     } else {
-      // Stop audio when modal closes
+      // Stop audio when the Modal closes
       if (sound) {
         sound.stopAsync();
         sound.unloadAsync();
@@ -339,7 +369,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
         sound.unloadAsync();
       }
     };
-  }, [visible]);
+  }, [visible, asScreen]);
 
   // Wave animations
   useEffect(() => {
@@ -694,14 +724,6 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.storiesGridContainer, { paddingTop: 0 }]}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.primary}
-              colors={[theme.primary]}
-            />
-          }
         >
           {/* Dynamic spacer that responds to search bar collapse */}
           <Animated.View style={{ height: headerSpacerHeight }} />
@@ -712,7 +734,10 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
               style={styles.storyGridCard}
               onPress={() => {
                 hapticFeedback.selection();
-                openPlayer(story);
+                // As a screen, open the player as its own native pull-to-dismiss
+                // modal screen on top of the list.
+                if (onOpenStory) onOpenStory(story);
+                else openPlayer(story);
               }}
               activeOpacity={0.9}
             >
@@ -803,7 +828,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
             zIndex: 1000,
           }}
         >
-          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+          <View style={{ height: 16 }} />
           <Animated.View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
             {/* Title row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -947,17 +972,8 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
     const storyToShow = currentStoryData || selectedStory;
     if (!storyToShow) return null;
 
-    return (
-      <Animated.View
-        style={[
-          styles.playerContainer,
-          {
-            transform: [{ translateY: playerDragY }],
-            opacity: playerOpacity,
-          }
-        ]}
-        pointerEvents={playerVisible ? 'auto' : 'none'}
-      >
+    const playerInner = (
+      <>
         {/* Beautiful gradient background - uses extracted colors from image */}
         <LinearGradient
           colors={[
@@ -974,7 +990,6 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
           <View {...playerPanResponder.panHandlers} style={styles.dragHandleArea}>
             <View style={styles.dragHandle} />
           </View>
-          
         </View>
         
         <View style={styles.musicPlayerContent}>
@@ -1084,17 +1099,43 @@ const AudioLearning = ({ visible, onClose, asScreen = false }) => {
             </TouchableOpacity>
           </View>
         </View>
+      </>
+    );
+
+    // Native pull-to-dismiss modal SCREEN: pull down anywhere to dismiss (no
+    // Animated drag/opacity gating needed — the OS sheet handles it).
+    if (detailMode) {
+      return <View style={{ flex: 1 }}>{playerInner}</View>;
+    }
+
+    return (
+      <Animated.View
+        style={[
+          styles.playerContainer,
+          {
+            transform: [{ translateY: playerDragY }],
+            opacity: playerOpacity,
+          },
+        ]}
+        pointerEvents={playerVisible ? 'auto' : 'none'}
+      >
+        {playerInner}
       </Animated.View>
     );
   };
 
-  const content = (
+  const content = detailMode ? (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      
-      {/* Story list always rendered so it's visible when pulling down player */}
+      {renderPlayer()}
+    </View>
+  ) : (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      {/* Story list */}
       {renderStoryList()}
-      
+
       {/* Player always mounted but fades in/out */}
       {renderPlayer()}
     </View>
@@ -1206,13 +1247,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    paddingTop: 60,
+    paddingTop: 14,
     alignItems: 'center',
   },
   dragHandleArea: {
     width: '100%',
     alignItems: 'center',
     paddingVertical: 12,
+  },
+  playerCloseBtn: {
+    position: 'absolute',
+    top: 54,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1001,
   },
   dragHandle: {
     width: 50,
@@ -1990,9 +2043,9 @@ const styles = StyleSheet.create({
   // Music Player Styles
   musicPlayerContent: {
     flex: 1,
-    paddingTop: 100,
+    paddingTop: 48,
     paddingHorizontal: 30,
-    paddingBottom: 50,
+    paddingBottom: 80,
     justifyContent: 'space-between',
   },
   musicAlbumWrapper: {

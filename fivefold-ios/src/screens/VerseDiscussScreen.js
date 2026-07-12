@@ -5,7 +5,7 @@ const VerseDiscussScreen = ({ navigation, route }) => {
   const { verse, title } = route.params || {};
 
   const handleNavigateToBible = useCallback((verseRef) => {
-    navigation.navigate('BibleReader', { verseRef });
+    navigation.navigate('BibleChapter', { verseRef, verseTapTs: Date.now() });
   }, [navigation]);
 
   return (

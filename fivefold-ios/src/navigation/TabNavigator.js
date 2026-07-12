@@ -9,7 +9,6 @@ import userStorage from '../utils/userStorage';
 import BiblePrayerTab from '../screens/BiblePrayerTab';
 import TodosTab from '../screens/TodosTab';
 import GymTab from '../screens/GymTab';
-import HubTab from '../screens/HubTab';
 let ProfileTab;
 try {
   ProfileTab = require('../screens/ProfileTab').default;
@@ -28,7 +27,7 @@ try {
 
 const Tab = createNativeBottomTabNavigator();
 
-const DEFAULT_ORDER = ['BiblePrayer', 'Todos', 'Gym', 'Hub', 'Profile'];
+const DEFAULT_ORDER = ['BiblePrayer', 'Todos', 'Gym', 'Profile'];
 
 const TAB_DEFINITIONS = {
   BiblePrayer: {
@@ -48,12 +47,6 @@ const TAB_DEFINITIONS = {
     title: 'Fitness',
     icon: 'figure.strengthtraining.traditional',
     accessibilityLabel: 'Fitness tab',
-  },
-  Hub: {
-    component: HubTab,
-    title: 'Hub',
-    icon: 'bubble.left.and.bubble.right.fill',
-    accessibilityLabel: 'Hub tab',
   },
   Profile: {
     component: ProfileTab,

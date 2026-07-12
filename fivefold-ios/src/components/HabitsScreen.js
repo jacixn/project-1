@@ -408,7 +408,7 @@ const HabitsScreen = () => {
           <Text style={[styles.screenTitle, { color: textPrimary }]}>Habits</Text>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-            onPress={() => { hapticFeedback.light(); setShowAddModal(true); }}
+            onPress={() => { hapticFeedback.light(); navigation.navigate('AddHabit'); }}
           >
             <MaterialIcons name="add" size={22} color={textPrimary} />
           </TouchableOpacity>
@@ -445,7 +445,7 @@ const HabitsScreen = () => {
             </Text>
             <TouchableOpacity
               style={[styles.emptyButton, { backgroundColor: theme.primary }]}
-              onPress={() => { hapticFeedback.light(); setShowAddModal(true); }}
+              onPress={() => { hapticFeedback.light(); navigation.navigate('AddHabit'); }}
             >
               <MaterialIcons name="add" size={18} color="#FFFFFF" />
               <Text style={styles.emptyButtonText}>Add Your First Habit</Text>
@@ -495,19 +495,6 @@ const HabitsScreen = () => {
         </Animated.Text>
       ))}
 
-      <AddHabitModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={async (data) => {
-          const newHabit = await addHabit(data);
-          try { await notificationService.scheduleHabitReminder(newHabit); } catch (e) {}
-          refresh();
-          setShowAddModal(false);
-        }}
-        theme={theme}
-        isDark={isDark}
-      />
-
       {/* Habit Detail Modal */}
       {renderDetailModal()}
     </View>
@@ -516,7 +503,7 @@ const HabitsScreen = () => {
 
 // ── Add Habit Modal ──────────────────────────────────────────────────
 
-const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
+const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark, asScreen = false }) => {
   const [name, setName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('flag');
   const [selectedColor, setSelectedColor] = useState('#4CAF50');
@@ -561,14 +548,7 @@ const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
     setReminderMinute(m);
   };
 
-  return (
-    <Modal
-      visible={visible}
-      transparent={false}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+  const body = (
       <View style={[styles.modalContainer, { backgroundColor: isDark ? '#111' : '#fff' }]}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalHeader}>
@@ -679,7 +659,42 @@ const AddHabitModal = ({ visible, onClose, onAdd, theme, isDark }) => {
           />
         </KeyboardAvoidingView>
       </View>
+  );
+
+  if (asScreen) return body;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={false}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      {body}
     </Modal>
+  );
+};
+
+// Native-stack modal wrapper — matches the rest of the app (parent scales back,
+// native pull-down). Persists via the habit service, list refreshes on focus.
+export const AddHabitScreen = ({ navigation }) => {
+  const { theme, isDark } = useTheme();
+  return (
+    <AddHabitModal
+      asScreen
+      visible={true}
+      theme={theme}
+      isDark={isDark}
+      onClose={() => { if (navigation.canGoBack()) navigation.goBack(); }}
+      onAdd={async (data) => {
+        try {
+          const newHabit = await addHabit(data);
+          try { await notificationService.scheduleHabitReminder(newHabit); } catch (e) {}
+        } catch (e) {}
+        if (navigation.canGoBack()) navigation.goBack();
+      }}
+    />
   );
 };
 

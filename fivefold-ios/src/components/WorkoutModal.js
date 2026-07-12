@@ -36,7 +36,7 @@ import WorkoutCompletionModal from './WorkoutCompletionModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const WorkoutModal = ({ visible, onClose, templateData = null }) => {
+const WorkoutModal = ({ visible, onClose, templateData = null, asScreen = false, navigation = null }) => {
   const { theme, isDark } = useTheme();
   const {
     activeWorkout,
@@ -238,6 +238,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
               bodyPart: exercise.bodyPart,
               equipment: exercise.equipment || 'Machine',
               target: exercise.target,
+              muscles: exercise.muscles,
               sets: Array.from({ length: exercise.sets || 3 }, (_, setIndex) => ({
                 id: Date.now() + Math.random() + setIndex,
                 weight: exercise.weight || '',
@@ -459,6 +460,19 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
       panY.setValue(0); // Reset pan gesture value
     }
   }, [visible]);
+
+  // As a native-stack screen, a swipe-down (or Back) pops the screen. Background
+  // the workout so it keeps running in the mini player, exactly like the old
+  // pull-to-dismiss did. If the workout was finished/cancelled first, the context
+  // already cleared activeWorkout, so this is a harmless no-op (mini player hides).
+  useEffect(() => {
+    if (!asScreen || !navigation?.addListener) return;
+    const unsub = navigation.addListener('beforeRemove', () => {
+      stopAllSetAnimations();
+      minimizeWorkout();
+    });
+    return unsub;
+  }, [asScreen, navigation]);
 
   // Timer is now handled by WorkoutContext - no local timer needed
   // The contextElapsedTime from useWorkout() is used for display
@@ -910,6 +924,11 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           name: ex.name,
           bodyPart: ex.bodyPart,
           equipment: ex.equipment,
+          // Physique scores this history later. Without target/muscles it has
+          // to re-guess the muscles from the name, throwing away whatever the
+          // exercise actually specified.
+          target: ex.target,
+          muscles: ex.muscles,
           sets: ex.sets.map(set => ({
             weight: set.weight,
             reps: set.reps,
@@ -1194,32 +1213,17 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
 
   const combinedTranslateY = Animated.add(modalTranslateY, panY);
 
-  return (
-    <>
-    <Modal
-      visible={visible}
-      animationType="none"
-      transparent={true}
-      onRequestClose={handleCloseModal}
-    >
-      <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
-        {/* Backdrop - always visible when modal is open */}
-        <View style={{ ...StyleSheet.absoluteFillObject }}>
-          <TouchableOpacity 
-            style={styles.modalBackdrop}
-            activeOpacity={0.7}
-            onPress={handleCloseModal}
-          />
-        </View>
-
-        {/* Modal Content */}
-        <Animated.View 
+  // The full sheet body. Shared between the native-stack screen presentation
+  // (asScreen — parent scales back, native pull-down like every other modal) and
+  // the legacy overlay Modal. As a screen the container simply fills; native
+  // provides the sheet chrome + dismiss gesture.
+  const sheetInner = (
+        <Animated.View
           style={[
-            styles.container, 
-            { 
-              backgroundColor: theme.background,
-              transform: [{ translateY: combinedTranslateY }],
-            }
+            styles.container,
+            asScreen
+              ? { backgroundColor: theme.background, flex: 1 }
+              : { backgroundColor: theme.background, transform: [{ translateY: combinedTranslateY }] },
           ]}
         >
           {/* Empty Workout Alert Overlay */}
@@ -1398,8 +1402,8 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
             </View>
           )}
 
-          {/* Pull Indicator */}
-          <View {...panResponder.panHandlers} style={styles.pullIndicatorContainer}>
+          {/* Pull Indicator (native swipe handles dismiss when asScreen) */}
+          <View {...(asScreen ? {} : panResponder.panHandlers)} style={styles.pullIndicatorContainer}>
             <View style={[styles.pullIndicator, { backgroundColor: theme.textSecondary }]} />
           </View>
 
@@ -2410,7 +2414,36 @@ const WorkoutModal = ({ visible, onClose, templateData = null }) => {
           )}
 
         </Animated.View>
+  );
 
+  // Native-stack modal screen: parent scales back, native swipe-down dismiss.
+  if (asScreen) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {sheetInner}
+      </View>
+    );
+  }
+
+  // Legacy overlay presentation (kept for any non-screen usage).
+  return (
+    <>
+    <Modal
+      visible={visible}
+      animationType="none"
+      transparent={true}
+      onRequestClose={handleCloseModal}
+    >
+      <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
+        {/* Backdrop - always visible when modal is open */}
+        <View style={{ ...StyleSheet.absoluteFillObject }}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={0.7}
+            onPress={handleCloseModal}
+          />
+        </View>
+        {sheetInner}
       </View>
     </Modal>
     </>

@@ -20,12 +20,7 @@ const BibleStudyScreen = ({ navigation }) => {
           DeviceEventEmitter.emit('openBibleFromBibleStudy', { verseRef: reference });
         }, 100);
       }}
-      onDiscussVerse={(versePayload) => {
-        navigation.goBack();
-        setTimeout(() => {
-          DeviceEventEmitter.emit('openAiChatFromBibleStudy', versePayload);
-        }, 100);
-      }}
+      onDiscussVerse={(versePayload) => navigation.navigate('BibleChat', { initialVerse: versePayload })}
       asScreen={true}
     />
   );

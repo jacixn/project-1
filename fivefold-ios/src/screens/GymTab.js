@@ -38,7 +38,6 @@ import { hapticFeedback } from '../utils/haptics';
 import LottieView from 'lottie-react-native';
 import userStorage from '../utils/userStorage';
 import ExercisesModal from '../components/ExercisesModal';
-import WorkoutModal from '../components/WorkoutModal';
 import TemplateSelectionModal from '../components/TemplateSelectionModal';
 import WorkoutService from '../services/workoutService';
 import AchievementService from '../services/achievementService';
@@ -1102,6 +1101,16 @@ const GymTab = () => {
                     <MaterialIcons name="play-arrow" size={28} color="#FFFFFF" />
                     <Text style={styles.startWorkoutButtonText}>Start Workout</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.seeScheduledBtn, { backgroundColor: theme.primary }]}
+                    onPress={() => { hapticFeedback.light(); navigation.navigate('AllWorkouts'); }}
+                    activeOpacity={0.85}
+                    accessibilityLabel="See all scheduled workouts"
+                    accessibilityRole="button"
+                  >
+                    <MaterialIcons name="event-note" size={18} color="#FFFFFF" />
+                    <Text style={[styles.seeScheduledBtnText, { color: '#FFFFFF' }]}>See scheduled workouts</Text>
+                  </TouchableOpacity>
                 </LiquidGlassContainer>
               );
               case 'Fuel': return (
@@ -1742,6 +1751,19 @@ const styles = StyleSheet.create({
   startWorkoutButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: '700',
+  },
+  seeScheduledBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  seeScheduledBtnText: {
+    fontSize: 15,
     fontWeight: '700',
   },
   workoutButtonsRow: {

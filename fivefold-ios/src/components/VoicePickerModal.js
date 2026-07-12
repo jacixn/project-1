@@ -29,7 +29,7 @@ const FREE_TIERS = ['Neural2', 'WaveNet', 'Standard'];
 // Studio voices require 6 referrals to unlock
 const VOICE_REFERRAL_REQUIRED = 6;
 
-const VoicePickerModal = ({ visible, onClose }) => {
+const VoicePickerModal = ({ visible, onClose, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [selectedSource, setSelectedSource] = useState('google'); // 'google' or 'device'
   const [googleVoices, setGoogleVoices] = useState([]);
@@ -57,10 +57,10 @@ const VoicePickerModal = ({ visible, onClose }) => {
   };
 
   useEffect(() => {
-    if (visible) {
+    if (visible || asScreen) {
       loadVoices();
     }
-  }, [visible]);
+  }, [visible, asScreen]);
 
   const loadVoices = async () => {
     setLoading(true);
@@ -231,16 +231,8 @@ const VoicePickerModal = ({ visible, onClose }) => {
   // Group device voices by quality (only show top ones)
   const topDeviceVoices = deviceVoices.slice(0, 8);
 
-  if (!visible) return null;
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-    >
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+  const content = (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
           <TouchableOpacity 
@@ -575,7 +567,21 @@ const VoicePickerModal = ({ visible, onClose }) => {
             </View>
           </Animated.View>
         )}
-      </View>
+    </View>
+  );
+
+  if (asScreen) return content;            // native screen: no Modal, always rendered
+  if (!visible) return null;               // Modal mode unchanged
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+      onDismiss={handleClose}
+    >
+      {content}
     </Modal>
   );
 };

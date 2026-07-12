@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,819 +9,452 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Animated,
 } from 'react-native';
-import {
-  GestureHandlerRootView,
-  PanGestureHandler,
-  State,
-} from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import DayTimeline from './DayTimeline';
+import MultiDateCalendar from './MultiDateCalendar';
+import DurationField from './DurationField';
+import SheetHeader from './SheetHeader';
+import { DEFAULT_PRAYER_DURATION, formatDuration } from '../utils/duration';
+import { ALL_DAYS, DAY_SHORT, normalizeDays } from '../utils/prayerDays';
+import { updatePrayer, deletePrayerById } from '../services/simplePrayersService';
 
-const ITEM_HEIGHT = 44;
-const VISIBLE_ITEMS = 5;
-const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
+const NOTIFY_OPTIONS = [0, 15, 30, 60];
+const notifyLabel = (m) => (m === 0 ? 'At start' : m === 60 ? '1 hour' : `${m} min`);
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
-const MINUTES = Array.from({ length: 60 }, (_, i) => i);
-const PERIODS = ['AM', 'PM'];
-
-const WheelItem = ({ index, item, scrollY, format, color }) => {
-  const inputRange = [
-    (index - 2) * ITEM_HEIGHT,
-    (index - 1) * ITEM_HEIGHT,
-    index * ITEM_HEIGHT,
-    (index + 1) * ITEM_HEIGHT,
-    (index + 2) * ITEM_HEIGHT,
-  ];
-  const opacity = scrollY.interpolate({
-    inputRange,
-    outputRange: [0.25, 0.55, 1, 0.55, 0.25],
-    extrapolate: 'clamp',
-  });
-  const scale = scrollY.interpolate({
-    inputRange,
-    outputRange: [0.8, 0.92, 1, 0.92, 0.8],
-    extrapolate: 'clamp',
-  });
-  return (
-    <Animated.View style={[styles.wheelItem, { opacity, transform: [{ scale }] }]}>
-      <Text style={[styles.wheelItemText, { color }]}>
-        {format ? format(item) : item}
-      </Text>
-    </Animated.View>
-  );
+const pad = (n) => String(n).padStart(2, '0');
+const dateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fmt12 = (h, m) => {
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${pad(m)} ${ap}`;
+};
+const parseDateKey = (s) => {
+  if (!s || typeof s !== 'string') return null;
+  const [y, mo, d] = s.split('-').map(Number);
+  if (!y || !mo || !d) return null;
+  const dt = new Date(y, mo - 1, d);
+  dt.setHours(0, 0, 0, 0);
+  return dt;
 };
 
-const WheelPicker = ({ data, value, onChange, format, theme }) => {
-  const scrollRef = useRef(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const valueRef = useRef(value);
-  valueRef.current = value;
-  const readyRef = useRef(false);
-
-  const scrollToValue = (v, animated = false) => {
-    const idx = data.indexOf(v);
-    if (idx < 0 || !scrollRef.current) return;
-    scrollRef.current.scrollTo({ y: idx * ITEM_HEIGHT, animated });
-  };
-
-  useEffect(() => {
-    if (!readyRef.current) return;
-    scrollToValue(value);
-  }, [value]);
-
-  const handleContentSizeChange = () => {
-    if (readyRef.current) return;
-    readyRef.current = true;
-    scrollToValue(valueRef.current);
-  };
-
-  const handleMomentumEnd = (e) => {
-    const offsetY = e.nativeEvent.contentOffset.y;
-    const idx = Math.round(offsetY / ITEM_HEIGHT);
-    const clamped = Math.max(0, Math.min(data.length - 1, idx));
-    const next = data[clamped];
-    if (next !== valueRef.current) {
-      hapticFeedback.light();
-      onChange(next);
-    }
-    if (clamped * ITEM_HEIGHT !== offsetY) {
-      scrollRef.current?.scrollTo({ y: clamped * ITEM_HEIGHT, animated: true });
-    }
-  };
-
-  return (
-    <View style={styles.wheelColumn}>
-      <Animated.ScrollView
-        ref={scrollRef}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_HEIGHT}
-        decelerationRate="fast"
-        bounces={false}
-        contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={handleMomentumEnd}
-        onContentSizeChange={handleContentSizeChange}
-      >
-        {data.map((item, index) => (
-          <WheelItem
-            key={String(item)}
-            item={item}
-            index={index}
-            scrollY={scrollY}
-            format={format}
-            color={theme.text}
-          />
-        ))}
-      </Animated.ScrollView>
-    </View>
-  );
-};
-
-const EditPrayerModal = ({ visible, onClose, onSavePrayer, onDeletePrayer, prayer }) => {
+// Edit Prayer, matching the New Prayer wizard: native pull-to-dismiss modal
+// SCREEN (presentation:'modal', parent scales back). Hydrates from
+// route.params.prayer, persists straight through simplePrayersService, and
+// dismisses via navigation.goBack(); SimplePrayerCard refreshes on the
+// service's change event.
+const EditPrayerModal = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
-  const [prayerName, setPrayerName] = useState('');
-  const [selectedHour, setSelectedHour] = useState(9);
-  const [selectedMinute, setSelectedMinute] = useState(0);
-  const [selectedPeriod, setSelectedPeriod] = useState('AM');
-  const [prayerType, setPrayerType] = useState('persistent');
+  const prayer = route?.params?.prayer || null;
+
+  const [step, setStep] = useState('details');
+  const [prayerName, setPrayerName] = useState(prayer?.name || '');
+  const [prayerType, setPrayerType] = useState(prayer?.type || 'persistent');
+  const [duration, setDuration] = useState(
+    Number(prayer?.duration) > 0 ? Number(prayer.duration) : DEFAULT_PRAYER_DURATION
+  );
+  // Legacy None (-1) or missing -> At start (default now that None is gone).
+  const [notifyBefore, setNotifyBefore] = useState(
+    prayer?.notifyBefore == null || prayer.notifyBefore < 0 ? 0 : prayer.notifyBefore
+  );
+  const [time, setTime] = useState(() => {
+    const [hh, mm] = (prayer?.time || '09:00').split(':').map(Number);
+    return { hour: Number.isFinite(hh) ? hh : 9, minute: Number.isFinite(mm) ? mm : 0 };
+  });
+  const [days, setDays] = useState(() =>
+    prayer?.type === 'one-time' ? ALL_DAYS : normalizeDays(prayer?.days)
+  );
+  const [oneTimeDate, setOneTimeDate] = useState(() => {
+    const parsed = parseDateKey(prayer?.date);
+    if (parsed) return parsed;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
   const [inputFocused, setInputFocused] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const gestureY = useRef(new Animated.Value(0)).current;
+  const [saving, setSaving] = useState(false);
 
   const accent = theme.primary;
-  const accentSoft = `${accent}${isDark ? '22' : '14'}`;
   const surfaceColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const fadeColor = theme.background;
 
-  useEffect(() => {
-    if (visible && prayer) {
-      setPrayerName(prayer.name || '');
-      setPrayerType(prayer.type || 'persistent');
-
-      const timeParts = (prayer.time || '09:00').split(':');
-      let hour24 = parseInt(timeParts[0] || '9');
-      const minute = parseInt(timeParts[1] || '0');
-
-      const period = hour24 >= 12 ? 'PM' : 'AM';
-      let hour12 = hour24 % 12;
-      if (hour12 === 0) hour12 = 12;
-
-      setSelectedHour(hour12);
-      setSelectedMinute(minute);
-      setSelectedPeriod(period);
-      gestureY.setValue(0);
-    }
-  }, [visible, prayer]);
-
-  useEffect(() => {
-    if (!visible) {
-      setTimeout(() => {
-        setPrayerName('');
-        setSelectedHour(9);
-        setSelectedMinute(0);
-        setSelectedPeriod('AM');
-        setPrayerType('persistent');
-        setInputFocused(false);
-        gestureY.setValue(0);
-        slideAnim.setValue(0);
-      }, 100);
-    }
-  }, [visible]);
-
-  const onGestureEvent = Animated.event(
-    [{ nativeEvent: { translationY: gestureY } }],
-    { useNativeDriver: true }
-  );
-
-  const onHandlerStateChange = (event) => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      const { translationY, velocityY } = event.nativeEvent;
-      if (translationY > 120 || velocityY > 800) {
-        hapticFeedback.success();
-        onClose();
-      } else {
-        Animated.spring(gestureY, {
-          toValue: 0,
-          tension: 100,
-          friction: 10,
-          useNativeDriver: true,
-        }).start();
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 1,
-          tension: 65,
-          friction: 9,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
-
-  const handleSave = () => {
-    if (!prayerName.trim()) {
-      hapticFeedback.error();
-      return;
-    }
-
-    let hour24 = selectedHour;
-    if (selectedPeriod === 'PM' && hour24 !== 12) hour24 += 12;
-    else if (selectedPeriod === 'AM' && hour24 === 12) hour24 = 0;
-
-    const time = `${hour24.toString().padStart(2, '0')}:${selectedMinute
-      .toString()
-      .padStart(2, '0')}`;
-    onSavePrayer(prayerName.trim(), time, prayerType);
-    hapticFeedback.success();
-    onClose();
-  };
-
-  const handleDelete = () => {
-    setShowDeleteConfirm(true);
+  const close = () => {
     hapticFeedback.light();
+    navigation.goBack();
   };
 
-  const confirmDelete = () => {
-    onDeletePrayer();
+  const to24 = () => `${pad(time.hour)}:${pad(time.minute)}`;
+
+  const toggleDay = (idx) => {
+    hapticFeedback.light();
+    setDays((prev) => (prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx]));
+  };
+
+  const quickDays = (key) => {
+    hapticFeedback.light();
+    if (key === 'everyday') setDays(ALL_DAYS);
+    else if (key === 'weekdays') setDays([1, 2, 3, 4, 5]);
+    else if (key === 'weekends') setDays([0, 6]);
+  };
+
+  const goNext = () => {
+    if (!prayerName.trim()) { hapticFeedback.error(); return; }
+    hapticFeedback.light();
+    setStep('when');
+  };
+
+  const isOneTime = prayerType === 'one-time';
+  const daysValid = isOneTime || days.length > 0;
+
+  const handleSave = async () => {
+    if (!prayerName.trim() || !daysValid || saving || !prayer?.id) { hapticFeedback.error(); return; }
+    setSaving(true);
+    try {
+      await updatePrayer(prayer.id, {
+        name: prayerName.trim(),
+        time: to24(),
+        type: prayerType,
+        duration,
+        notifyBefore,
+        date: isOneTime ? dateKey(oneTimeDate) : null,
+        days: isOneTime ? undefined : days,
+      });
+      hapticFeedback.success();
+      navigation.goBack();
+    } catch (e) {
+      console.error('Failed to save prayer:', e);
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = () => { setShowDeleteConfirm(true); hapticFeedback.light(); };
+  const confirmDelete = async () => {
     setShowDeleteConfirm(false);
-    hapticFeedback.success();
-    onClose();
+    if (!prayer?.id) return;
+    try {
+      await deletePrayerById(prayer.id);
+      hapticFeedback.success();
+      navigation.goBack();
+    } catch (e) {
+      console.error('Failed to delete prayer:', e);
+    }
   };
 
-  const handleBackdropClose = () => {
-    hapticFeedback.light();
-    onClose();
-  };
+  const daysSummary = days.length === 7
+    ? 'Daily'
+    : days.length === 5 && [1, 2, 3, 4, 5].every((d) => days.includes(d))
+      ? 'Weekdays'
+      : days.length === 2 && days.includes(0) && days.includes(6)
+        ? 'Weekends'
+        : days.slice().sort((a, b) => a - b).map((d) => DAY_SHORT[d]).join(' · ');
 
-  const modalTranslateY = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [600, 0],
-  });
-  const clampedGestureY = gestureY.interpolate({
-    inputRange: [-1, 0, 600],
-    outputRange: [0, 0, 600],
-    extrapolate: 'clamp',
-  });
-  const combinedTranslateY = Animated.add(modalTranslateY, clampedGestureY);
-
-  const pad = (n) => n.toString().padStart(2, '0');
-
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="none"
-      onRequestClose={handleBackdropClose}
-      statusBarTranslucent={true}
+  const renderDetails = () => (
+    <ScrollView
+      style={styles.scrollView}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-        <View style={StyleSheet.absoluteFill}>
-          <TouchableOpacity
-            style={styles.backdrop}
-            activeOpacity={0.7}
-            onPress={handleBackdropClose}
+      <View style={styles.headerSection}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Edit Prayer</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Update prayer details</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>NAME</Text>
+        <View style={[styles.inputBox, { backgroundColor: surfaceColor, borderColor: inputFocused ? accent : borderColor, borderWidth: 1.5 }]}>
+          <TextInput
+            style={[styles.textInput, { color: theme.text }]}
+            placeholder="Morning Prayer"
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}
+            value={prayerName}
+            onChangeText={setPrayerName}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
+            autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={goNext}
           />
         </View>
+      </View>
 
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            {
-              transform: [{ translateY: combinedTranslateY }],
-              opacity: fadeAnim,
-              backgroundColor: theme.background,
-            },
-          ]}
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>TYPE</Text>
+        <View style={[styles.segmentWrap, { backgroundColor: surfaceColor, borderColor }]}>
+          <TouchableOpacity style={[styles.segmentBtn, prayerType === 'persistent' && { backgroundColor: accent }]} onPress={() => { setPrayerType('persistent'); hapticFeedback.light(); }} activeOpacity={0.8}>
+            <MaterialIcons name="all-inclusive" size={16} color={prayerType === 'persistent' ? '#fff' : theme.textSecondary} />
+            <Text style={[styles.segmentText, { color: prayerType === 'persistent' ? '#fff' : theme.textSecondary }]}>Recurring</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.segmentBtn, prayerType === 'one-time' && { backgroundColor: accent }]} onPress={() => { setPrayerType('one-time'); hapticFeedback.light(); }} activeOpacity={0.8}>
+            <MaterialIcons name="check-circle-outline" size={16} color={prayerType === 'one-time' ? '#fff' : theme.textSecondary} />
+            <Text style={[styles.segmentText, { color: prayerType === 'one-time' ? '#fff' : theme.textSecondary }]}>One-Time</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.typeHint, { color: theme.textTertiary || theme.textSecondary }]}>
+          {prayerType === 'persistent' ? 'Repeats on the days you pick next.' : 'A single prayer on the date you choose.'}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>HOW LONG</Text>
+        <DurationField value={duration} onChange={setDuration} accent={accent} />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>REMINDER</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.notifyRow} keyboardShouldPersistTaps="handled">
+          {NOTIFY_OPTIONS.map((m) => {
+            const on = notifyBefore === m;
+            return (
+              <TouchableOpacity key={m} style={[styles.notifyBtn, { backgroundColor: on ? accent : surfaceColor, borderColor: on ? accent : borderColor }]} onPress={() => { hapticFeedback.light(); setNotifyBefore(m); }} activeOpacity={0.85}>
+                <Text style={[styles.notifyText, { color: on ? '#fff' : theme.text }]}>{notifyLabel(m)}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <Text style={[styles.typeHint, { color: theme.textTertiary || theme.textSecondary }]}>
+          {notifyBefore === 0
+            ? 'Notified when the prayer opens.'
+            : `Notified ${notifyBefore === 60 ? '1 hour' : `${notifyBefore} minutes`} before it opens.`}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={[styles.deleteBtn, { backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.3)' }]}
+          onPress={handleDelete}
+          activeOpacity={0.8}
         >
-          <PanGestureHandler
-            onGestureEvent={onGestureEvent}
-            onHandlerStateChange={onHandlerStateChange}
-            activeOffsetY={10}
-            failOffsetX={[-20, 20]}
-          >
-            <Animated.View style={styles.dragArea}>
-              <View
-                style={[
-                  styles.dragHandle,
-                  {
-                    backgroundColor: isDark
-                      ? 'rgba(255,255,255,0.25)'
-                      : 'rgba(0,0,0,0.15)',
-                  },
-                ]}
-              />
-            </Animated.View>
-          </PanGestureHandler>
+          <MaterialIcons name="delete-outline" size={18} color="#EF4444" />
+          <Text style={styles.deleteBtnText}>Delete Prayer</Text>
+        </TouchableOpacity>
+      </View>
 
-          <ScrollView
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            bounces={true}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.headerSection}>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>
-                Edit Prayer
-              </Text>
-              <Text
-                style={[styles.headerSubtitle, { color: theme.textSecondary }]}
-              >
-                Update prayer details
-              </Text>
-            </View>
+      {renderFooter()}
+    </ScrollView>
+  );
 
-            {/* Name */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-                NAME
-              </Text>
-              <View
-                style={[
-                  styles.inputBox,
-                  {
-                    backgroundColor: surfaceColor,
-                    borderColor: inputFocused ? accent : borderColor,
-                    borderWidth: 1.5,
-                  },
-                ]}
-              >
-                <TextInput
-                  style={[styles.textInput, { color: theme.text }]}
-                  placeholder="Morning Prayer"
-                  placeholderTextColor={
-                    isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'
-                  }
-                  value={prayerName}
-                  onChangeText={setPrayerName}
-                  onFocus={() => setInputFocused(true)}
-                  onBlur={() => setInputFocused(false)}
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
+  // Outer ScrollView so calendar + timeline + summary + footer always fit;
+  // DayTimeline's drag activates on long-press (160ms) so it doesn't fight
+  // the outer scroll (same structure the previous prayer wizard shipped with)
+  const renderWhen = () => (
+    <ScrollView
+      style={styles.scrollView}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.headerSection}>
+        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>{prayerName.trim() || 'Prayer'}</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+          {isOneTime ? 'Pick a day, then drag to set the time' : 'Pick the days, then drag to set the time'}
+        </Text>
+      </View>
 
-            {/* Time wheel */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-                TIME
-              </Text>
-
-              <View
-                style={[
-                  styles.timeCard,
-                  { backgroundColor: surfaceColor, borderColor },
-                ]}
-              >
-                <View
-                  pointerEvents="none"
-                  style={[
-                    styles.wheelHighlight,
-                    {
-                      backgroundColor: accentSoft,
-                      borderColor: `${accent}30`,
-                    },
-                  ]}
-                />
-
-                <View style={styles.wheelRow}>
-                  <WheelPicker
-                    data={HOURS}
-                    value={selectedHour}
-                    onChange={setSelectedHour}
-                    format={pad}
-                    theme={theme}
-                  />
-                  <Text style={[styles.wheelColon, { color: theme.text }]}>:</Text>
-                  <WheelPicker
-                    data={MINUTES}
-                    value={selectedMinute}
-                    onChange={setSelectedMinute}
-                    format={pad}
-                    theme={theme}
-                  />
-                  <WheelPicker
-                    data={PERIODS}
-                    value={selectedPeriod}
-                    onChange={setSelectedPeriod}
-                    theme={theme}
-                  />
-                </View>
-
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={[fadeColor, `${fadeColor}00`]}
-                  style={[styles.wheelFade, { top: 0 }]}
-                />
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={[`${fadeColor}00`, fadeColor]}
-                  style={[styles.wheelFade, { bottom: 0 }]}
-                />
-              </View>
-            </View>
-
-            {/* Type segmented */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-                TYPE
-              </Text>
-
-              <View
-                style={[
-                  styles.segmentWrap,
-                  { backgroundColor: surfaceColor, borderColor },
-                ]}
-              >
+      {isOneTime ? (
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>DATE</Text>
+          <MultiDateCalendar
+            selectedDates={[oneTimeDate]}
+            singleSelect
+            accent={accent}
+            onToggle={(d) => { const nd = new Date(d); nd.setHours(0, 0, 0, 0); setOneTimeDate(nd); }}
+          />
+        </View>
+      ) : (
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>REPEAT ON</Text>
+          <View style={styles.quickRow}>
+            {[
+              { key: 'everyday', label: 'Every day' },
+              { key: 'weekdays', label: 'Weekdays' },
+              { key: 'weekends', label: 'Weekends' },
+            ].map((p) => {
+              const active =
+                (p.key === 'everyday' && days.length === 7) ||
+                (p.key === 'weekdays' && days.length === 5 && [1, 2, 3, 4, 5].every((d) => days.includes(d))) ||
+                (p.key === 'weekends' && days.length === 2 && [0, 6].every((d) => days.includes(d)));
+              return (
                 <TouchableOpacity
-                  style={[
-                    styles.segmentBtn,
-                    prayerType === 'persistent' && { backgroundColor: accent },
-                  ]}
-                  onPress={() => {
-                    setPrayerType('persistent');
-                    hapticFeedback.light();
-                  }}
-                  activeOpacity={0.8}
+                  key={p.key}
+                  onPress={() => quickDays(p.key)}
+                  style={[styles.quickChip, { backgroundColor: active ? accent + '20' : surfaceColor, borderColor: active ? accent : borderColor }]}
                 >
-                  <MaterialIcons
-                    name="all-inclusive"
-                    size={16}
-                    color={
-                      prayerType === 'persistent' ? '#fff' : theme.textSecondary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.segmentText,
-                      {
-                        color:
-                          prayerType === 'persistent'
-                            ? '#fff'
-                            : theme.textSecondary,
-                      },
-                    ]}
-                  >
-                    Daily
-                  </Text>
+                  <Text style={[styles.quickChipText, { color: active ? accent : theme.textSecondary }]}>{p.label}</Text>
                 </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.daysRow}>
+            {DAY_SHORT.map((name, idx) => {
+              const sel = days.includes(idx);
+              return (
                 <TouchableOpacity
-                  style={[
-                    styles.segmentBtn,
-                    prayerType === 'one-time' && { backgroundColor: accent },
-                  ]}
-                  onPress={() => {
-                    setPrayerType('one-time');
-                    hapticFeedback.light();
-                  }}
-                  activeOpacity={0.8}
+                  key={idx}
+                  onPress={() => toggleDay(idx)}
+                  style={[styles.dayCircle, { backgroundColor: sel ? accent : surfaceColor, borderColor: sel ? accent : borderColor }]}
                 >
-                  <MaterialIcons
-                    name="check-circle-outline"
-                    size={16}
-                    color={
-                      prayerType === 'one-time' ? '#fff' : theme.textSecondary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.segmentText,
-                      {
-                        color:
-                          prayerType === 'one-time'
-                            ? '#fff'
-                            : theme.textSecondary,
-                      },
-                    ]}
-                  >
-                    One-Time
-                  </Text>
+                  <Text style={[styles.dayText, { color: sel ? '#fff' : theme.textSecondary }]}>{name.charAt(0)}</Text>
                 </TouchableOpacity>
-              </View>
+              );
+            })}
+          </View>
+          {!daysValid && (
+            <Text style={[styles.typeHint, { color: theme.warning || '#FF9500' }]}>Pick at least one day.</Text>
+          )}
+        </View>
+      )}
 
-              <Text
-                style={[
-                  styles.typeHint,
-                  { color: theme.textTertiary || theme.textSecondary },
-                ]}
-              >
-                {prayerType === 'persistent'
-                  ? 'Stays in your list until you delete it.'
-                  : 'Removed automatically after you complete it.'}
-              </Text>
-            </View>
+      <View style={styles.section}>
+        <DayTimeline
+          date={isOneTime ? oneTimeDate : new Date()}
+          selected={time}
+          durationMinutes={duration}
+          label={prayerName.trim() || 'Prayer'}
+          accentColor={accent}
+          onPick={(hour, minute) => setTime({ hour, minute })}
+        />
+      </View>
 
-            {/* Delete */}
-            <View style={styles.section}>
-              <TouchableOpacity
-                style={[
-                  styles.deleteBtn,
-                  {
-                    backgroundColor: isDark
-                      ? 'rgba(239,68,68,0.12)'
-                      : 'rgba(239,68,68,0.08)',
-                    borderColor: 'rgba(239,68,68,0.3)',
-                  },
-                ]}
-                onPress={handleDelete}
-                activeOpacity={0.8}
-              >
-                <MaterialIcons name="delete-outline" size={18} color="#EF4444" />
-                <Text style={styles.deleteBtnText}>Delete Prayer</Text>
-              </TouchableOpacity>
-            </View>
+      <View style={[styles.summaryCard, { backgroundColor: surfaceColor, borderColor }]}>
+        <MaterialIcons name="favorite" size={16} color={accent} />
+        <Text style={[styles.summaryText, { color: theme.text }]} numberOfLines={1}>
+          {fmt12(time.hour, time.minute)} · {formatDuration(duration)}
+          {isOneTime ? ` · ${oneTimeDate.toLocaleDateString([], { month: 'short', day: 'numeric' })}` : ` · ${daysSummary}`}
+        </Text>
+      </View>
 
-            {/* Footer */}
-            <View style={styles.footer}>
-              <TouchableOpacity
-                style={[
-                  styles.cancelBtn,
-                  { backgroundColor: surfaceColor, borderColor },
-                ]}
-                onPress={handleBackdropClose}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[styles.cancelBtnText, { color: theme.textSecondary }]}
-                >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
+      {renderFooter()}
+    </ScrollView>
+  );
 
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  {
-                    backgroundColor: accent,
-                    opacity: prayerName.trim() ? 1 : 0.4,
-                  },
-                ]}
-                onPress={handleSave}
-                disabled={!prayerName.trim()}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.saveBtnText}>Save Changes</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </Animated.View>
-        </KeyboardAvoidingView>
-      </GestureHandlerRootView>
+  const renderFooter = () => (
+    <View style={styles.footer}>
+      {step === 'details' ? (
+        <>
+          <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: surfaceColor, borderColor }]} onPress={close} activeOpacity={0.7}>
+            <Text style={[styles.cancelBtnText, { color: theme.textSecondary }]}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: accent, opacity: prayerName.trim() ? 1 : 0.4 }]} onPress={goNext} disabled={!prayerName.trim()} activeOpacity={0.85}>
+            <Text style={styles.saveBtnText}>Next</Text>
+            <MaterialIcons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: surfaceColor, borderColor }]} onPress={() => { hapticFeedback.light(); setStep('details'); }} activeOpacity={0.7}>
+            <MaterialIcons name="arrow-back" size={18} color={theme.textSecondary} />
+            <Text style={[styles.cancelBtnText, { color: theme.textSecondary, marginLeft: 4 }]}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveBtn, { backgroundColor: accent, opacity: daysValid && !saving ? 1 : 0.4 }]}
+            onPress={handleSave}
+            disabled={!daysValid || saving}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.saveBtnText}>Save Changes</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
+      <SheetHeader title="Edit Prayer" leftLabel="Cancel" onLeft={close} />
+
+      <View style={styles.progress}>
+        {['details', 'when'].map((s, i) => {
+          const activeIdx = step === 'details' ? 0 : 1;
+          const on = i <= activeIdx;
+          return <View key={s} style={[styles.progressDot, { width: on ? 26 : 8, backgroundColor: on ? accent : borderColor }]} />;
+        })}
+      </View>
+
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        {step === 'details' ? renderDetails() : renderWhen()}
+      </KeyboardAvoidingView>
 
       {/* Delete confirm */}
       <Modal visible={showDeleteConfirm} transparent animationType="fade">
         <View style={styles.deleteOverlay}>
-          <View
-            style={[
-              styles.deleteConfirmCard,
-              { backgroundColor: theme.background, borderColor },
-            ]}
-          >
+          <View style={[styles.deleteConfirmCard, { backgroundColor: theme.background, borderColor }]}>
             <View style={styles.deleteIconWrap}>
               <MaterialIcons name="warning" size={36} color="#EF4444" />
             </View>
-            <Text style={[styles.deleteConfirmTitle, { color: theme.text }]}>
-              Delete Prayer?
-            </Text>
-            <Text
-              style={[
-                styles.deleteConfirmMessage,
-                { color: theme.textSecondary },
-              ]}
-            >
-              "{prayerName}" will be permanently removed.
-            </Text>
-
+            <Text style={[styles.deleteConfirmTitle, { color: theme.text }]}>Delete Prayer?</Text>
+            <Text style={[styles.deleteConfirmMessage, { color: theme.textSecondary }]}>"{prayerName}" will be permanently removed.</Text>
             <View style={styles.deleteConfirmButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.deleteConfirmBtn,
-                  { backgroundColor: surfaceColor, borderColor, borderWidth: 1 },
-                ]}
-                onPress={() => setShowDeleteConfirm(false)}
-              >
-                <Text style={[styles.deleteConfirmBtnText, { color: theme.text }]}>
-                  Cancel
-                </Text>
+              <TouchableOpacity style={[styles.deleteConfirmBtn, { backgroundColor: surfaceColor, borderColor, borderWidth: 1 }]} onPress={() => setShowDeleteConfirm(false)}>
+                <Text style={[styles.deleteConfirmBtnText, { color: theme.text }]}>Cancel</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.deleteConfirmBtn, { backgroundColor: '#EF4444' }]}
-                onPress={confirmDelete}
-              >
-                <Text style={[styles.deleteConfirmBtnText, { color: '#fff' }]}>
-                  Delete
-                </Text>
+              <TouchableOpacity style={[styles.deleteConfirmBtn, { backgroundColor: '#EF4444' }]} onPress={confirmDelete}>
+                <Text style={[styles.deleteConfirmBtnText, { color: '#fff' }]}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </Modal>
+    </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  modalContainer: {
-    height: '88%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 16,
-  },
-  dragArea: {
-    paddingTop: 14,
-    paddingBottom: 14,
-    alignItems: 'center',
-  },
-  dragHandle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-  },
+  progress: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 8 },
+  progressDot: { height: 7, borderRadius: 3.5 },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
-  headerSection: {
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    paddingBottom: 22,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
+  headerSection: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 18 },
+  headerTitle: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5, marginBottom: 4 },
+  headerSubtitle: { fontSize: 15, fontWeight: '500' },
 
-  section: {
-    paddingHorizontal: 24,
-    marginBottom: 22,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    marginBottom: 10,
-  },
+  section: { paddingHorizontal: 24, marginBottom: 22 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.4, marginBottom: 10 },
 
   inputBox: { borderRadius: 14 },
-  textInput: {
-    fontSize: 17,
-    fontWeight: '500',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
+  textInput: { fontSize: 17, fontWeight: '500', paddingVertical: 16, paddingHorizontal: 16 },
 
-  timeCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    height: WHEEL_HEIGHT + 24,
-    overflow: 'hidden',
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  wheelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: WHEEL_HEIGHT,
-  },
-  wheelColumn: {
-    width: 70,
-    height: WHEEL_HEIGHT,
-  },
-  wheelItem: {
-    height: ITEM_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wheelItemText: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    fontVariant: ['tabular-nums'],
-  },
-  wheelColon: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginHorizontal: 4,
-    marginBottom: 2,
-  },
-  wheelHighlight: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    top: '50%',
-    height: ITEM_HEIGHT,
-    marginTop: -ITEM_HEIGHT / 2,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  wheelFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: ITEM_HEIGHT * 1.6,
-  },
+  segmentWrap: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 4, gap: 4 },
+  segmentBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 9, gap: 6 },
+  segmentText: { fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
+  typeHint: { marginTop: 10, marginLeft: 2, fontSize: 13, fontWeight: '500' },
 
-  segmentWrap: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 4,
-    gap: 4,
-  },
-  segmentBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 9,
-    gap: 6,
-  },
-  segmentText: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  typeHint: {
-    marginTop: 10,
-    marginLeft: 2,
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  notifyRow: { flexDirection: 'row', gap: 10, paddingRight: 4 },
+  notifyBtn: { paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  notifyText: { fontSize: 14, fontWeight: '600' },
 
-  deleteBtn: {
+  quickRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  quickChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  quickChipText: { fontSize: 13, fontWeight: '600' },
+  daysRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  dayCircle: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  dayText: { fontSize: 15, fontWeight: '700' },
+
+  summaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
     gap: 8,
-  },
-  deleteBtnText: {
-    color: '#EF4444',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  footer: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 24,
-    paddingTop: 4,
-  },
-  cancelBtn: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 14,
+    marginHorizontal: 24,
+    marginTop: 2,
+    marginBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  summaryText: { fontSize: 14, fontWeight: '700', flex: 1 },
+
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1, gap: 8 },
+  deleteBtnText: { color: '#EF4444', fontSize: 15, fontWeight: '700' },
+
+  footer: { flexDirection: 'row', gap: 10, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 24 },
+  cancelBtn: { flexDirection: 'row', paddingVertical: 16, paddingHorizontal: 22, borderRadius: 14, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  cancelBtnText: { fontSize: 15, fontWeight: '600' },
   saveBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -835,64 +468,16 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
+  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
 
-  // Delete confirm
-  deleteOverlay: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 32,
-  },
-  deleteConfirmCard: {
-    width: '100%',
-    maxWidth: 340,
-    padding: 24,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  deleteIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(239,68,68,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  deleteConfirmTitle: {
-    fontSize: 19,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
-  deleteConfirmMessage: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 22,
-  },
-  deleteConfirmButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    alignSelf: 'stretch',
-  },
-  deleteConfirmBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  deleteConfirmBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  deleteOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 32 },
+  deleteConfirmCard: { width: '100%', maxWidth: 340, padding: 24, borderRadius: 20, borderWidth: 1, alignItems: 'center' },
+  deleteIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(239,68,68,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  deleteConfirmTitle: { fontSize: 19, fontWeight: '800', marginBottom: 6 },
+  deleteConfirmMessage: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 22 },
+  deleteConfirmButtons: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
+  deleteConfirmBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center' },
+  deleteConfirmBtnText: { fontSize: 15, fontWeight: '700' },
 });
 
 export default EditPrayerModal;

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { suggestMuscles, bodyPartsForMuscles, constrainMuscles } from '../data/muscleSuggest';
+import MuscleSelector from './MuscleSelector';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -58,12 +60,66 @@ const PICKER_CONFIG = {
   equipment: { title: 'Select Equipment', items: EQUIPMENT_TYPES, icon: 'sports-gymnastics', accent: '#10B981' },
 };
 
-const AddExerciseModal = ({ visible, onClose, onAdd }) => {
+const EMPTY_MUSCLES = { primary: [], secondary: [] };
+
+const AddExerciseModal = ({ visible, onClose, onAdd, initialName = '' }) => {
   const { theme, isDark } = useTheme();
   const [exerciseName, setExerciseName] = useState('');
-  const [selectedBodyPart, setSelectedBodyPart] = useState('');
+  // An exercise can span regions (a row is Back + Arms), so this is a set
+  const [selectedBodyParts, setSelectedBodyParts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState('');
+  const [muscles, setMuscles] = useState(EMPTY_MUSCLES);
+  // Which rule produced the current suggestion (drives the "filled in" banner)
+  const [suggestedFrom, setSuggestedFrom] = useState(null);
+  // Once the user edits the chips, stop overwriting their choice
+  const touchedMusclesRef = useRef(false);
+
+  // Seed the name when opened from a search that found nothing ("Create ...").
+  useEffect(() => {
+    if (visible) setExerciseName(initialName || '');
+  }, [visible, initialName]);
+
+  // Suggest muscles from the name + equipment as the user types, and select the
+  // body parts those muscles live in so the two can never contradict each other.
+  // Only ever overwrites a suggestion, never a hand-picked set.
+  useEffect(() => {
+    if (!visible || touchedMusclesRef.current) return;
+    const guess = suggestMuscles(exerciseName, selectedEquipment, '');
+    if (guess.matched) {
+      setMuscles({ primary: guess.primary, secondary: guess.secondary });
+      setSelectedBodyParts(bodyPartsForMuscles([...guess.primary, ...guess.secondary]));
+      setSuggestedFrom(guess.matched);
+    } else {
+      setMuscles(EMPTY_MUSCLES);
+      setSuggestedFrom(null);
+    }
+  }, [visible, exerciseName, selectedEquipment]);
+
+  const handleMusclesChange = (next) => {
+    touchedMusclesRef.current = true;
+    setSuggestedFrom(null);
+    setMuscles(next);
+  };
+
+  // Toggling a body part off must take its muscles with it, otherwise you could
+  // save an "Arms" exercise that trains glutes.
+  const toggleBodyPart = (part) => {
+    hapticFeedback.light();
+    touchedMusclesRef.current = true;
+    setSuggestedFrom(null);
+    const next = selectedBodyParts.includes(part)
+      ? selectedBodyParts.filter((p) => p !== part)
+      : [...selectedBodyParts, part];
+    setSelectedBodyParts(next);
+    // Deselecting a region takes its muscles with it (no Arms + Glutes)
+    setMuscles((current) => constrainMuscles(current, next));
+  };
+
+  // Kept for storage/filter compatibility: those compare bodyPart with ===
+  const primaryBodyPart = selectedBodyParts.length === 1
+    ? selectedBodyParts[0]
+    : (selectedBodyParts.length > 1 ? 'Full Body' : '');
 
   // Layered picker state (Add-Food popup style)
   const [activePicker, setActivePicker] = useState(null);
@@ -131,8 +187,8 @@ const AddExerciseModal = ({ visible, onClose, onAdd }) => {
       Alert.alert('Missing Information', 'Please enter an exercise name');
       return;
     }
-    if (!selectedBodyPart) {
-      Alert.alert('Missing Information', 'Please select a body part');
+    if (selectedBodyParts.length === 0) {
+      Alert.alert('Missing Information', 'Please select at least one body part');
       return;
     }
     if (!selectedCategory) {
@@ -143,34 +199,49 @@ const AddExerciseModal = ({ visible, onClose, onAdd }) => {
       Alert.alert('Missing Information', 'Please select equipment type');
       return;
     }
+    if (muscles.primary.length === 0) {
+      Alert.alert(
+        'Pick a primary muscle',
+        'Physique needs to know which muscle this exercise trains, or it will guess from the body part and light up the wrong one.'
+      );
+      return;
+    }
 
     const newExercise = {
       name: exerciseName.trim(),
-      bodyPart: selectedBodyPart,
+      // Single string for the existing filters (they compare with ===); the
+      // full set rides alongside it
+      bodyPart: primaryBodyPart,
+      bodyParts: selectedBodyParts,
       category: selectedCategory,
       equipment: selectedEquipment,
       target: '',
+      // The whole point: Physique scores these exactly, no name guessing
+      muscles: { primary: muscles.primary, secondary: muscles.secondary },
     };
 
     onAdd(newExercise);
+    resetForm();
+  };
 
-    // Reset form
+  const resetForm = () => {
     setExerciseName('');
-    setSelectedBodyPart('');
+    setSelectedBodyParts([]);
     setSelectedCategory('');
     setSelectedEquipment('');
+    setMuscles(EMPTY_MUSCLES);
+    setSuggestedFrom(null);
+    touchedMusclesRef.current = false;
   };
 
   const handleClose = () => {
-    setExerciseName('');
-    setSelectedBodyPart('');
-    setSelectedCategory('');
-    setSelectedEquipment('');
+    resetForm();
     onClose();
   };
 
+  // Body part is chosen inline (multi-select) because it decides which muscles
+  // the picker below may offer
   const pickerFieldConfig = [
-    { key: 'bodyPart', label: 'Body Part', value: selectedBodyPart, placeholder: 'Select body part', ...PICKER_CONFIG.bodyPart, setValue: setSelectedBodyPart },
     { key: 'category', label: 'Category', value: selectedCategory, placeholder: 'Select category', ...PICKER_CONFIG.category, setValue: setSelectedCategory },
     { key: 'equipment', label: 'Equipment', value: selectedEquipment, placeholder: 'Select equipment', ...PICKER_CONFIG.equipment, setValue: setSelectedEquipment },
   ];
@@ -224,6 +295,40 @@ const AddExerciseModal = ({ visible, onClose, onAdd }) => {
             />
           </View>
 
+          {/* Body parts — multi-select, and they gate the muscle chips below */}
+          <View style={styles.section}>
+            <Text style={[styles.label, { color: theme.text }]}>Body Part</Text>
+            <Text style={[styles.sublabel, { color: theme.textSecondary }]}>
+              Pick every region this exercise trains. A row is Back and Arms.
+            </Text>
+            <View style={styles.bodyPartRow}>
+              {BODY_PARTS.map((part) => {
+                const active = selectedBodyParts.includes(part);
+                return (
+                  <TouchableOpacity
+                    key={part}
+                    onPress={() => toggleBodyPart(part)}
+                    activeOpacity={0.8}
+                    style={[styles.bodyPartChip, {
+                      backgroundColor: active ? `${PICKER_CONFIG.bodyPart.accent}22` : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)'),
+                      borderColor: active ? PICKER_CONFIG.bodyPart.accent : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                    }]}
+                  >
+                    {active && (
+                      <MaterialIcons name="check" size={15} color={PICKER_CONFIG.bodyPart.accent} />
+                    )}
+                    <Text style={[styles.bodyPartChipText, {
+                      color: active ? PICKER_CONFIG.bodyPart.accent : theme.text,
+                      fontWeight: active ? '700' : '500',
+                    }]}>
+                      {part}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {/* Picker fields */}
           {pickerFieldConfig.map((field) => (
             <View key={field.key} style={styles.section}>
@@ -251,6 +356,20 @@ const AddExerciseModal = ({ visible, onClose, onAdd }) => {
               </TouchableOpacity>
             </View>
           ))}
+
+          {/* Muscles — what Physique actually scores */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: theme.text }]}>Muscles Trained</Text>
+            <Text style={[styles.sublabel, { color: theme.textSecondary }]}>
+              This is what lights up on your Physique after you train.
+            </Text>
+            <MuscleSelector
+              muscles={muscles}
+              onChange={handleMusclesChange}
+              suggestedFrom={suggestedFrom}
+              bodyParts={selectedBodyParts}
+            />
+          </View>
 
           <View style={[styles.infoBox, {
             backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
@@ -404,6 +523,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 8,
   },
+  sublabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: -4,
+    marginBottom: 12,
+  },
+  bodyPartRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  bodyPartChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+  },
+  bodyPartChipText: { fontSize: 14 },
   input: {
     height: 52,
     borderRadius: 14,

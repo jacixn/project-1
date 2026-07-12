@@ -37,7 +37,7 @@ const QuizGamesScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScreenHeader title="Quiz & Games" onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Quiz & Games" onBack={() => navigation.goBack()} topOffset={24} />
 
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Text style={[styles.subtitle, { color: subtextColor }]}>

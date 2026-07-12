@@ -123,11 +123,13 @@ class PhysiqueService {
         const completedSets = (exercise.sets || []).filter(s => s.completed).length;
         if (completedSets === 0) continue;
 
-        // Get muscle mapping
+        // Get muscle mapping. Muscles saved on the exercise (custom exercises
+        // pick them by hand) beat any guess made from the name.
         const muscles = getMusclesForExercise(
           exercise.name,
           exercise.target || '',
-          exercise.bodyPart || ''
+          exercise.bodyPart || '',
+          exercise.muscles
         );
 
         // Calculate raw stimulus points

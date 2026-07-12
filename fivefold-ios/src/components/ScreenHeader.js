@@ -38,6 +38,7 @@ const ScreenHeader = ({
   onRightPress,
   rightElement,
   background = 'transparent',
+  topOffset,
 }) => {
   const insets = useSafeAreaInsets();
   const { textPrimary, textSecondary, btnBg } = useHeaderColors();
@@ -57,7 +58,7 @@ const ScreenHeader = ({
       : <View style={styles.headerBtn} />;
 
   return (
-    <View style={[styles.wrap, { paddingTop: insets.top + 8, backgroundColor: background }]}>
+    <View style={[styles.wrap, { paddingTop: topOffset != null ? topOffset : insets.top + 8, backgroundColor: background }]}>
       <View style={styles.row}>
         {onBack ? (
           <TouchableOpacity
@@ -87,7 +88,7 @@ const ScreenHeader = ({
 };
 
 // Static back button — pinned, place at the root of the screen View.
-export const StaticBackButton = ({ onBack, left = 20 }) => {
+export const StaticBackButton = ({ onBack, left = 20, topOffset }) => {
   const insets = useSafeAreaInsets();
   const { textPrimary, btnBg } = useHeaderColors();
   if (!onBack) return null;
@@ -99,7 +100,7 @@ export const StaticBackButton = ({ onBack, left = 20 }) => {
         {
           backgroundColor: btnBg,
           position: 'absolute',
-          top: insets.top + 8,
+          top: topOffset != null ? topOffset : insets.top + 8,
           left,
           zIndex: 10,
         },
@@ -113,7 +114,7 @@ export const StaticBackButton = ({ onBack, left = 20 }) => {
 
 // Scrolling title row — place as first child inside ScrollView contentContainer.
 // Provides a header row WITHOUT a back button (expects StaticBackButton outside).
-export const ScrollingTitle = ({ title, subtitle, rightIcon, onRightPress, rightElement }) => {
+export const ScrollingTitle = ({ title, subtitle, rightIcon, onRightPress, rightElement, topOffset }) => {
   const insets = useSafeAreaInsets();
   const { textPrimary, textSecondary, btnBg } = useHeaderColors();
 
@@ -132,7 +133,7 @@ export const ScrollingTitle = ({ title, subtitle, rightIcon, onRightPress, right
       : <View style={styles.headerBtn} />;
 
   return (
-    <View style={[styles.scrollRow, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.scrollRow, { paddingTop: topOffset != null ? topOffset : insets.top + 8 }]}>
       <View style={styles.headerBtn} />
       <View style={styles.titleWrap}>
         <Text style={[styles.title, { color: textPrimary }]} numberOfLines={1}>

@@ -60,7 +60,6 @@ const LEGACY_KEYS = [
   '@nutrition_profile', '@food_log', '@food_favorites', '@physique_scores',
   'bible_maps_bookmarks', 'bible_maps_visited', 'bible_fast_facts_favorites', 'recentBibleSearches',
   'fivefold_thematicGuideReflections', 'fivefold_completedThematicGuides',
-  'hub_token_notification_sent', 'hub_posting_token', 'hub_token_schedule', 'hub_token_last_delivery',
   'notificationPreferences', 'notificationSettings',
   'friendChatHistory',
   'userPainPoint', 'userAttribution',

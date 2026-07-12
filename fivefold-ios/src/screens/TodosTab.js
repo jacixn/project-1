@@ -528,12 +528,15 @@ const TodosTab = () => {
     if (!taskToComplete) return;
 
     try {
-      const updatedTodos = todos.map(todo => 
-        todo.id === todoId 
+      const updatedTodos = todos.map(todo =>
+        todo.id === todoId
           ? { ...todo, completed: true, completedAt: new Date().toISOString() }
           : todo
       );
-      
+
+      // Completing the task cancels its pending alert + escalation pings
+      notificationService.cancelTaskNotification(todoId).catch(() => {});
+
       const pointsEarned = Math.min(taskToComplete.points || 69, 345); // Clamped to valid range
       const oldTotal = userStats.totalPoints || userStats.points || 0;
       const newCompletedTasks = userStats.completedTasks + 1;
@@ -629,6 +632,8 @@ const TodosTab = () => {
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
     pushToCloud('todos', updatedTodos);
+    // A deleted task must never remind: kill its alert + escalation pings
+    notificationService.cancelTaskNotification(todoId).catch(() => {});
     // Mirror scheduled to-dos to iPhone Calendar (no-op if off / not scheduled).
     try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
     updateTodoWidget().catch(() => {});

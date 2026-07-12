@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { Platform, DeviceEventEmitter } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
 import WorkoutService from './workoutService';
+import { ensureSoundsInstalled, resolveSoundName } from './notificationSounds';
 
 const TAB_NOTIFICATION_MAP = {
   BiblePrayer: {
@@ -19,10 +20,72 @@ const TAB_NOTIFICATION_MAP = {
     settingsKeys: ['workoutReminders', 'weeklyBodyCheckIn'],
     notificationTypes: ['workout_reminder', 'workout_overdue', 'weekly_body_checkin'],
   },
-  Hub: {
-    settingsKeys: ['tokenArrival'],
-    notificationTypes: ['token_arrived'],
-  },
+};
+
+// Notification types belonging to features that were REMOVED from the app (the
+// Hub / social system). Nothing schedules these any more, but iOS keeps already
+// scheduled local notifications in its own queue — deleting the JS that created
+// them does NOT cancel them. So we (a) never display them and (b) purge any that
+// are still pending on every launch. Without this, a leftover "your token has
+// arrived" notification keeps firing on the user's phone forever.
+const REMOVED_NOTIFICATION_TYPES = [
+  'token_arrived',
+  'friend_request',
+  'friend_accepted',
+  'challenge',
+  'challenge_received',
+  'challenge_result',
+  'message',
+  'new_message',
+  'prayer_shared',
+  'prayer_comment',
+  'praying_for_you',
+  'encouragement',
+  'streak_milestone',
+];
+
+// ─── Alert Style (global insistence level) ───
+// One user setting governs how hard EVERY scheduled notification tries to reach
+// the user. It flows through scheduleNotif() below, so no call site hard-codes
+// urgency.
+//   gentle      – today's behaviour: one soft alert, respects Focus/silent
+//   strong      – Time-Sensitive (breaks through Focus/DND), one alert
+//   relentless  – Time-Sensitive + escalation: re-pings until the user acts
+export const INSISTENCE_LEVELS = ['gentle', 'strong', 'relentless'];
+export const DEFAULT_INSISTENCE = 'gentle';
+
+// Relentless escalation: after the first alert, re-ping every interval up to
+// this many follow-ups, then stop (never buzzes forever). Tapping the alert,
+// its Done action, or completing the item in-app cancels the whole group.
+const ESCALATION_INTERVAL_SEC = 60;
+const ESCALATION_MAX_FOLLOWUPS = 4;
+
+// iOS silently keeps only the 64 soonest pending local notifications. Primary
+// alerts must never be crowded out by escalation follow-ups. Follow-ups stop
+// once the queue reaches this ceiling, and the ~19-slot headroom below 64
+// exists because PRIMARIES keep scheduling unconditionally after the ceiling —
+// a bulk re-arm of a heavy user must never push a far-future primary out of
+// the queue in favour of near-term nag pings.
+const SAFE_PENDING_CEILING = 45;
+
+// iOS notification category carrying the Done / Snooze action buttons
+export const REMINDER_CATEGORY_ID = 'biblely_reminder';
+const SNOOZE_MINUTES = 10;
+
+// Notification types that must NEVER escalate or gain urgency: transient,
+// self-resolving, or informational. Rest timers end on their own; achievements
+// and test pings aren't reminders you can "miss".
+const NON_URGENT_TYPES = new Set(['rest_timer', 'achievement', 'test']);
+
+// expo-notifications on iOS serializes notification.date in epoch SECONDS
+// (EXNotificationSerializer.m: timeIntervalSince1970, no *1000), while Android
+// and the scheduler APIs use milliseconds. Normalize before any arithmetic —
+// treating seconds as ms made every "age" check astronomically stale and every
+// derived Date land in January 1970.
+const toEpochMs = (d) => {
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n < 1e12 ? n * 1000 : n;
 };
 
 // ─── Active chat tracking ───
@@ -89,13 +152,25 @@ Notifications.setNotificationHandler({
     const currentHour = new Date().getHours();
     const earlyMorning = currentHour < 6; // midnight – 5:59 AM
 
-    if (data.type === 'token_arrived' && earlyMorning) {
-      console.log(`[Notif] Suppressed stale token_arrived at ${currentHour}:xx`);
+    // ── Removed features (Hub/social): never show. These can only be leftovers
+    //    queued in iOS before the Hub was deleted. purgeRemovedFeatureNotifications()
+    //    (run on launch) cancels the pending ones so they stop recurring.
+    if (data.type && REMOVED_NOTIFICATION_TYPES.includes(data.type)) {
+      console.log(`[Notif] Dropped notification for removed feature: ${data.type}`);
       return suppress;
     }
 
     if (data.type === 'daily_streak' && earlyMorning) {
       console.log(`[Notif] Suppressed stale daily_streak at ${currentHour}:xx`);
+      return suppress;
+    }
+
+    // ── Relentless escalation follow-ups: the user is IN the app, so the
+    //    primary's in-app banner already showed. Re-bannering every 60s while
+    //    they're actively using the app is spam, not persistence. The
+    //    follow-ups still fire normally when the app is backgrounded/locked,
+    //    which is the situation they exist for. ──
+    if (data.escalation === true) {
       return suppress;
     }
 
@@ -146,11 +221,25 @@ class NotificationService {
       // listener is registered, so we must register before awaiting anything.
       this.setupNotificationListeners();
 
+      // Register the Done / Snooze action buttons so alerts are actionable
+      // straight from the lock screen.
+      await this.registerNotificationCategories();
+
+      // Copy the bundled chimes into Library/Sounds so notifications can play
+      // them (fire-and-forget; falls back to the default tone until done)
+      ensureSoundsInstalled();
+
       // Now check for a cold-start notification response.
       // When the app is launched from a killed state by tapping a notification,
       // addNotificationResponseReceivedListener may NOT fire because the event was
       // already consumed. getLastNotificationResponseAsync() catches this case.
       await this._handleColdStartNotification();
+
+      // Kill any notifications still queued in iOS from features we deleted (the
+      // Hub posting token, friend requests, challenges, messages). Must run before
+      // the permission early-return below, otherwise users who later revoke
+      // permission keep a poisoned queue.
+      await this.purgeRemovedFeatureNotifications();
 
       // Only CHECK existing permissions — don't request (that's for onboarding)
       const { status } = await Notifications.getPermissionsAsync();
@@ -179,10 +268,41 @@ class NotificationService {
         
         // Guard against stale responses from previous app sessions.
         // Only process if the notification is fresh (< 30 seconds old).
-        const notifDate = lastResponse.notification?.date;
+        // notification.date arrives in SECONDS on iOS — normalize first, or
+        // this guard rejects everything (which it silently did for a while).
+        const notifDate = toEpochMs(lastResponse.notification?.date);
         const responseAge = notifDate ? (Date.now() - notifDate) : Infinity;
         
         console.log('📱 [Cold Start] Found last notification response:', responseId, 'age:', Math.round(responseAge / 1000), 's');
+
+        const alreadyHandled = this._handledResponseIds.has(responseId);
+
+        // Done/Snooze use opensAppToForeground:false, so when the app was
+        // killed no JS ran at tap time — the action replays here on the next
+        // launch. Unlike navigation, these actions outlive the 30s guard: a
+        // "Done" pressed on the lock screen 20 minutes ago must still complete
+        // the item and stop its escalation pings.
+        //
+        // But getLastNotificationResponseAsync keeps returning the SAME
+        // response on every subsequent launch (that is why the 30s guard
+        // exists), and _handledResponseIds is in-memory. Without a persistent
+        // stamp, a days-old Done would re-complete the item every launch. The
+        // stamp includes the delivery date because deterministic identifiers
+        // (reminder_x_next) are reused across re-arms.
+        if (!alreadyHandled && (lastResponse.actionIdentifier === 'COMPLETE' || lastResponse.actionIdentifier === 'SNOOZE')) {
+          const actionStamp = `${responseId}:${notifDate || 0}`;
+          const lastStamp = await getStoredData('lastHandledNotifActionStamp');
+          const withinWindow = responseAge < 12 * 60 * 60 * 1000; // actions older than 12h are abandoned
+          if (lastStamp !== actionStamp && withinWindow) {
+            console.log('📱 [Cold Start] Replaying notification action:', lastResponse.actionIdentifier);
+            this._handledResponseIds.add(responseId);
+            await saveData('lastHandledNotifActionStamp', actionStamp);
+            this.handleEscalationResponse(lastResponse);
+          } else {
+            console.log('📱 [Cold Start] Action already replayed or too old, skipping');
+          }
+          return; // an action tap shouldn't also navigate
+        }
 
         if (responseAge >= 30000) {
           console.log('📱 [Cold Start] Stale response, ignoring');
@@ -190,8 +310,9 @@ class NotificationService {
         }
 
         // Only process if we haven't already handled this response via the listener
-        if (!this._handledResponseIds.has(responseId)) {
+        if (!alreadyHandled) {
           console.log('📱 [Cold Start] Processing cold-start notification tap');
+          this.handleEscalationResponse(lastResponse); // stop the nag on plain tap too
           this.handleNotificationResponse(lastResponse);
         } else {
           console.log('📱 [Cold Start] Already handled by listener, skipping');
@@ -240,6 +361,186 @@ class NotificationService {
     }
   }
 
+  // ─── Alert Style plumbing ───
+
+  // Read the global insistence level (defaults to gentle for existing users)
+  async getInsistenceLevel() {
+    try {
+      const settings = await getStoredData('notificationSettings');
+      const level = settings?.insistenceLevel;
+      return INSISTENCE_LEVELS.includes(level) ? level : DEFAULT_INSISTENCE;
+    } catch {
+      return DEFAULT_INSISTENCE;
+    }
+  }
+
+  // Register the Done / Snooze action buttons once. Cheap to call repeatedly.
+  async registerNotificationCategories() {
+    try {
+      await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY_ID, [
+        {
+          identifier: 'COMPLETE',
+          buttonTitle: 'Done',
+          options: { opensAppToForeground: false },
+        },
+        {
+          identifier: 'SNOOZE',
+          buttonTitle: `Snooze ${SNOOZE_MINUTES} min`,
+          options: { opensAppToForeground: false },
+        },
+      ]);
+    } catch (error) {
+      console.warn('Failed to register notification categories:', error);
+    }
+  }
+
+  // A stable key shared by an alert and its escalation follow-ups, so any one
+  // of them (or an in-app completion) can cancel the whole group.
+  //
+  // Derived from type + item id — NOT the scheduler identifier — so that
+  // cancelItemEscalation(data) at an in-app completion site rebuilds the exact
+  // same key even though it never sees the identifier the scheduler used.
+  // Falls back to the identifier only for singleton alerts with no item id.
+  _groupKeyFor(identifier, data = {}) {
+    const itemId = data.reminderId || data.taskId || data.habitId || data.visionId
+      || data.scheduleId || data.prayerSlot || data.prayerName;
+    if (data.type && itemId) return `${data.type}__${itemId}`;
+    if (identifier) return String(identifier);
+    return `${data.type || 'notif'}__x`;
+  }
+
+  // Apply the current urgency to a content object: interruption level, the
+  // action-button category, and a group key on the data. Sound is left as the
+  // call site set it (respecting the user's sound toggle).
+  _applyUrgency(content, level, groupKey, soundName) {
+    const urgent = level === 'strong' || level === 'relentless';
+    // The call site decided WHETHER this alert makes sound (user's sound
+    // toggle); the picked tone decides WHICH sound. false/null stay silent.
+    const sound = content.sound ? resolveSoundName(soundName) : content.sound;
+    return {
+      ...content,
+      sound,
+      // 'timeSensitive' breaks through Focus/DND once the entitlement is in the
+      // build; without it iOS simply treats it as a normal alert (no crash).
+      interruptionLevel: urgent ? 'timeSensitive' : 'active',
+      categoryIdentifier: REMINDER_CATEGORY_ID,
+      data: { ...(content.data || {}), groupKey },
+    };
+  }
+
+  // Compute a follow-up trigger `offsetSec` after the original, matching the
+  // original trigger's kind. Returns null for triggers we can't safely offset
+  // (repeating weekly/calendar, or already-immediate), so those never escalate.
+  _escalationTrigger(trigger, offsetSec) {
+    if (!trigger) return null;
+    if (trigger.repeats) return null;
+    if (trigger.type === 'date' && trigger.date) {
+      return { type: 'date', date: new Date(new Date(trigger.date).getTime() + offsetSec * 1000) };
+    }
+    if (trigger.type === Notifications.SchedulableTriggerInputTypes?.TIME_INTERVAL && trigger.seconds) {
+      return { type: trigger.type, seconds: trigger.seconds + offsetSec };
+    }
+    return null;
+  }
+
+  // THE seam every schedule call routes through. Same shape as
+  // Notifications.scheduleNotificationAsync ({ content, trigger, identifier }),
+  // but stamps urgency and, at the relentless level, schedules escalation
+  // follow-ups. Returns the primary notification id.
+  async scheduleNotif({ content, trigger = null, identifier } = {}) {
+    const data = content?.data || {};
+    const type = data.type;
+    const settings = (await getStoredData('notificationSettings')) || {};
+    const level = INSISTENCE_LEVELS.includes(settings.insistenceLevel)
+      ? settings.insistenceLevel
+      : DEFAULT_INSISTENCE;
+
+    // Transient/informational notifications opt out of urgency entirely
+    if (NON_URGENT_TYPES.has(type)) {
+      return Notifications.scheduleNotificationAsync(
+        identifier ? { identifier, content, trigger } : { content, trigger }
+      );
+    }
+
+    const groupKey = this._groupKeyFor(identifier, data);
+    const urgentContent = this._applyUrgency(content, level, groupKey, settings.soundName);
+
+    // Re-arming this item (edited time, daily roll-over): clear any escalation
+    // follow-ups left from the PREVIOUS schedule first, or their auto-ids
+    // orphan and fire at the old time. Snoozed follow-ups are spared — a
+    // routine re-arm must not break a snooze promise. Cheap no-op when none
+    // exist.
+    await this.cancelEscalationGroup(groupKey, { includeSnoozed: false });
+
+    const primaryId = await Notifications.scheduleNotificationAsync(
+      identifier ? { identifier, content: urgentContent, trigger } : { content: urgentContent, trigger }
+    );
+
+    if (level === 'relentless' && this._escalationTrigger(trigger, ESCALATION_INTERVAL_SEC)) {
+      // Budget check: never let follow-ups push the queue past iOS's 64-item
+      // cap, or primary alerts for other items get silently dropped.
+      let pending = 0;
+      try { pending = (await Notifications.getAllScheduledNotificationsAsync()).length; } catch {}
+      for (let i = 1; i <= ESCALATION_MAX_FOLLOWUPS; i++) {
+        if (pending >= SAFE_PENDING_CEILING) break;
+        const followupTrigger = this._escalationTrigger(trigger, ESCALATION_INTERVAL_SEC * i);
+        if (!followupTrigger) break;
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              ...urgentContent,
+              data: { ...urgentContent.data, escalation: true, escalationIndex: i },
+            },
+            trigger: followupTrigger,
+          });
+          pending++;
+        } catch (error) {
+          console.warn('Failed to schedule escalation follow-up:', error);
+          break;
+        }
+      }
+    }
+
+    return primaryId;
+  }
+
+  // Cancel every escalation FOLLOW-UP sharing a group key. Called when the
+  // user taps/acts on the alert, completes the item in the app, or the item
+  // re-arms.
+  //
+  // Deliberately never touches primaries: siblings can share a group key (a
+  // weekly workout schedules 7 day-notifications under one scheduleId, custom
+  // reminders without an item id share the type fallback), so cancelling
+  // primaries here would nuke Wednesday's workout because you tapped
+  // Tuesday's. A tapped primary is already delivered (gone from the pending
+  // queue), an identifier-based primary is replaced by iOS on re-arm, and the
+  // type-level bulk cancels cover everything else.
+  async cancelEscalationGroup(groupKey, { includeSnoozed = true } = {}) {
+    if (!groupKey) return;
+    try {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const doomed = scheduled.filter(
+        (n) => n.content?.data?.groupKey === groupKey
+          && n.content?.data?.escalation === true
+          // A re-arm pre-clean must not eat a live snooze's follow-ups: weekly
+          // day-siblings share the group key, so re-arming Wednesday would
+          // otherwise strip the nag off an alert snoozed from Tuesday
+          && (includeSnoozed || n.content?.data?.snoozed !== true)
+      );
+      await Promise.all(
+        doomed.map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {}))
+      );
+    } catch (error) {
+      console.warn('Failed to cancel escalation group:', error);
+    }
+  }
+
+  // Cancel escalation for a domain item by rebuilding the same key the scheduler
+  // used. `data` mirrors what the schedule site put on content.data.
+  async cancelItemEscalation(data) {
+    await this.cancelEscalationGroup(this._groupKeyFor(null, data));
+  }
+
   // Set up notification listeners
   setupNotificationListeners() {
     // Remove previous subscriptions to prevent duplicates
@@ -250,19 +551,6 @@ class NotificationService {
     this.notificationListener = Notifications.addNotificationReceivedListener(async (notification) => {
       console.log('Notification received:', notification);
       
-      // Mark token notification as sent to prevent duplicates
-      if (notification.request.content.data?.type === 'token_arrived') {
-        try {
-          const today = new Date().toISOString().split('T')[0];
-          await userStorage.setRaw('hub_token_notification_sent', JSON.stringify({
-            date: today,
-            sentAt: new Date().toISOString(),
-          }));
-          console.log('[Token] Marked notification as sent from listener');
-        } catch (e) {
-          console.warn('[Token] Could not mark notification sent:', e);
-        }
-      }
     });
 
     // Listener for when a user taps on a notification
@@ -283,8 +571,61 @@ class NotificationService {
         this._handledResponseIds = new Set(idsArray.slice(-10));
       }
 
-      this.handleNotificationResponse(response);
+      this.handleEscalationResponse(response);
+      // Done/Snooze are handled entirely above and keep the app closed
+      // (opensAppToForeground:false) — routing them into navigation would
+      // queue a stale tab-switch for whenever the app next opens
+      const action = response.actionIdentifier;
+      if (action !== 'COMPLETE' && action !== 'SNOOZE') {
+        this.handleNotificationResponse(response);
+      }
     });
+  }
+
+  // Any engagement with an alert (tapping it, or its Done/Snooze buttons) stops
+  // its escalation follow-ups. Done marks the item complete; Snooze re-arms it.
+  async handleEscalationResponse(response) {
+    try {
+      const data = response.notification.request.content?.data || {};
+      const action = response.actionIdentifier;
+
+      // Kill the whole escalation group first — you've engaged, stop nagging
+      if (data.groupKey) await this.cancelEscalationGroup(data.groupKey);
+
+      if (action === 'SNOOZE') {
+        const fireAt = new Date(Date.now() + SNOOZE_MINUTES * 60 * 1000);
+        // Respect the user's sound setting; the delivered content serializes a
+        // silent alert's sound as nil, and `?? 'default'` would un-mute it
+        const settings = await getStoredData('notificationSettings');
+        await this.scheduleNotif({
+          content: {
+            title: response.notification.request.content.title,
+            body: response.notification.request.content.body,
+            // `snoozed` shields it from the type-level bulk sweeps that run on
+            // every app open, or the promised 10-minute re-alert dies whenever
+            // the user opens the app in between
+            data: { ...data, escalation: false, escalationIndex: 0, snoozed: true },
+            sound: settings?.sound === false ? false : 'default',
+          },
+          trigger: { type: 'date', date: fireAt },
+        });
+        return;
+      }
+
+      if (action === 'COMPLETE') {
+        // Let the relevant tab mark the item done without opening the app.
+        // fireDate rides along so a replayed action completes the day the
+        // alert actually fired, not whatever day the app happens to open.
+        // (normalized: iOS reports the date in epoch seconds)
+        DeviceEventEmitter.emit('notificationComplete', {
+          type: data.type,
+          data,
+          fireDate: toEpochMs(response.notification?.date) || Date.now(),
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to handle escalation response:', error);
+    }
   }
 
   // Handle notification tap responses
@@ -338,39 +679,6 @@ class NotificationService {
         // Navigate to Profile tab (where achievements are shown)
         targetTab = 'Profile';
         console.log('📱 Navigating to Profile tab for achievement');
-        break;
-
-      case 'message':
-        // Navigate directly to the chat with the sender
-        if (data?.senderId) {
-          targetTab = 'Chat';
-          additionalData = {
-            otherUserId: data.senderId,
-            otherUser: { uid: data.senderId, displayName: data.senderName || 'Friend' },
-          };
-          console.log('📱 Navigating directly to Chat with:', data.senderName);
-        } else {
-          targetTab = 'Hub';
-          console.log('📱 No senderId in notification, navigating to Hub');
-        }
-        break;
-
-      case 'friend_request':
-      case 'friend_accepted':
-        targetTab = 'Hub';
-        console.log('📱 Navigating to Hub tab for friend event');
-        break;
-
-      case 'challenge':
-      case 'challenge_received':
-      case 'challenge_result':
-        targetTab = 'Hub';
-        console.log('📱 Navigating to Hub tab for challenge');
-        break;
-
-      case 'token_arrived':
-        targetTab = 'Hub';
-        console.log('📱 Navigating to Hub tab for token arrival');
         break;
 
       case 'vision_checkin':
@@ -453,17 +761,76 @@ class NotificationService {
           continue;
         }
 
-        // Calculate reminder time: 30 minutes before the prayer
-        const { reminderHours, reminderMinutes } = this.subtractThirtyMinutes(hours, minutes);
+        // Per-prayer reminder lead time. The `time` value is an object carrying
+        // metadata for the newer prayers system; legacy string entries have no
+        // metadata and fall back to the classic "30 minutes before".
+        const meta = (time && typeof time === 'object' && !(time instanceof Date)) ? time : {};
+        // Missing (legacy prayers) defaults to At start (0), the new default.
+        const notifyBefore = meta.notifyBefore == null ? 0 : Number(meta.notifyBefore);
 
-        // Schedule for the NEXT occurrence of this reminder time.
-        // If the reminder time has already passed today → schedule for tomorrow.
-        const triggerDate = this.getNextOccurrenceDate(reminderHours, reminderMinutes);
+        // Any negative (legacy "None") schedules nothing — the prayer still opens
+        // at its time in-app, there's just no push.
+        if (Number.isNaN(notifyBefore) || notifyBefore < 0) {
+          console.log(`Prayer ${slot} reminder disabled, skipping notification`);
+          continue;
+        }
 
-        await Notifications.scheduleNotificationAsync({
+        const lead = Math.max(0, notifyBefore);           // 0 = at start
+        const atStart = notifyBefore === 0;
+        const leadText = lead >= 60
+          ? `${Math.floor(lead / 60)} hour${lead >= 120 ? 's' : ''}`
+          : `${lead} minutes`;
+        const body = atStart ? `Time to pray: ${displayName}` : `${displayName} in ${leadText}`;
+
+        // One-time prayers fire ONCE on their chosen date; daily prayers use the
+        // next occurrence of the reminder clock time.
+        let triggerDate;
+        if (meta.type === 'one-time' && meta.date) {
+          const [y, mo, d] = String(meta.date).split('-').map(Number);
+          if (!y || !mo || !d) {
+            console.log(`Skipping prayer ${slot}: invalid one-time date`, meta.date);
+            continue;
+          }
+          const base = new Date(y, mo - 1, d, hours, minutes, 0, 0);
+          triggerDate = new Date(base.getTime() - lead * 60000);
+          if (triggerDate.getTime() <= Date.now()) {
+            console.log(`Skipping prayer ${slot}: one-time reminder ${triggerDate.toLocaleString()} already passed`);
+            continue;
+          }
+        } else {
+          const dayList = Array.isArray(meta.days) && meta.days.length > 0 && meta.days.length < 7
+            ? meta.days
+            : null;
+          if (dayList) {
+            // Weekday-limited prayer: find the soonest future reminder whose
+            // PRAYER occurrence falls on a selected weekday. The weekday check
+            // uses the occurrence itself, not the trigger, because the lead
+            // subtraction can cross midnight into the previous day.
+            const now = new Date();
+            triggerDate = null;
+            for (let offset = 0; offset <= 7 && !triggerDate; offset++) {
+              const occurrence = new Date(now);
+              occurrence.setDate(occurrence.getDate() + offset);
+              occurrence.setHours(hours, minutes, 0, 0);
+              if (!dayList.includes(occurrence.getDay())) continue;
+              const candidate = new Date(occurrence.getTime() - lead * 60000);
+              if (candidate.getTime() > now.getTime()) triggerDate = candidate;
+            }
+            if (!triggerDate) {
+              console.log(`Skipping prayer ${slot}: no upcoming weekday occurrence`);
+              continue;
+            }
+          } else {
+            // Subtract the lead from the prayer clock time, wrapping across midnight.
+            const totalMin = (((hours * 60 + minutes - lead) % 1440) + 1440) % 1440;
+            triggerDate = this.getNextOccurrenceDate(Math.floor(totalMin / 60), totalMin % 60);
+          }
+        }
+
+        await this.scheduleNotif({
           content: {
             title: 'Prayer Reminder',
-            body: `${displayName} in 30 minutes`,
+            body,
             data: { type: 'prayer_reminder', prayerSlot: slot, prayerName: displayName },
             sound: settings.sound ? 'default' : false,
           },
@@ -471,11 +838,9 @@ class NotificationService {
         });
 
         console.log(
-          `Scheduled reminder for ${slot} at ${reminderHours.toString().padStart(2, '0')}:${reminderMinutes
+          `Scheduled prayer reminder for ${slot} → fires ${triggerDate.toLocaleString()} (${atStart ? 'at start' : `${lead} min before`} ${hours
             .toString()
-            .padStart(2, '0')} → fires ${triggerDate.toLocaleString()} (30 min before ${hours.toString().padStart(2, '0')}:${minutes
-            .toString()
-            .padStart(2, '0')}, source: ${originalTime})`
+            .padStart(2, '0')}:${minutes.toString().padStart(2, '0')}, source: ${originalTime})`
         );
       }
 
@@ -499,7 +864,7 @@ class NotificationService {
         return null;
       }
 
-      const identifier = await Notifications.scheduleNotificationAsync({
+      const identifier = await this.scheduleNotif({
         content: {
           title: title || 'Prayer Reminder',
           body: body || 'Time for your custom prayer',
@@ -540,7 +905,7 @@ class NotificationService {
         alertTime.setDate(alertTime.getDate() + 1);
       }
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title: 'Missed Prayer',
           body: `You may have missed ${this.getPrayerDisplayName(prayerSlot)} prayer. There's still time!`,
@@ -571,7 +936,7 @@ class NotificationService {
         return;
       }
       
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title: 'Achievement Unlocked!',
           body: `${achievementTitle} (+${points} points)`,
@@ -618,7 +983,7 @@ class NotificationService {
           body = `Maintain your ${streakCount}-day streak! Stay consistent.`;
       }
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title,
           body,
@@ -646,7 +1011,7 @@ class NotificationService {
 
       const nextTriggerDate = this.getNextOccurrenceDate(hour, minute);
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title: 'Keep Your Streak',
           body: 'Open Biblely to stay consistent today.',
@@ -663,11 +1028,41 @@ class NotificationService {
   }
 
   // Cancel notifications by type
+  // Cancel every pending notification belonging to a removed feature (Hub/social).
+  // iOS owns the scheduled-notification queue, so notifications created before the
+  // Hub was deleted survive the code deletion (a repeating one would fire daily,
+  // forever). Runs on every launch; idempotent and cheap (one queue read).
+  async purgeRemovedFeatureNotifications() {
+    try {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const stale = scheduled.filter((n) =>
+        REMOVED_NOTIFICATION_TYPES.includes(n?.content?.data?.type)
+      );
+
+      for (const n of stale) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+
+      if (stale.length > 0) {
+        console.log(`[Notif] Purged ${stale.length} leftover notification(s) from removed features:`,
+          stale.map((n) => n.content.data.type).join(', '));
+      }
+      return stale.length;
+    } catch (error) {
+      console.error('Failed to purge removed-feature notifications:', error);
+      return 0;
+    }
+  }
+
   async cancelNotificationsByType(type) {
     try {
       const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
       const notificationsToCancel = scheduledNotifications.filter(
+        // Snoozed alerts keep their domain type but live outside the re-arm
+        // cycle: the user was PROMISED a re-alert in 10 minutes, and the bulk
+        // sweeps that run on every app open must not eat it. They self-expire.
         notification => notification.content.data?.type === type
+          && notification.content.data?.snoozed !== true
       );
 
       for (const notification of notificationsToCancel) {
@@ -754,32 +1149,44 @@ class NotificationService {
     }
   }
 
-  // Update notification settings and reschedule notifications
-  async updateSettings(settings) {
+  // Update notification settings and reschedule notifications.
+  // Serialized: a second call queues behind the first, because two overlapping
+  // cancel+reschedule sweeps (rapid Alert Style taps) interleave and
+  // double-schedule.
+  updateSettings(settings) {
+    this._updateSettingsChain = (this._updateSettingsChain || Promise.resolve())
+      .then(() => this._updateSettingsImpl(settings))
+      .catch((e) => console.error('updateSettings failed:', e));
+    return this._updateSettingsChain;
+  }
+
+  async _updateSettingsImpl(settings) {
     try {
       await saveData('notificationSettings', settings);
-      
+
       // NOTE: Do NOT call Notifications.setNotificationHandler here —
       // the top-level handler in this file already suppresses native alerts
       // and emits in-app notifications via DeviceEventEmitter.
-      
-      // If push notifications are disabled, cancel all
-      if (!settings.pushNotifications) {
+
+      // If push notifications are disabled, cancel all. Explicit `=== false`
+      // like every other guard below: a partial settings object with the key
+      // missing must not nuke the user's notifications.
+      if (settings.pushNotifications === false) {
         await this.cancelAllNotifications();
         return;
       }
 
       // Reschedule based on new settings
-      if (settings.prayerReminders) {
-        await this.scheduleStoredPrayerReminders();
-      } else {
+      if (settings.prayerReminders === false) {
         await this.cancelNotificationsByType('prayer_reminder');
+      } else {
+        await this.scheduleStoredPrayerReminders();
       }
 
-      if (settings.streakReminders) {
-        await this.scheduleDailyStreakReminder(20, 0);
-      } else {
+      if (settings.streakReminders === false) {
         await this.cancelNotificationsByType('daily_streak');
+      } else {
+        await this.scheduleDailyStreakReminder(20, 0);
       }
 
       // Task notifications
@@ -805,10 +1212,16 @@ class NotificationService {
         console.log('Habit reminders disabled - cancelled all habit notifications');
       } else {
         try {
+          // Habits persist as {habits:[...]} (habitsService), not a bare
+          // array. Parsing it as an array made .filter throw into this
+          // swallowed catch, so habits were never re-armed from here.
           const raw = await userStorage.getRaw('fivefold_user_habits');
-          const habits = raw ? JSON.parse(raw) : [];
-          await this.rescheduleAllHabitReminders(habits.filter(h => h.notificationEnabled !== false));
-        } catch (_) {}
+          const parsed = raw ? JSON.parse(raw) : null;
+          const habitList = Array.isArray(parsed) ? parsed : (parsed?.habits || []);
+          await this.rescheduleAllHabitReminders(habitList.filter(h => h.notificationEnabled !== false));
+        } catch (error) {
+          console.warn('Failed to re-arm habit reminders:', error);
+        }
       }
 
       // Cancel/reschedule user reminder notifications
@@ -819,11 +1232,6 @@ class NotificationService {
         await this.rescheduleAllReminderNotifications();
       }
 
-      // Cancel token arrival notifications if disabled
-      if (settings.tokenArrival === false) {
-        await this.cancelNotificationsByType('token_arrived');
-        console.log('Token arrival notifications disabled - cancelled');
-      }
 
       // Handle vision expiry toggle
       if (settings.visionExpiryReminders === false) {
@@ -841,7 +1249,18 @@ class NotificationService {
         // Reschedule if toggled on
         await this.scheduleWeeklyBodyCheckIn();
       }
-      
+
+      // Vision check-in is a repeating trigger that bakes its urgency in at
+      // schedule time, so an Alert Style change must re-arm it — but only when
+      // one is already queued (scheduleVisionCheckIn has no vision-existence
+      // guard, and this must not enable it for users who never set one up)
+      try {
+        const pending = await Notifications.getAllScheduledNotificationsAsync();
+        if (pending.some((n) => n.content?.data?.type === 'vision_checkin')) {
+          await this.scheduleVisionCheckIn();
+        }
+      } catch (_) {}
+
       console.log('Notification settings updated');
     } catch (error) {
       console.error('Failed to update notification settings:', error);
@@ -880,10 +1299,14 @@ class NotificationService {
 
       if (settings.habitReminders !== false && !scheduledTypes.has('habit_reminder')) {
         try {
+          // Same {habits:[...]} shape gotcha as the updateSettings path above
           const raw = await userStorage.getRaw('fivefold_user_habits');
-          const habits = raw ? JSON.parse(raw) : [];
-          await this.rescheduleAllHabitReminders(habits.filter(h => h.notificationEnabled !== false));
-        } catch (_) {}
+          const parsed = raw ? JSON.parse(raw) : null;
+          const habitList = Array.isArray(parsed) ? parsed : (parsed?.habits || []);
+          await this.rescheduleAllHabitReminders(habitList.filter(h => h.notificationEnabled !== false));
+        } catch (error) {
+          console.warn('Failed to refresh habit reminders:', error);
+        }
       }
 
       if (settings.visionExpiryReminders !== false && !scheduledTypes.has('vision_expiry')) {
@@ -903,7 +1326,7 @@ class NotificationService {
   // Send test notification
   async testNotification() {
     try {
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title: 'Biblely',
           body: 'Your notifications are working perfectly.',
@@ -1041,35 +1464,32 @@ class NotificationService {
 
   async getStoredPrayerTimes() {
     try {
-      // Legacy storage without prefix
-      const legacyCustomTimesRaw = await userStorage.getRaw('customPrayerTimes');
-      if (legacyCustomTimesRaw) {
-        const legacyTimes = JSON.parse(legacyCustomTimesRaw);
-        if (legacyTimes && Object.keys(legacyTimes).length > 0) {
-          return legacyTimes;
-        }
-      }
-
-      // Prefixed storage via getStoredData
-      const prefixedTimes = await getStoredData('customPrayerTimes');
-      if (prefixedTimes && Object.keys(prefixedTimes).length > 0) {
-        return prefixedTimes;
-      }
-
-      // Newer prayers system stores prayers under `fivefold_simplePrayers`
+      // The wizard's prayers (`simplePrayers`) are the current source of truth,
+      // so they take priority over the legacy customPrayerTimes maps. A stale
+      // customPrayerTimes left over from an old app version must NOT shadow newly
+      // added prayers (which live only under simplePrayers).
       const simplePrayers = await getStoredData('simplePrayers');
-      if (Array.isArray(simplePrayers) && simplePrayers.length > 0) {
+      if (Array.isArray(simplePrayers)) {
+        // The wizard has written this key (even if the list is now empty), so
+        // it is authoritative: never fall through to the legacy maps below,
+        // or deleting the last prayer would resurrect long-dead legacy times.
         const mappedTimes = {};
         simplePrayers.forEach((prayer, index) => {
           if (prayer?.time) {
             const key = prayer.id || `prayer_${index}`;
-            mappedTimes[key] = { time: prayer.time, name: prayer.name || 'Prayer' };
+            mappedTimes[key] = {
+              time: prayer.time,
+              name: prayer.name || 'Prayer',
+              // Per-prayer reminder lead time: -1 None, 0 at start, else minutes
+              // before. Undefined (legacy prayers) falls back to at-start downstream.
+              notifyBefore: prayer.notifyBefore,
+              type: prayer.type || 'persistent',
+              date: prayer.date || null,
+              days: Array.isArray(prayer.days) ? prayer.days : null,
+            };
           }
         });
-
-        if (Object.keys(mappedTimes).length > 0) {
-          return mappedTimes;
-        }
+        return mappedTimes;
       }
 
       // Fallback to user-defined prayers list
@@ -1087,6 +1507,21 @@ class NotificationService {
         if (Object.keys(mappedTimes).length > 0) {
           return mappedTimes;
         }
+      }
+
+      // Legacy storage without prefix
+      const legacyCustomTimesRaw = await userStorage.getRaw('customPrayerTimes');
+      if (legacyCustomTimesRaw) {
+        const legacyTimes = JSON.parse(legacyCustomTimesRaw);
+        if (legacyTimes && Object.keys(legacyTimes).length > 0) {
+          return legacyTimes;
+        }
+      }
+
+      // Prefixed storage via getStoredData
+      const prefixedTimes = await getStoredData('customPrayerTimes');
+      if (prefixedTimes && Object.keys(prefixedTimes).length > 0) {
+        return prefixedTimes;
       }
 
       return {};
@@ -1107,7 +1542,10 @@ class NotificationService {
 
       const storedTimes = await this.getStoredPrayerTimes();
       if (!storedTimes || Object.keys(storedTimes).length === 0) {
-        console.log('No stored prayer times found to schedule');
+        // Still cancel: the user may have just deleted their last prayer, and
+        // its already-scheduled reminder must not fire tonight
+        await this.cancelNotificationsByType('prayer_reminder');
+        console.log('No stored prayer times found to schedule (cancelled existing)');
         return;
       }
 
@@ -1139,7 +1577,7 @@ class NotificationService {
       const now = new Date();
       const trigger = targetTime <= now ? null : { type: 'date', date: targetTime };
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title: 'Workout Check-In',
           body: 'You started a workout over an hour ago. Need more time or want to wrap it up?',
@@ -1188,7 +1626,7 @@ class NotificationService {
         return;
       }
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title: 'Weekly Check-In',
           body: 'Time for your weekly weigh-in. Update your weight and body fat to keep your plan accurate.',
@@ -1233,7 +1671,7 @@ class NotificationService {
       const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true };
       if (settings.pushNotifications === false) return;
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         content: {
           title: 'Vision Check-In',
           body: 'Take a moment to reflect on your goals and how far you have come.',
@@ -1289,7 +1727,7 @@ class NotificationService {
       const notifId = `vision_expiry_${vision.id}`;
       await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         identifier: notifId,
         content: {
           title: 'Vision Target Reached',
@@ -1369,7 +1807,7 @@ class NotificationService {
       const minute = parseInt(minuteStr, 10);
       const triggerDate = this.getNextOccurrenceDate(hour, minute);
 
-      await Notifications.scheduleNotificationAsync({
+      await this.scheduleNotif({
         identifier: notifId,
         content: {
           title: 'Habit Check-in',
@@ -1392,6 +1830,31 @@ class NotificationService {
       await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
     } catch (error) {
       console.error('Failed to cancel habit reminder:', error);
+    }
+  }
+
+  // Cancel a task's pending alert AND its escalation follow-ups (used when the
+  // task is completed or deleted — a done/gone task must never remind)
+  async cancelTaskNotification(taskId) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(String(taskId)).catch(() => {});
+      await this.cancelItemEscalation({ type: 'task_reminder', taskId });
+    } catch (error) {
+      console.error('Failed to cancel task notification:', error);
+    }
+  }
+
+  // Cancel every alert for a workout schedule: the one-time id, the 7 weekly
+  // day ids, and any escalation follow-ups (used on schedule delete)
+  async cancelWorkoutScheduleNotifications(scheduleId) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(String(scheduleId)).catch(() => {});
+      for (let d = 0; d < 7; d++) {
+        await Notifications.cancelScheduledNotificationAsync(`${scheduleId}_${d}`).catch(() => {});
+      }
+      await this.cancelItemEscalation({ type: 'workout_reminder', scheduleId });
+    } catch (error) {
+      console.error('Failed to cancel workout schedule notifications:', error);
     }
   }
 
@@ -1440,7 +1903,7 @@ class NotificationService {
         }
 
         if (triggerDate > new Date()) {
-          await Notifications.scheduleNotificationAsync({
+          await this.scheduleNotif({
             identifier: notifId,
             content: notifContent,
             trigger: { type: 'date', date: triggerDate },
@@ -1472,7 +1935,7 @@ class NotificationService {
         }
 
         if (nextFireDate) {
-          await Notifications.scheduleNotificationAsync({
+          await this.scheduleNotif({
             identifier: notifId,
             content: notifContent,
             trigger: { type: 'date', date: nextFireDate },
@@ -1618,6 +2081,11 @@ class NotificationService {
         const s = await getStoredData('notificationSettings');
         soundEnabled = s?.sound !== false;
       }
+      // Type-level sweep FIRST (like prayers/reminders): tasks deleted or
+      // completed since the last arm aren't in storage any more, so without
+      // this their primaries and escalation follow-ups orphan forever.
+      await this.cancelNotificationsByType('task_reminder');
+
       const storedTodos = await userStorage.getRaw('fivefold_todos');
       if (!storedTodos) return;
 
@@ -1639,7 +2107,7 @@ class NotificationService {
           : `${reminderMin} minutes`;
 
         await Notifications.cancelScheduledNotificationAsync(task.id).catch(() => {});
-        await Notifications.scheduleNotificationAsync({
+        await this.scheduleNotif({
           identifier: task.id,
           content: {
             title: 'Task Reminder',
@@ -1663,6 +2131,10 @@ class NotificationService {
         const s = await getStoredData('notificationSettings');
         soundEnabled = s?.sound !== false;
       }
+      // Sweep BEFORE the empty early-return: a deleted schedule's weekly
+      // primaries would otherwise fire forever with nothing left to clean them
+      await this.cancelNotificationsByType('workout_reminder');
+
       const schedules = await WorkoutService.getScheduledWorkouts();
       if (!schedules || schedules.length === 0) return;
 
@@ -1692,7 +2164,7 @@ class NotificationService {
               await Notifications.cancelScheduledNotificationAsync(`${schedule.id}_${i}`).catch(() => {});
             }
             for (const day of schedule.days) {
-              await Notifications.scheduleNotificationAsync({
+              await this.scheduleNotif({
                 identifier: `${schedule.id}_${day}`,
                 content: {
                   title: 'Workout Reminder',
@@ -1710,7 +2182,7 @@ class NotificationService {
             workoutDate.setHours(hours, minutes, 0, 0);
             const notifyTime = new Date(workoutDate.getTime() - notifyMin * 60 * 1000);
             if (notifyTime > new Date()) {
-              await Notifications.scheduleNotificationAsync({
+              await this.scheduleNotif({
                 identifier: schedule.id,
                 content: {
                   title: 'Workout Reminder',

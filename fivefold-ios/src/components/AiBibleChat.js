@@ -221,7 +221,7 @@ const TypewriterText = memo(({ text, style, speed = 30, onProgress, onVersePress
 const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScreen = false, mode = 'bible' }) => {
   const { theme, isDark } = useTheme();
   const isGymMode = mode === 'gym';
-  const chatName = isGymMode ? 'Coach' : 'Friend';
+  const chatName = isGymMode ? 'Coach' : 'Guide';
   const historyStorageKey = isGymMode ? 'coachChatHistory' : 'friendChatHistory';
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -1493,9 +1493,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
             ref={scrollViewRef}
             style={[styles.messagesContainer, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.messagesContent, { 
+            contentContainerStyle={[styles.messagesContent, {
               backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF'),
-              paddingTop: Platform.OS === 'ios' ? 110 : 85,
+              // Screen mode is a modal sheet below the status bar, so the
+              // header clearance shrinks with the trimmed spacer
+              paddingTop: asScreen ? 66 : (Platform.OS === 'ios' ? 110 : 85),
             }]}
           >
             {isInitializing ? (
@@ -1885,7 +1887,9 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
           overflow: 'hidden',
         }}
       >
-        <View style={{ height: Platform.OS === 'ios' ? 60 : 30, backgroundColor: 'transparent' }} />
+        {/* Status-bar spacer: modal sheets already sit below the status bar,
+            so screen mode needs only a small breathing gap */}
+        <View style={{ height: asScreen ? 16 : (Platform.OS === 'ios' ? 60 : 30), backgroundColor: 'transparent' }} />
         <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
           <TouchableOpacity
             onPress={handleClose}

@@ -26,6 +26,7 @@ import Animated, {
   withTiming,
   runOnJS,
 } from 'react-native-reanimated';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import ExercisesService from '../services/exercisesService';
 import { hapticFeedback } from '../utils/haptics';
@@ -40,6 +41,7 @@ const SPRING_CONFIG = { damping: 22, stiffness: 220, mass: 0.8 };
 
 const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = false, asScreen = false }) => {
   const { theme, isDark } = useTheme();
+  const navigation = useNavigation();
   const insets = { top: Platform.OS === 'ios' ? 50 : 24, bottom: 0, left: 0, right: 0 };
   const textPrimary = theme.text;
   const scrollViewRef = useRef(null);
@@ -53,8 +55,6 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState(null);
-  const [showExerciseDetail, setShowExerciseDetail] = useState(false);
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
   const [showCustomExercisesModal, setShowCustomExercisesModal] = useState(false);
 
@@ -241,56 +241,6 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     });
   };
 
-  const detailScrollRef = useRef(null);
-
-  // Bottom-sheet animation (UI-thread, glued to finger)
-  const translateY = useSharedValue(SHEET_HEIGHT);
-  const dragStartY = useSharedValue(0);
-
-  const finishClose = () => {
-    setShowExerciseDetail(false);
-  };
-
-  const handleCloseDetailModal = () => {
-    translateY.value = withTiming(SHEET_HEIGHT, { duration: 240 }, (finished) => {
-      if (finished) runOnJS(finishClose)();
-    });
-  };
-
-  useEffect(() => {
-    if (showExerciseDetail) {
-      translateY.value = SHEET_HEIGHT;
-      translateY.value = withSpring(0, SPRING_CONFIG);
-    }
-  }, [showExerciseDetail]);
-
-  const panGesture = Gesture.Pan()
-    .onStart(() => {
-      dragStartY.value = translateY.value;
-    })
-    .onUpdate((e) => {
-      const next = dragStartY.value + e.translationY;
-      translateY.value = next < 0 ? next * 0.15 : next; // rubberband upward
-    })
-    .onEnd((e) => {
-      const shouldDismiss =
-        translateY.value > DISMISS_THRESHOLD || e.velocityY > VELOCITY_THRESHOLD;
-      if (shouldDismiss) {
-        translateY.value = withTiming(SHEET_HEIGHT, { duration: 220 }, (finished) => {
-          if (finished) runOnJS(finishClose)();
-        });
-      } else {
-        translateY.value = withSpring(0, SPRING_CONFIG);
-      }
-    });
-
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: Math.max(0, 1 - translateY.value / SHEET_HEIGHT) * 0.5,
-  }));
 
   // Load exercises data
   useEffect(() => {
@@ -456,8 +406,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         if (selectionMode && onSelectExercise) {
           onSelectExercise(exercise);
         } else {
-          setSelectedExercise(exercise);
-          setShowExerciseDetail(true);
+          navigation.navigate('ExerciseDetail', { exercise });
         }
       }}
     >
@@ -821,154 +770,6 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         )}
       </View>
 
-      {/* Exercise Detail Modal — custom bottom sheet (gesture-handler + reanimated) */}
-      <Modal
-        visible={showExerciseDetail}
-        transparent
-        animationType="none"
-        statusBarTranslucent
-        onRequestClose={handleCloseDetailModal}
-      >
-        <GestureHandlerRootView style={styles.sheetRoot}>
-          <Animated.View style={[styles.detailModalOverlay, backdropStyle]} pointerEvents="none" />
-          {selectedExercise && (
-            <Animated.View
-              style={[
-                styles.detailContainer,
-                { backgroundColor: theme.background },
-                sheetStyle,
-              ]}
-            >
-              <GestureDetector gesture={panGesture}>
-                <View style={styles.sheetHandleArea}>
-                  <View style={styles.pullIndicatorContainer}>
-                    <View style={[styles.pullIndicator, { backgroundColor: theme.textSecondary }]} />
-                  </View>
-                  <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-                    <Text style={[styles.detailTitle, { color: theme.text }]}>
-                      {selectedExercise.name}
-                    </Text>
-                  </View>
-                </View>
-              </GestureDetector>
-
-              <ScrollView
-                ref={detailScrollRef}
-                style={styles.detailContent}
-                showsVerticalScrollIndicator={false}
-                bounces={false}
-              >
-              {/* Exercise Image / Icon */}
-              <View style={styles.detailImageContainer}>
-                {selectedExercise.images && selectedExercise.images.length > 0 ? (
-                  <Image
-                    source={{ uri: selectedExercise.images[0] }}
-                    style={styles.detailImage}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    transition={200}
-                  />
-                ) : (
-                  <View style={[styles.exerciseIconContainerLarge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                    <MaterialIcons name="fitness-center" size={80} color={theme.primary} />
-                  </View>
-                )}
-              </View>
-
-              {/* About Section */}
-              <View style={styles.detailSection}>
-                <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                  About
-                </Text>
-                <View style={[styles.detailInfoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                  <View style={styles.detailInfoRow}>
-                    <Text style={[styles.detailInfoLabel, { color: theme.textSecondary }]}>
-                      Body Part
-                    </Text>
-                    <Text style={[styles.detailInfoValue, { color: theme.text }]}>
-                      {selectedExercise.bodyPart}
-                    </Text>
-                  </View>
-                  <View style={[styles.detailInfoRow, styles.detailInfoRowBorder, { borderTopColor: theme.border }]}>
-                    <Text style={[styles.detailInfoLabel, { color: theme.textSecondary }]}>
-                      Category
-                    </Text>
-                    <Text style={[styles.detailInfoValue, { color: theme.text }]}>
-                      {selectedExercise.category}
-                    </Text>
-                  </View>
-                  <View style={[styles.detailInfoRow, styles.detailInfoRowBorder, { borderTopColor: theme.border }]}>
-                    <Text style={[styles.detailInfoLabel, { color: theme.textSecondary }]}>
-                      Equipment
-                    </Text>
-                    <Text style={[styles.detailInfoValue, { color: theme.text }]}>
-                      {selectedExercise.equipment}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Watch Tutorial Button */}
-              <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    hapticFeedback.light();
-                    const query = encodeURIComponent(`${selectedExercise.name} exercise form tutorial`);
-                    Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
-                  }}
-                  activeOpacity={0.7}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    backgroundColor: '#FF000018',
-                    borderColor: '#FF000025',
-                    borderWidth: 1,
-                    borderRadius: 14,
-                    paddingVertical: 14,
-                  }}
-                >
-                  <MaterialIcons name="play-circle-fill" size={22} color="#FF0000" />
-                  <Text style={{ color: '#FF0000', fontSize: 15, fontWeight: '600' }}>
-                    Watch Tutorial
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Instructions Section */}
-              <View style={styles.detailSection}>
-                <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                  Instructions
-                </Text>
-                <View style={[styles.detailInfoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                  {selectedExercise.instructions && selectedExercise.instructions.length > 0 ? (
-                    selectedExercise.instructions.map((instruction, index) => (
-                      <View key={index} style={[styles.instructionItem, index > 0 && { marginTop: 12 }]}>
-                        <Text style={[styles.instructionNumber, { color: theme.text }]}>
-                          {index + 1}.
-                        </Text>
-                        <Text style={[styles.instructionText, { color: theme.text }]}>
-                          {instruction}
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <View style={styles.comingSoonContainer}>
-                      <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-                        No instructions available for this exercise.
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              <View style={{ height: 40 }} />
-            </ScrollView>
-            </Animated.View>
-          )}
-        </GestureHandlerRootView>
-      </Modal>
 
       {/* Add Exercise Modal */}
       <AddExerciseModal
@@ -1045,8 +846,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
                         onClose();
                       } else {
                         hapticFeedback.light();
-                        setSelectedExercise(exercise);
-                        setShowExerciseDetail(true);
+                        navigation.navigate('ExerciseDetail', { exercise });
                       }
                     }}
                   >
@@ -1093,6 +893,112 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     >
       {content}
     </Modal>
+  );
+};
+
+// =============================================
+// EXERCISE DETAIL — native-stack modal screen
+// =============================================
+// Presented as its own `presentation:'modal'` screen so it gets the same native
+// parent-scale-back + swipe-down-to-dismiss as every other sheet. (It used to be a
+// hand-built reanimated sheet inside an RN <Modal>, so the drag only worked on the
+// small handle and the parent never scaled back.)
+export const ExerciseDetailScreen = ({ route }) => {
+  const { theme, isDark } = useTheme();
+  const exercise = route?.params?.exercise || null;
+  if (!exercise) return null;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
+        <Text style={[styles.detailTitle, { color: theme.text }]} numberOfLines={1}>
+          {exercise.name}
+        </Text>
+      </View>
+
+      <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.detailImageContainer}>
+          {exercise.images && exercise.images.length > 0 ? (
+            <Image
+              source={{ uri: exercise.images[0] }}
+              style={styles.detailImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          ) : (
+            <View style={[styles.exerciseIconContainerLarge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+              <MaterialIcons name="fitness-center" size={80} color={theme.primary} />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={[styles.detailSectionTitle, { color: theme.text }]}>About</Text>
+          <View style={[styles.detailInfoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+            <View style={styles.detailInfoRow}>
+              <Text style={[styles.detailInfoLabel, { color: theme.textSecondary }]}>Body Part</Text>
+              <Text style={[styles.detailInfoValue, { color: theme.text }]}>{exercise.bodyPart}</Text>
+            </View>
+            <View style={[styles.detailInfoRow, styles.detailInfoRowBorder, { borderTopColor: theme.border }]}>
+              <Text style={[styles.detailInfoLabel, { color: theme.textSecondary }]}>Category</Text>
+              <Text style={[styles.detailInfoValue, { color: theme.text }]}>{exercise.category}</Text>
+            </View>
+            <View style={[styles.detailInfoRow, styles.detailInfoRowBorder, { borderTopColor: theme.border }]}>
+              <Text style={[styles.detailInfoLabel, { color: theme.textSecondary }]}>Equipment</Text>
+              <Text style={[styles.detailInfoValue, { color: theme.text }]}>{exercise.equipment}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => {
+              hapticFeedback.light();
+              const query = encodeURIComponent(`${exercise.name} exercise form tutorial`);
+              Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
+            }}
+            activeOpacity={0.7}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              backgroundColor: '#FF000018',
+              borderColor: '#FF000025',
+              borderWidth: 1,
+              borderRadius: 14,
+              paddingVertical: 14,
+            }}
+          >
+            <MaterialIcons name="play-circle-fill" size={22} color="#FF0000" />
+            <Text style={{ color: '#FF0000', fontSize: 15, fontWeight: '600' }}>Watch Tutorial</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={[styles.detailSectionTitle, { color: theme.text }]}>Instructions</Text>
+          <View style={[styles.detailInfoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+            {exercise.instructions && exercise.instructions.length > 0 ? (
+              exercise.instructions.map((instruction, index) => (
+                <View key={index} style={[styles.instructionItem, index > 0 && { marginTop: 12 }]}>
+                  <Text style={[styles.instructionNumber, { color: theme.text }]}>{index + 1}.</Text>
+                  <Text style={[styles.instructionText, { color: theme.text }]}>{instruction}</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.comingSoonContainer}>
+                <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
+                  No instructions available for this exercise.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 };
 

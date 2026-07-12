@@ -50,7 +50,7 @@ const MAPS_CONFIG = {
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
-const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
+const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation = null }) => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
@@ -318,16 +318,9 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
 
   const handleLocationPress = (location) => {
     hapticFeedback.light();
-    modalTranslateY.setValue(height); // Start off-screen at bottom
+    // Keep the map's own selection (marker highlight + connection lines) then open
+    // the detail as its own native modal screen so it pulls down like everything else.
     setSelectedLocation(location);
-
-    // Slide up with spring
-    Animated.spring(modalTranslateY, {
-      toValue: 0,
-      tension: 65,
-      friction: 11,
-      useNativeDriver: true,
-    }).start();
 
     if (mapRef.current) {
       mapRef.current.animateToRegion({
@@ -336,6 +329,11 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
         longitudeDelta: 0.5,
       }, 1000);
     }
+
+    navigation?.navigate('BibleMapDetail', {
+      location,
+      markerColor: getMarkerColor(location),
+    });
   };
 
   const markLocationVisited = (locationId) => {
@@ -431,64 +429,6 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
       mapRef.current.animateToRegion(initialRegion, 1000);
     }
   };
-
-  // =============================================
-  // DETAIL MODAL — pull-down-to-dismiss
-  // =============================================
-
-  const closeDetailModal = () => {
-    hapticFeedback.light();
-    Animated.timing(modalTranslateY, {
-      toValue: height,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setSelectedLocation(null);
-      // Do NOT reset modalTranslateY here — it causes a flash.
-      // handleLocationPress already sets it to `height` before opening.
-    });
-  };
-
-  const detailPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 8,
-      onPanResponderGrant: () => {
-        dismissHapticFired.current = false;
-        hapticFeedback.light();
-      },
-      onPanResponderMove: (_, gs) => {
-        if (gs.dy < 0) return;
-        modalTranslateY.setValue(gs.dy);
-        if (gs.dy > 150 && !dismissHapticFired.current) {
-          dismissHapticFired.current = true;
-          hapticFeedback.medium();
-        } else if (gs.dy <= 150 && dismissHapticFired.current) {
-          dismissHapticFired.current = false;
-          hapticFeedback.light();
-        }
-      },
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dy > 150 || gs.vy > 0.5) {
-          hapticFeedback.success();
-          Animated.timing(modalTranslateY, {
-            toValue: height,
-            duration: 250,
-            useNativeDriver: true,
-          }).start(() => {
-            setSelectedLocation(null);
-          });
-        } else {
-          Animated.spring(modalTranslateY, {
-            toValue: 0,
-            tension: 65,
-            friction: 11,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
 
   // MapGlassContainer defined at top of file — semi-transparent View (BlurView causes artifacts with MapView)
 
@@ -839,118 +779,6 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
         </View>
       </View>
 
-      {/* Location Detail Modal */}
-      {selectedLocation && (
-        <View style={[StyleSheet.absoluteFill, { zIndex: 10 }]} pointerEvents="box-none">
-          {/* Dimmed overlay */}
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={closeDetailModal}
-          />
-
-          {/* Sheet */}
-          <Animated.View
-            style={[
-              styles.modalContent,
-              {
-                backgroundColor: theme.background,
-                transform: [{ translateY: modalTranslateY }],
-              },
-            ]}
-          >
-            {/* Drag handle — pull down to dismiss */}
-            <View {...detailPanResponder.panHandlers} style={styles.swipeIndicatorContainer}>
-              <View style={[styles.swipeIndicator, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' }]} />
-            </View>
-
-            {/* Header — centred title, no back arrow (pull down to dismiss) */}
-            <View style={[styles.detailHeader, { borderBottomColor: theme.border }]}>
-              <Text style={[styles.detailTitle, { color: theme.text, textAlign: 'center', flex: 1 }]} numberOfLines={1}>
-                {selectedLocation.name}
-              </Text>
-            </View>
-
-            {/* Content */}
-            <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>
-              {/* Location Info Card */}
-              <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
-                <View style={styles.detailCardHeader}>
-                  <View style={[styles.detailIcon, { backgroundColor: getMarkerColor(selectedLocation) + '20' }]}>
-                    <MaterialIcons name={selectedLocation.icon} size={24} color={getMarkerColor(selectedLocation)} />
-                  </View>
-                  <View style={styles.detailCardTitle}>
-                    <Text style={[styles.detailCardName, { color: theme.text }]}>
-                      {selectedLocation.name}
-                    </Text>
-                    <Text style={[styles.detailCardType, { color: theme.textSecondary }]}>
-                      {selectedLocation.type} {selectedLocation.era ? `\u2022 ${selectedLocation.era.join(', ')}` : ''}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={[styles.detailDescription, { color: theme.textSecondary }]}>
-                  {selectedLocation.description}
-                </Text>
-                {selectedLocation.significance ? (
-                  <Text style={[styles.detailSignificance, { color: theme.text }]}>
-                    {selectedLocation.significance}
-                  </Text>
-                ) : null}
-              </View>
-
-              {/* Characters Card */}
-              {selectedLocation.characters?.length > 0 && (
-                <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
-                  <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                    Key Biblical Figures
-                  </Text>
-                  <View style={styles.tagsContainer}>
-                    {selectedLocation.characters.map((character, index) => (
-                      <View key={index} style={[styles.tag, { backgroundColor: theme.primary + '20' }]}>
-                        <Text style={[styles.tagText, { color: theme.primary }]}>{character}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Events Card */}
-              {selectedLocation.events?.length > 0 && (
-                <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
-                  <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                    Major Events
-                  </Text>
-                  {selectedLocation.events.map((event, index) => (
-                    <View key={index} style={styles.eventItem}>
-                      <View style={[styles.eventDot, { backgroundColor: getMarkerColor(selectedLocation) }]} />
-                      <Text style={[styles.eventText, { color: theme.text }]}>{event}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Scripture References Card */}
-              {selectedLocation.verses?.length > 0 && (
-                <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
-                  <Text style={[styles.detailSectionTitle, { color: theme.text }]}>
-                    Scripture References
-                  </Text>
-                  <View style={styles.tagsContainer}>
-                    {selectedLocation.verses.map((verse, index) => (
-                      <View key={index} style={[styles.tag, { backgroundColor: '#4CAF50' + '20' }]}>
-                        <MaterialIcons name="auto-stories" size={14} color="#4CAF50" />
-                        <Text style={[styles.tagText, { color: '#4CAF50', marginLeft: 4 }]}>{verse}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              <View style={{ height: 40 }} />
-            </ScrollView>
-          </Animated.View>
-        </View>
-      )}
     </View>
   );
 
@@ -960,6 +788,95 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false }) => {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       {content}
     </Modal>
+  );
+};
+
+// =============================================
+// LOCATION DETAIL — native-stack modal screen
+// =============================================
+// Presented as its own `presentation:'modal'` screen so it gets the same native
+// parent-scale-back + swipe-down-to-dismiss as every other sheet. (The old inline
+// Animated sheet couldn't be pulled down: react-native-screens' native modal
+// gesture doesn't yield to a hand-built RN PanResponder, so the swipe was stolen.)
+export const BibleMapDetailScreen = ({ navigation, route }) => {
+  const { theme, isDark } = useTheme();
+  const location = route?.params?.location || null;
+  const markerColor = route?.params?.markerColor || theme.primary;
+  if (!location) return null;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={[styles.detailHeader, { borderBottomColor: theme.border, marginTop: 12 }]}>
+        <Text style={[styles.detailTitle, { color: theme.text, textAlign: 'center', flex: 1 }]} numberOfLines={1}>
+          {location.name}
+        </Text>
+      </View>
+
+      <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>
+        <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
+          <View style={styles.detailCardHeader}>
+            <View style={[styles.detailIcon, { backgroundColor: markerColor + '20' }]}>
+              <MaterialIcons name={location.icon} size={24} color={markerColor} />
+            </View>
+            <View style={styles.detailCardTitle}>
+              <Text style={[styles.detailCardName, { color: theme.text }]}>{location.name}</Text>
+              <Text style={[styles.detailCardType, { color: theme.textSecondary }]}>
+                {location.type} {location.era ? `• ${location.era.join(', ')}` : ''}
+              </Text>
+            </View>
+          </View>
+          <Text style={[styles.detailDescription, { color: theme.textSecondary }]}>
+            {location.description}
+          </Text>
+          {location.significance ? (
+            <Text style={[styles.detailSignificance, { color: theme.text }]}>
+              {location.significance}
+            </Text>
+          ) : null}
+        </View>
+
+        {location.characters?.length > 0 && (
+          <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
+            <Text style={[styles.detailSectionTitle, { color: theme.text }]}>Key Biblical Figures</Text>
+            <View style={styles.tagsContainer}>
+              {location.characters.map((character, index) => (
+                <View key={index} style={[styles.tag, { backgroundColor: theme.primary + '20' }]}>
+                  <Text style={[styles.tagText, { color: theme.primary }]}>{character}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {location.events?.length > 0 && (
+          <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
+            <Text style={[styles.detailSectionTitle, { color: theme.text }]}>Major Events</Text>
+            {location.events.map((event, index) => (
+              <View key={index} style={styles.eventItem}>
+                <View style={[styles.eventDot, { backgroundColor: markerColor }]} />
+                <Text style={[styles.eventText, { color: theme.text }]}>{event}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {location.verses?.length > 0 && (
+          <View style={[styles.detailCard, { backgroundColor: theme.card }]}>
+            <Text style={[styles.detailSectionTitle, { color: theme.text }]}>Scripture References</Text>
+            <View style={styles.tagsContainer}>
+              {location.verses.map((verse, index) => (
+                <View key={index} style={[styles.tag, { backgroundColor: '#4CAF50' + '20' }]}>
+                  <MaterialIcons name="auto-stories" size={14} color="#4CAF50" />
+                  <Text style={[styles.tagText, { color: '#4CAF50', marginLeft: 4 }]}>{verse}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 };
 

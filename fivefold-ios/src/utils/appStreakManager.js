@@ -190,37 +190,25 @@ class AppStreakManager {
     }
   }
 
-  // Celebrate streak milestone by notifying friends
+  // Record a reached streak milestone on the user's own profile.
   static async celebrateStreakMilestone(days) {
     try {
-      // Get current user from auth
       const { auth } = await import('../config/firebase');
       const currentUser = auth.currentUser;
-      
+
       if (!currentUser) {
-        console.log('No user logged in, skipping streak celebration');
+        console.log('No user logged in, skipping streak milestone');
         return;
       }
 
-      // Get user profile for display name
-      const { getDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('../config/firebase');
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      const displayName = userDoc.exists() ? (userDoc.data().displayName || 'A friend') : 'A friend';
-
-      // Notify friends
-      const { notifyStreakMilestone } = await import('../services/socialNotificationService');
-      const sentCount = await notifyStreakMilestone(currentUser.uid, displayName, days);
-      
-      console.log(`🎉 Streak celebration sent to ${sentCount} friends!`);
-
       // Record milestone in user profile
-      const { updateDoc, arrayUnion } = await import('firebase/firestore');
+      const { doc, updateDoc, arrayUnion } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
       await updateDoc(doc(db, 'users', currentUser.uid), {
         streakMilestones: arrayUnion(days),
       });
     } catch (error) {
-      console.error('Error celebrating streak milestone:', error);
+      console.error('Error recording streak milestone:', error);
     }
   }
 }

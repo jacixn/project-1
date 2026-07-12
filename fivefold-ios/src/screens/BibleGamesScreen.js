@@ -37,7 +37,7 @@ const BibleGamesScreen = () => {
   const subtextColor = isDark ? 'rgba(255,255,255,0.5)' : '#6B7280';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: 12 }]}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => { hapticFeedback.light(); navigation.goBack(); }}

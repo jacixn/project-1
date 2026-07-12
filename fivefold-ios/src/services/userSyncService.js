@@ -992,30 +992,6 @@ export const downloadAndMergeCloudData = async (userId) => {
       console.log('[Sync] Downloaded userPrayers from cloud');
     }
     
-    // Hub posting token data — don't overwrite if local token was already consumed today
-    if (cloudData.hubPostingToken || cloudData.hubTokenSchedule) {
-      const today = new Date().toISOString().split('T')[0];
-      const localTokenStr = await userStorage.getRaw('hub_posting_token');
-      const localToken = localTokenStr ? JSON.parse(localTokenStr) : null;
-      const localScheduleStr = await userStorage.getRaw('hub_token_schedule');
-      const localSchedule = localScheduleStr ? JSON.parse(localScheduleStr) : null;
-      const tokenUsedLocally = (localToken?.date === today && localToken?.available === false) ||
-                               localSchedule?.tokenUsedDate === today;
-      
-      if (tokenUsedLocally) {
-        console.log('[Sync] Skipping hub token download — token already consumed locally today');
-      } else {
-        if (cloudData.hubPostingToken) {
-          await userStorage.setRaw('hub_posting_token', JSON.stringify(cloudData.hubPostingToken));
-          console.log('[Sync] Downloaded hub_posting_token from cloud');
-        }
-        if (cloudData.hubTokenSchedule) {
-          await userStorage.setRaw('hub_token_schedule', JSON.stringify(cloudData.hubTokenSchedule));
-          console.log('[Sync] Downloaded hub_token_schedule from cloud');
-        }
-      }
-    }
-    
     // Active todos/tasks — pull from `todos` subcollection (preferred) or legacy field.
     {
       let cloudTodos = await pullArraySubcollection(userId, 'todos');
@@ -1811,18 +1787,6 @@ export const syncAllHistoryToCloud = async (userId) => {
     if (userPrayersStr) {
       updateData.userPrayers = JSON.parse(userPrayersStr);
       console.log('[Sync] Including userPrayers in upload');
-    }
-    
-    // Hub posting token data
-    const hubTokenStr = await userStorage.getRaw('hub_posting_token');
-    if (hubTokenStr) {
-      updateData.hubPostingToken = JSON.parse(hubTokenStr);
-      console.log('[Sync] Including hub_posting_token in upload');
-    }
-    const hubScheduleStr = await userStorage.getRaw('hub_token_schedule');
-    if (hubScheduleStr) {
-      updateData.hubTokenSchedule = JSON.parse(hubScheduleStr);
-      console.log('[Sync] Including hub_token_schedule in upload');
     }
     
     // Active todos/tasks — synced to `users/{uid}/todos` subcollection.

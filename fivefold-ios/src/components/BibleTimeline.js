@@ -28,6 +28,7 @@ import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import ScreenHeader from './ScreenHeader';
+import SheetHeader from './SheetHeader';
 import AchievementService from '../services/achievementService';
 
 const { width, height } = Dimensions.get('window');
@@ -68,7 +69,7 @@ const TIMELINE_CONFIG = {
   CACHE_DURATION: 60 * 60 * 1000,
 };
 
-const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }) => {
+const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false, detailMode = false, initialEra = null, onOpenEra }) => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -78,8 +79,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // UI state
-  const [selectedEra, setSelectedEra] = useState(null);
+  // UI state — in detailMode this component IS the era-detail native modal screen.
+  const [selectedEra, setSelectedEra] = useState(detailMode ? initialEra : null);
   const [viewedEras, setViewedEras] = useState(new Set());
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -440,7 +441,9 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     }
 
     hapticFeedback.medium();
-    setSelectedEra(era);
+    // As a screen, open the era as its own native pull-to-dismiss modal screen.
+    if (onOpenEra) onOpenEra(era);
+    else setSelectedEra(era);
 
     if (!viewedEras.has(era.id)) {
       const newViewed = new Set(viewedEras);
@@ -452,13 +455,15 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
       AchievementService.incrementStat('timelineErasViewed');
     }
 
-    sheetY.setValue(height);
-    overlayOpacity.setValue(0);
-    Animated.parallel([
-      Animated.spring(sheetY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
-      Animated.timing(overlayOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-    ]).start();
-  }, [viewedEras, timelineData]);
+    if (!onOpenEra) {
+      sheetY.setValue(height);
+      overlayOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(sheetY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
+        Animated.timing(overlayOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [viewedEras, timelineData, onOpenEra]);
 
   const closeSheet = useCallback(() => {
     hapticFeedback.light();
@@ -732,32 +737,46 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   currentCardIndexRef.current = currentCardIndex;
   selectedEraRef.current = selectedEra;
 
+  const isHorizontalSwipe = (gesture) =>
+    Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5;
+
+  const settleSwipe = (gesture) => {
+    const stories = selectedEraRef.current?.stories || [];
+    const idx = currentCardIndexRef.current;
+    if (gesture.dx < -SWIPE_THRESHOLD && idx < stories.length - 1) {
+      Animated.spring(swipeX, { toValue: -width, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
+        stopStoryAudio();
+        setCurrentCardIndex(prev => prev + 1);
+        swipeX.setValue(0);
+      });
+    } else if (gesture.dx > SWIPE_THRESHOLD && idx > 0) {
+      Animated.spring(swipeX, { toValue: width, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
+        stopStoryAudio();
+        setCurrentCardIndex(prev => prev - 1);
+        swipeX.setValue(0);
+      });
+    } else {
+      Animated.spring(swipeX, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 8 }).start();
+    }
+  };
+
   const cardPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+      onMoveShouldSetPanResponder: (_, gesture) => isHorizontalSwipe(gesture),
+      // Capture the horizontal swipe BEFORE the inner ScrollView or the native
+      // modal's dismiss gesture can claim it.
+      onMoveShouldSetPanResponderCapture: (_, gesture) => isHorizontalSwipe(gesture),
       onPanResponderMove: (_, gesture) => {
         swipeX.setValue(gesture.dx);
       },
-      onPanResponderRelease: (_, gesture) => {
-        const stories = selectedEraRef.current?.stories || [];
-        const idx = currentCardIndexRef.current;
-        if (gesture.dx < -SWIPE_THRESHOLD && idx < stories.length - 1) {
-          Animated.spring(swipeX, { toValue: -width, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
-            stopStoryAudio();
-            setCurrentCardIndex(prev => prev + 1);
-            swipeX.setValue(0);
-          });
-        } else if (gesture.dx > SWIPE_THRESHOLD && idx > 0) {
-          Animated.spring(swipeX, { toValue: width, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
-            stopStoryAudio();
-            setCurrentCardIndex(prev => prev - 1);
-            swipeX.setValue(0);
-          });
-        } else {
-          Animated.spring(swipeX, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 8 }).start();
-        }
-      },
+      // Once we own the swipe, do NOT hand it back to the native modal — that was
+      // terminating the pan mid-drag and freezing the card.
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
+      onPanResponderRelease: (_, gesture) => settleSwipe(gesture),
+      // If something still steals it, settle so the card never gets stuck.
+      onPanResponderTerminate: (_, gesture) => settleSwipe(gesture),
     })
   ).current;
 
@@ -897,16 +916,8 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
     if (!selectedEra) return null;
     const stories = selectedEra.stories || [];
 
-    return (
+    const sheetInner = (
       <>
-        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} pointerEvents={selectedEra ? 'auto' : 'none'}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeSheet} />
-        </Animated.View>
-        <Animated.View style={[styles.sheet, { backgroundColor: theme.background, transform: [{ translateY: sheetY }] }]}>
-          <View {...sheetPanResponder.panHandlers} style={styles.sheetHandleWrap}>
-            <View style={[styles.sheetHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' }]} />
-          </View>
-          
           {/* Era Header */}
           <View style={styles.deckHeader}>
             <Image source={{ uri: selectedEra.imageUrl }} style={styles.deckHeaderSticker} resizeMode="contain" />
@@ -941,6 +952,30 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
           
           {/* Stacked Tinder-style Cards */}
           {renderStackedCards(selectedEra.color)}
+      </>
+    );
+
+    // Native pull-to-dismiss modal SCREEN: OS sheet handles the gesture.
+    if (detailMode) {
+      return (
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <SheetHeader title={selectedEra.title} leftLabel="Done" onLeft={onClose} />
+          {sheetInner}
+        </View>
+      );
+    }
+
+    // Legacy in-place bottom sheet.
+    return (
+      <>
+        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} pointerEvents={selectedEra ? 'auto' : 'none'}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeSheet} />
+        </Animated.View>
+        <Animated.View style={[styles.sheet, { backgroundColor: theme.background, transform: [{ translateY: sheetY }] }]}>
+          <View {...sheetPanResponder.panHandlers} style={styles.sheetHandleWrap}>
+            <View style={[styles.sheetHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' }]} />
+          </View>
+          {sheetInner}
         </Animated.View>
       </>
     );
@@ -949,7 +984,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
   const viewedCount = viewedEras.size;
   const totalEras = timelineData.length;
 
-  const content = (
+  const content = detailMode ? renderBottomSheet() : (
     <View style={styles.root}>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: bgColor }]} />
 
@@ -985,7 +1020,7 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
         </View>
       )}
 
-      <ScreenHeader title="Bible Timeline" onBack={onClose} />
+      <ScreenHeader title="Bible Timeline" onBack={onClose} topOffset={24} />
 
       {!loading && !error && (
         <ScrollView
@@ -997,7 +1032,6 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false }
           decelerationRate="fast"
           disableIntervalMomentum={true}
           onScroll={handleScroll}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} colors={[theme.primary]} />}
         >
           <View style={styles.titleSection}>
             <Text style={[styles.pageSubtitle, { color: 'rgba(255,255,255,0.7)' }]}>Journey through Biblical history</Text>

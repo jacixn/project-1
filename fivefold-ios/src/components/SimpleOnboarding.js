@@ -330,7 +330,6 @@ const SCREEN_THEMES = {
   features: { bg: '#E3F2FD', accent: '#1565C0' },         // Blue
   featuresTasks: { bg: '#E8F5E9', accent: '#2E7D32' },    // Green - productivity
   featuresGym: { bg: '#FFEBEE', accent: '#C62828' },      // Red - fitness
-  featuresHub: { bg: '#E8EAF6', accent: '#5C6BC0' },      // Indigo - social/community
   consent: { bg: '#F5F5F5', accent: '#333333' },           // Neutral - legal/consent
   bible: { bg: '#FFF8E1', accent: '#FF8F00' },            // Amber - scripture
   weight: { bg: '#E0F7FA', accent: '#00838F' },           // Cyan - fitness
@@ -682,7 +681,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   const [hasScrolledFeatures, setHasScrolledFeatures] = useState(false);
   const [hasScrolledTasks, setHasScrolledTasks] = useState(false);
   const [hasScrolledGym, setHasScrolledGym] = useState(false);
-  const [hasScrolledHub, setHasScrolledHub] = useState(false);
   const [hasScrolledConsent, setHasScrolledConsent] = useState(false);
   const [hasScrolledBible, setHasScrolledBible] = useState(false);
   const [hasScrolledHow, setHasScrolledHow] = useState(false);
@@ -811,7 +809,6 @@ const SimpleOnboarding = ({ onComplete }) => {
     'features',
     'featuresTasks',
     'featuresGym',
-    'featuresHub',
     'consent',
     'bible',
     'weight',
@@ -833,7 +830,6 @@ const SimpleOnboarding = ({ onComplete }) => {
     'features',
     'featuresTasks',
     'featuresGym',
-    'featuresHub',
     'consent',
     'bible',
     'weight',
@@ -2048,130 +2044,6 @@ const SimpleOnboarding = ({ onComplete }) => {
         
         {/* Scroll indicator */}
         {!hasScrolledGym && (
-          <View style={styles.scrollIndicator}>
-            <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
-            <MaterialIcons name="keyboard-arrow-down" size={20} color="#999" />
-          </View>
-        )}
-        
-        <TouchableOpacity 
-          onPress={handleNext}
-          style={[styles.mainButton, { backgroundColor: '#333' }]}
-        >
-          <Text style={styles.mainButtonText}>Next</Text>
-          <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  };
-
-  // ============================================
-  // SCREEN: Features Hub (Social Community)
-  // ============================================
-  const FeaturesHubScreen = () => {
-    const screenTheme = SCREEN_THEMES.featuresHub;
-    
-    const handleHubScroll = (event) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      if (offsetY > 20 && !hasScrolledHub) {
-        setHasScrolledHub(true);
-      }
-    };
-    
-    const features = [
-      { 
-        iconName: 'public', iconLib: 'material',
-        title: 'Global Community', 
-        desc: 'Share thoughts, encouragements, and prayers with believers worldwide', 
-        color: '#5C6BC0',
-      },
-      { 
-        iconName: 'chat-bubble-outline', iconLib: 'material',
-        title: 'Daily Sharing', 
-        desc: 'Post what\'s on your heart - get one token daily to share something meaningful', 
-        color: '#26A69A',
-      },
-      { 
-        iconName: 'visibility', iconLib: 'material',
-        title: 'See What Others Share', 
-        desc: 'Scroll through uplifting posts from the community - get inspired every day', 
-        color: '#42A5F5',
-      },
-      { 
-        iconName: 'people', iconLib: 'material',
-        title: 'Connect with Friends', 
-        desc: 'Add friends, send messages, and support each other on your faith journey', 
-        color: '#FF7043',
-      },
-      { 
-        iconName: 'emoji-events', iconLib: 'material',
-        title: 'Friendly Challenges', 
-        desc: 'Challenge friends to Bible quizzes - compete and grow together!', 
-        color: '#FFB300',
-      },
-      { 
-        iconName: 'leaderboard', iconLib: 'material',
-        title: 'Leaderboards', 
-        desc: 'See how you rank among friends and globally - stay motivated!', 
-        color: '#AB47BC',
-      },
-    ];
-    
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: screenTheme.bg }]}>
-        <ProgressBar screenTheme={screenTheme} />
-        
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleHubScroll}
-          scrollEventThrottle={16}
-        >
-          <View style={styles.featureHeaderIcon}>
-            <MaterialIcons name="public" size={44} color="#5C6BC0" />
-          </View>
-          
-          <Text style={[styles.screenTitle, { color: '#333' }]}>
-            You're not alone on this journey
-          </Text>
-          
-          <Text style={[styles.screenSubtitle, { color: '#666' }]}>
-            The Hub connects you with a global community of believers
-          </Text>
-          
-          <View style={styles.featureCards}>
-            {features.map((feature, index) => (
-              <View key={index} style={styles.featureCard}>
-                <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                  {feature.iconLib === 'fa5' ? (
-                    <FontAwesome5 name={feature.iconName} size={22} color={feature.color} />
-                  ) : feature.iconLib === 'ionicon' ? (
-                    <Ionicons name={feature.iconName} size={22} color={feature.color} />
-                  ) : (
-                    <MaterialIcons name={feature.iconName} size={22} color={feature.color} />
-                  )}
-                </View>
-                <View style={styles.featureTextContainer}>
-                  <Text style={[styles.featureTitle, { color: feature.color }]}>{feature.title}</Text>
-                  <Text style={styles.featureDesc}>{feature.desc}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-          
-          {/* Community callout */}
-          <View style={[styles.exampleCard, { backgroundColor: screenTheme.accent + '10', borderColor: screenTheme.accent }]}>
-            <Text style={[styles.exampleTitle, { color: screenTheme.accent }]}>Together in Faith</Text>
-            <Text style={styles.motivationText}>
-              "For where two or three gather in my name, there am I with them."
-            </Text>
-            <Text style={styles.motivationRef}>— Matthew 18:20</Text>
-          </View>
-        </ScrollView>
-        
-        {/* Scroll indicator */}
-        {!hasScrolledHub && (
           <View style={styles.scrollIndicator}>
             <Text style={styles.scrollIndicatorText}>Scroll for more</Text>
             <MaterialIcons name="keyboard-arrow-down" size={20} color="#999" />
@@ -4482,7 +4354,6 @@ const SimpleOnboarding = ({ onComplete }) => {
       case 'features': return FeaturesScreen();
       case 'featuresTasks': return FeaturesTasksScreen();
       case 'featuresGym': return FeaturesGymScreen();
-      case 'featuresHub': return FeaturesHubScreen();
       case 'consent': return ConsentScreen();
       case 'bible': return BibleScreen();
       case 'weight': return WeightScreen();

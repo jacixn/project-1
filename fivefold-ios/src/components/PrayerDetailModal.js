@@ -521,35 +521,6 @@ const PrayerDetailModal = ({
                           </TouchableOpacity>
                         )}
 
-                        {/* Discuss */}
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { 
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`,
-                          }]}
-                          onPress={(e) => {
-                            if (e) e.stopPropagation();
-                            hapticFeedback.medium();
-                            const displayedText = loadingVerses
-                              ? ''
-                              : (fetchedVerses[verse.reference]?.text || verse.text || '').replace(/\s+/g, ' ').trim();
-                            const displayedVersion =
-                              fetchedVerses[verse.reference]?.version || bibleVersion || 'KJV';
-                            onDiscuss({
-                              ...verse,
-                              text: displayedText,
-                              content: displayedText,
-                              reference: verse.reference,
-                              version: displayedVersion,
-                            });
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <MaterialIcons name="chat-bubble-outline" size={16} color={theme.primary} />
-                          <Text style={[styles.actionBtnText, { color: theme.primary }]}>
-                            Discuss
-                          </Text>
-                        </TouchableOpacity>
-
                         {/* Go to Verse */}
                         <TouchableOpacity
                           style={[styles.actionBtn, { 
@@ -566,6 +537,32 @@ const PrayerDetailModal = ({
                             Open
                           </Text>
                         </TouchableOpacity>
+
+                        {/* Discuss */}
+                        {onDiscuss && (
+                          <TouchableOpacity
+                            style={[styles.actionBtn, {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}0D`,
+                            }]}
+                            onPress={(e) => {
+                              if (e) e.stopPropagation();
+                              hapticFeedback.light();
+                              onDiscuss({
+                                ...verse,
+                                text: verseDisplayText,
+                                content: verseDisplayText,
+                                reference: verse.reference,
+                                version: bibleVersion,
+                              });
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons name="chat-bubble-outline" size={16} color={theme.primary} />
+                            <Text style={[styles.actionBtnText, { color: theme.primary }]}>
+                              Discuss
+                            </Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
 
                     </View>

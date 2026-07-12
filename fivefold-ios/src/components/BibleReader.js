@@ -20,6 +20,7 @@ import {
   DeviceEventEmitter,
   useWindowDimensions,
   Image,
+  BackHandler,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -52,7 +53,7 @@ import { pushToCloud } from '../services/userSyncService';
 import PREMIUM_BACKGROUNDS, { PREMIUM_BG_REFERRAL_REQUIRED, TEXT_COLOR_PRESETS } from '../data/premiumBackgrounds';
 import { getReferralCount } from '../services/referralService';
 import { getCachedImageUri, preloadImages } from '../utils/premiumBgCache';
-// Removed InteractiveSwipeBack import
+import InteractiveSwipeBack from './InteractiveSwipeBack';
 
 // ─── Smart Auto Text Color Helpers ───
 const hexToRgb = (hex) => {
@@ -154,8 +155,39 @@ const isTextColorLight = (hexColor) => {
   return getRelativeLuminance(r, g, b) > 0.5;
 };
 
-const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, asScreen = false }) => {
-  
+// Reading a chapter is its own sheet stacked over the books sheet, so each
+// mount of this component drives exactly one of them:
+//   screenMode 'books'  -> testament/book list; picking a book PUSHES a
+//                          reading sheet (BibleChapter route)
+//   screenMode 'verses' -> the reading view; it is the root of its own sheet,
+//                          so back/pull-down dismisses it back to the books
+//                          sheet (or to whatever deep-linked into it)
+const BibleReader = ({
+  visible,
+  onClose,
+  onNavigateToAI,
+  initialVerseReference,
+  verseNonce = null,
+  asScreen = false,
+  navigation = null,
+  screenMode = 'books',
+  initialBook = null,
+  initialChapterNumber = null,
+  initialTargetVerse = null,
+}) => {
+
+  const isVersesScreen = screenMode === 'verses';
+
+  // Always points at the latest hardware-back handler (assigned each render)
+  const hardwareBackRef = useRef(() => false);
+
+  // Bumped on every back navigation; in-flight chapter loads compare against
+  // it and drop their result instead of re-entering the verses view
+  const navEpochRef = useRef(0);
+
+  // Mirrors the books state so async handlers see it without a stale closure
+  const booksRef = useRef([]);
+
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { theme, isDark, isCresviaTheme, currentTheme } = useTheme();
   
@@ -175,11 +207,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // A reading sheet mounts straight into its verses view, so it must show the
+  // spinner until its chapter lands rather than flashing an empty chapter
+  const [loading, setLoading] = useState(screenMode === 'verses');
   const [targetVerseNumber, setTargetVerseNumber] = useState(null); // Track which verse to scroll to
   const [simplifiedSearchResults, setSimplifiedSearchResults] = useState(new Map()); // Track simplified search results
   const [refreshing, setRefreshing] = useState(false);
-  const [view, setView] = useState('books'); // 'books', 'chapters', 'verses', 'search'
+  // 'books' | 'chapters' | 'verses' | 'search'. A verses sheet starts on its
+  // reading view and never returns to a books list within its own sheet.
+  const [view, setView] = useState(isVersesScreen ? 'verses' : 'books');
   const [translatingVerse, setTranslatingVerse] = useState(null);
   const [showOriginal, setShowOriginal] = useState(new Set()); // Track which verses show original
 
@@ -233,6 +269,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const [showVerseMenu, setShowVerseMenu] = useState(false);
   const [selectedVerseForMenu, setSelectedVerseForMenu] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  // The colour picker nests a ScrollView; the verse-menu drag must not capture
+  // its scroll, so the capture handler backs off while it is open
+  const showColorPickerRef = useRef(false);
+  showColorPickerRef.current = showColorPicker;
   const [highlightedVerses, setHighlightedVerses] = useState({}); // { verseId: color }
   const verseMenuSlideAnim = useRef(new Animated.Value(0)).current;
   const verseMenuFadeAnim = useRef(new Animated.Value(0)).current;
@@ -1241,23 +1281,31 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     }
   }, [verses]);
 
-  // Handle initial verse reference navigation or search
+  // Handle initial verse reference navigation or search. verseNonce changes on
+  // every tap so re-tapping the same reference navigates again; the key guards
+  // against the books state landing and replaying the same jump.
+  const handledDeepLinkRef = useRef(null);
   useEffect(() => {
-    if (visible && initialVerseReference && books.length > 0) {
-      console.log('📖 Processing initial verse reference:', initialVerseReference);
-      
-      // Check if it's a search query object
-      if (typeof initialVerseReference === 'object' && initialVerseReference.searchQuery) {
-        console.log('📖 Performing search for:', initialVerseReference.searchQuery);
-        setSearchQuery(initialVerseReference.searchQuery);
-        searchBibleWithQuery(initialVerseReference.searchQuery);
-      } else {
-        // Regular verse navigation
-        console.log('📖 Navigating to verse:', initialVerseReference);
+    // A reading sheet resolves the book index itself (ensureBooks), so it does
+    // not wait for the books state; the books sheet already has it loaded
+    if (!visible || !initialVerseReference || !(isVersesScreen || books.length > 0)) return;
+
+    const key = `${typeof initialVerseReference === 'object'
+      ? initialVerseReference.searchQuery
+      : initialVerseReference}:${verseNonce || ''}`;
+    if (handledDeepLinkRef.current === key) return;
+    handledDeepLinkRef.current = key;
+
+    console.log('📖 Processing initial verse reference:', initialVerseReference);
+    if (typeof initialVerseReference === 'object' && initialVerseReference.searchQuery) {
+      console.log('📖 Performing search for:', initialVerseReference.searchQuery);
+      setSearchQuery(initialVerseReference.searchQuery);
+      searchBibleWithQuery(initialVerseReference.searchQuery);
+    } else {
+      console.log('📖 Navigating to verse:', initialVerseReference);
       navigateToVerse(initialVerseReference);
-      }
     }
-  }, [visible, initialVerseReference, books]);
+  }, [visible, initialVerseReference, verseNonce, books, isVersesScreen]);
 
   // Load interactive data (notes, highlights, bookmarks)
   const loadInteractiveData = async () => {
@@ -1368,41 +1416,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
 
 
-  // Handle smart back navigation based on current view
-  const handleBackNavigation = () => {
-    switch (view) {
-      case 'verses':
-        // From verses, go back to chapters
-        setView('chapters');
-        setVerses([]);
-        versePositions.current = {};
-        setCurrentChapter(null);
-        break;
-      case 'chapters':
-        // From chapters, go back to book selection (old/new testament or books)
-        setView('books');
-        setChapters([]);
-        setCurrentBook(null);
-        break;
-      case 'old-testament':
-      case 'new-testament':
-        // From testament view, go back to main books view
-        setView('books');
-        break;
-      case 'search':
-        // From search, go back to books
-        setView('books');
-        setSearchQuery('');
-        setSearchResults([]);
-        break;
-      case 'books':
-      default:
-        // From main books view, close the entire modal
-        onClose();
-        break;
-    }
-  };
-
   // Removed previous page preview function
 
   useEffect(() => {
@@ -1411,6 +1424,53 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       loadSelectedVersion();
       loadHighlightedVerses();
     }
+  }, [visible]);
+
+  // A reading sheet opens on the book it was pushed with. Runs once per mount
+  // (each push is a fresh sheet); deep links without a book go through the
+  // initialVerseReference effect below instead.
+  const openedInitialBookRef = useRef(false);
+  useEffect(() => {
+    if (!visible || !isVersesScreen || !initialBook || openedInitialBookRef.current) return;
+    openedInitialBookRef.current = true;
+    loadChapters(initialBook, initialChapterNumber, initialTargetVerse);
+  }, [visible, isVersesScreen, initialBook, initialChapterNumber, initialTargetVerse]);
+
+  // The in-tree overlays (verse menu, share card, note editor, book/version
+  // pickers, search) are bottom sheets with their own pull-down-to-close drag.
+  // They live INSIDE a presentation:'modal' screen, and iOS's sheet dismissal
+  // recognizer claims every downward drag before a JS PanResponder can see it
+  // (same trap noted in InteractiveBibleMaps.js). Suspending the screen's
+  // native gesture while an overlay is open hands those drags back to the
+  // overlay; closing it restores pull-to-dismiss for the screen itself.
+  // (showTextSelectionModal is a real RN Modal, i.e. its own window above the
+  // sheet, so the screen's gesture never competes with it.)
+  // showVerseMenu is absent on purpose: it renders in its own RN <Modal>
+  // window (like showTextSelectionModal), so the screen's gesture never
+  // competes with it.
+  const overlayOwnsDrag =
+    showShareCard ||
+    showJournalingModal ||
+    showBookSelector ||
+    showVersionPicker ||
+    showSearchModal;
+
+  useEffect(() => {
+    if (!asScreen || !navigation?.setOptions) return;
+    navigation.setOptions({ gestureEnabled: !overlayOwnsDrag });
+  }, [asScreen, navigation, overlayOwnsDrag]);
+
+  // Each sheet dismisses itself: the books sheet and the reading sheet are
+  // separate presentation:'modal' screens, so the native pull-down (and the
+  // real stack pop underneath it) replaces the old hand-built edge swipe.
+
+  // Android hardware back mirrors the same one-level-back behavior.
+  // Subscribed once per open; the ref always points at the latest handler,
+  // so overlay/view/book state is never stale.
+  useEffect(() => {
+    if (!visible) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => hardwareBackRef.current());
+    return () => sub.remove();
   }, [visible]);
 
   const loadSelectedVersion = async () => {
@@ -1471,11 +1531,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     
     verseMenuDragY.setValue(0);
     Animated.parallel([
+      // Shares a transform with the JS-driven drag value, so it stays off the
+      // native driver (mixing drivers on one transform throws)
       Animated.spring(verseMenuSlideAnim, {
         toValue: 1,
         tension: 65,
         friction: 11,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(verseMenuFadeAnim, {
         toValue: 1,
@@ -1485,12 +1547,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     ]).start();
   };
 
-  const closeVerseMenu = () => {
+  const closeVerseMenu = (afterClose) => {
     Animated.parallel([
       Animated.timing(verseMenuSlideAnim, {
         toValue: 0,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(verseMenuFadeAnim, {
         toValue: 0,
@@ -1500,12 +1562,16 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       Animated.timing(verseMenuDragY, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       setShowVerseMenu(false);
       setSelectedVerseForMenu(null);
       setShowColorPicker(false);
+      // The menu lives in its own Modal window, which sits above ALL in-tree
+      // content regardless of zIndex. Anything the menu hands off to must open
+      // AFTER that window is gone, or it animates in behind it.
+      if (typeof afterClose === 'function') afterClose();
     });
   };
 
@@ -1583,10 +1649,11 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       text: selectedVerseForMenu.content || selectedVerseForMenu.text || ''
     };
     
-    // Close verse menu and open note modal
-    closeVerseMenu();
-    setSelectedVerseForJournal(journalData);
-    setShowJournalingModal(true);
+    // Open the note editor only once the menu's window is gone
+    closeVerseMenu(() => {
+      setSelectedVerseForJournal(journalData);
+      setShowJournalingModal(true);
+    });
   };
 
   // 100+ Beautiful Share Card Gradients with excellent readability
@@ -2136,7 +2203,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       Animated.timing(verseMenuSlideAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(verseMenuFadeAnim, {
         toValue: 0,
@@ -2146,7 +2213,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       Animated.timing(verseMenuDragY, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       setShowVerseMenu(false);
@@ -2277,10 +2344,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     if (!selectedVerseForMenu) return;
     
     const startNum = parseInt(selectedVerseForMenu.number || selectedVerseForMenu.verse);
-    setRangeStartVerse(selectedVerseForMenu);
-    setRangeEndVerseNum(startNum); // Start with just the one verse
-    setRangeSelectionMode(true);
-    closeVerseMenu();
+    const startVerse = selectedVerseForMenu;
+    // The range bar is in-tree, so it must appear after the menu window closes
+    closeVerseMenu(() => {
+      setRangeStartVerse(startVerse);
+      setRangeEndVerseNum(startNum); // Start with just the one verse
+      setRangeSelectionMode(true);
+    });
     hapticFeedback.medium();
   };
   
@@ -2523,33 +2593,49 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   };
 
   const loadBooks = async () => {
-    setLoading(true);
+    // A reading sheet shows its spinner for the chapter it is opening, not for
+    // the book index it loads alongside, so only the books sheet toggles it
+    if (!isVersesScreen) setLoading(true);
     try {
       const booksData = await completeBibleService.getBooks();
       setBooks(booksData);
+      booksRef.current = booksData || [];
+      return booksRef.current;
     } catch (error) {
       Alert.alert('📚 Error', 'Failed to load Bible books. Please check your internet connection.');
+      return booksRef.current;
     } finally {
-      setLoading(false);
+      if (!isVersesScreen) setLoading(false);
     }
   };
 
-  const loadChapters = async (book) => {
+  // Crossing a book boundary needs the book index, which a reading sheet loads
+  // in the background — fetch it on demand rather than dead-ending the arrow
+  const ensureBooks = async () => {
+    if (booksRef.current.length > 0) return booksRef.current;
+    return loadBooks();
+  };
+
+  const loadChapters = async (book, chapterNumber = null, targetVerse = null) => {
     setLoading(true);
+    const epoch = navEpochRef.current;
     try {
       const service = getBibleService(selectedBibleVersion);
       const chaptersData = await service.getChapters(book.id);
+      if (epoch !== navEpochRef.current) { setLoading(false); return; }
       setChapters(chaptersData);
       setCurrentBook(book);
       setLoading(false);
-      
-      // Automatically load chapter 1 instead of showing chapter selection
+
+      // Open a chapter straight away (chapter 1 unless one was requested)
       if (chaptersData && chaptersData.length > 0) {
-        const firstChapter = chaptersData[0];
-        // Use loadVerses to trigger simplification if needed
-        await loadVerses(firstChapter);
+        const requested = chapterNumber != null
+          ? chaptersData.find(c => String(c.number) === String(chapterNumber))
+          : null;
+        if (targetVerse != null) setTargetVerseNumber(targetVerse);
+        await loadVerses(requested || chaptersData[0]);
       } else {
-      setView('chapters');
+        setView('chapters');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to load book.');
@@ -2557,14 +2643,38 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
     }
   };
 
+  // Picking a book from the books sheet pushes the reading sheet on top of it.
+  // Inside the reading sheet (book selector, search, chapter arrows) the book
+  // changes in place so we never stack reading sheets.
+  const openBook = (book, chapterNumber = null, targetVerse = null) => {
+    if (!isVersesScreen && asScreen && navigation?.navigate) {
+      navigation.navigate('BibleChapter', {
+        book,
+        chapterNumber,
+        targetVerse,
+        openTs: Date.now(),
+      });
+      return;
+    }
+    if (targetVerse != null) setTargetVerseNumber(targetVerse);
+    loadChapters(book, chapterNumber, targetVerse);
+  };
+
   const loadVerses = async (chapter) => {
     setLoading(true);
+    const epoch = navEpochRef.current;
     try {
       console.log('📖 Loading verses for chapter:', chapter.id, 'version:', selectedBibleVersion);
-      
+
       // Use the appropriate service based on version
       const service = getBibleService(selectedBibleVersion);
       const versesData = await service.getVerses(chapter.id, selectedBibleVersion);
+      if (epoch !== navEpochRef.current) {
+        // User backed out while this chapter was loading; don't yank them
+        // back into the verses view
+        setLoading(false);
+        return;
+      }
       setVerses(versesData);
       lastLoadedVersesVersionRef.current = selectedBibleVersion;
       setCurrentChapter(chapter);
@@ -2655,9 +2765,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       loadVerses(prevChapter);
     } else {
       // Go to last chapter of previous book
-      const currentBookIndex = books.findIndex(b => b.id === currentBook.id);
+      const bookList = await ensureBooks();
+      const currentBookIndex = bookList.findIndex(b => b.id === currentBook.id);
       if (currentBookIndex > 0) {
-        const prevBook = books[currentBookIndex - 1];
+        const prevBook = bookList[currentBookIndex - 1];
         const lastChapter = {
           id: `${prevBook.id}_${prevBook.chapters}`,
           number: prevBook.chapters.toString(),
@@ -2686,9 +2797,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       loadVerses(nextChapter);
     } else {
       // Go to first chapter of next book
-      const currentBookIndex = books.findIndex(b => b.id === currentBook.id);
-      if (currentBookIndex < books.length - 1) {
-        const nextBook = books[currentBookIndex + 1];
+      const bookList = await ensureBooks();
+      const currentBookIndex = bookList.findIndex(b => b.id === currentBook.id);
+      if (currentBookIndex > -1 && currentBookIndex < bookList.length - 1) {
+        const nextBook = bookList[currentBookIndex + 1];
         const firstChapter = {
           id: `${nextBook.id}_1`,
           number: '1',
@@ -2844,6 +2956,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
   // Navigate to a specific verse from a Bible reference
   const navigateToVerse = async (verseReference) => {
+    const epoch = navEpochRef.current;
     try {
       console.log('📖 Starting navigation to verse:', verseReference);
       
@@ -2851,6 +2964,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       const parsedRef = bibleReferenceParser.parseReference(verseReference);
       if (!parsedRef) {
         console.error('❌ Failed to parse verse reference:', verseReference);
+        setLoading(false); // a reading sheet mounts in the loading state
         Alert.alert('Invalid Reference', `Could not understand the Bible reference: "${verseReference}"`);
         return;
       }
@@ -2858,12 +2972,16 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
       console.log('✅ Parsed reference:', parsedRef);
       
       // Find the book
-      const targetBook = books.find(book => 
+      // A reading sheet may still be fetching the book index when a deep link
+      // arrives, so resolve it on demand rather than failing the lookup
+      const bookList = await ensureBooks();
+      const targetBook = bookList.find(book =>
         book.name.toLowerCase() === parsedRef.book.toLowerCase()
       );
       
       if (!targetBook) {
         console.error('❌ Book not found:', parsedRef.book);
+        setLoading(false);
         Alert.alert('Book Not Found', `Could not find the book: "${parsedRef.book}"`);
         return;
       }
@@ -2896,6 +3014,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
         // Load verses for the chapter
         const versesData = await service.getVerses(targetChapter.id, selectedBibleVersion);
+        if (epoch !== navEpochRef.current) return; // user backed out mid-load
         setVerses(versesData);
         setCurrentChapter(targetChapter);
         setView('verses');
@@ -2995,19 +3114,55 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   };
 
   const goBack = () => {
-    if (view === 'search') {
+    navEpochRef.current += 1;
+    // Dismiss transient verse-view chrome so the flags can't linger past the
+    // sheet that owns them
+    if (showAccessibilityPopup) setShowAccessibilityPopup(false);
+    if (rangeSelectionMode) cancelRangeSelection();
+    if (isVersesScreen) {
+      // The reading view is this sheet's root: back dismisses the sheet,
+      // revealing the books sheet (or the screen that deep-linked here)
+      onClose();
+    } else if (view === 'books') {
+      // Books view is the root of its own sheet
+      onClose();
+    } else if (view === 'search') {
       setView('books');
-    } else if (view === 'verses') {
-      // Go directly back to books (skip chapters and testament pages)
+    } else if (view === 'verses' || view === 'chapters') {
+      // Overlay usage (ProfileTab) browses books -> verses inside one
+      // full-screen Modal, so back returns to the books list with the current
+      // book's testament still expanded
       setView('books');
-      setExpandedTestament(null); // Close any expanded testaments
-    } else if (view === 'chapters') {
-        setView('books');
-      setExpandedTestament(null);
+      setExpandedTestament(currentBook?.testament || null);
     } else if (view === 'old-testament' || view === 'new-testament') {
       setView('books');
     }
   };
+
+  // Hardware back (Android) / Modal onRequestClose: close the top overlay
+  // first, then step back one navigation level. Returns true when handled.
+  const handleHardwareBack = () => {
+    if (asScreen && navigation?.isFocused && !navigation.isFocused()) return false;
+    if (showShareCard) { closeShareCard(); return true; }
+    if (showTextSelectionModal) { setShowTextSelectionModal(false); return true; }
+    if (showVerseMenu) { closeVerseMenu(); return true; }
+    if (showJournalingModal) { closeNoteModal(); return true; }
+    if (showSearchModal) { setShowSearchModal(false); return true; }
+    if (showVersionPicker) { setShowVersionPicker(false); return true; }
+    if (showBookSelector) { setShowBookSelector(false); return true; }
+    if (showAccessibilityPopup) { setShowAccessibilityPopup(false); return true; }
+    if (rangeSelectionMode) { cancelRangeSelection(); return true; }
+    if (isVersesScreen) {
+      // Reading sheet root: let the navigator dismiss it
+      return false;
+    }
+    if (view !== 'books') {
+      goBack();
+      return true;
+    }
+    return false;
+  };
+  hardwareBackRef.current = handleHardwareBack;
 
   // Interactive Features Handlers
   const handleJournalVerse = (verse) => {
@@ -3122,8 +3277,17 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
 
   const verseMenuPanResponder = useRef(
     PanResponder.create({
+      // Taps must still reach the action rows, so never claim on touch start.
+      // The CAPTURE variant is what makes the sheet draggable from anywhere:
+      // without it the row Touchables become the responder on touch-down and
+      // the parent never sees the drag, so pull-to-close only worked on the
+      // handle and the gaps between cards.
       onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gs) => gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+      onMoveShouldSetPanResponderCapture: (_, gs) =>
+        !showColorPickerRef.current && gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+      onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => { verseMenuDragY.setValue(0); },
       onPanResponderMove: Animated.event(
         [null, { dy: verseMenuDragY }],
@@ -3138,9 +3302,20 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             toValue: 0,
             tension: 65,
             friction: 11,
-            useNativeDriver: true,
+            // Drag tracking is JS-driven (PanResponder gestureState can't feed
+            // the native driver), and this value shares a transform with
+            // verseMenuSlideAnim, so both must stay off the native driver
+            useNativeDriver: false,
           }).start();
         }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(verseMenuDragY, {
+          toValue: 0,
+          tension: 65,
+          friction: 11,
+          useNativeDriver: false,
+        }).start();
       },
     })
   ).current;
@@ -3242,7 +3417,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         <BlurView 
           intensity={45} 
           tint={isDark ? 'dark' : 'light'}
-          style={[styles.header, { backgroundColor: 'transparent' }]}
+          style={[styles.header, { backgroundColor: 'transparent', paddingTop: asScreen ? 16 : 60 }]}
         >
           <View style={styles.youversionHeader}>
             <View style={styles.youversionTop}>
@@ -3353,7 +3528,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         </BlurView>
       ) : (
           // Original header for books view
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: asScreen ? 16 : 60 }]}>
           <View style={styles.headerTop}>
             <TouchableOpacity
               onPress={() => {
@@ -3419,14 +3594,13 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const renderBooks = () => (
     <ScrollView 
       style={[styles.content, { backgroundColor: theme.background }]}
-      contentContainerStyle={{ 
-        paddingHorizontal: 20, 
+      contentContainerStyle={{
+        paddingHorizontal: 20,
         paddingBottom: 40,
         flexGrow: 1,
         justifyContent: 'center',
-        paddingTop: 80,
+        paddingTop: asScreen ? 36 : 80,
       }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
       {/* Premium Testament Cards */}
@@ -3530,7 +3704,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 }}
                 onPress={() => {
                   hapticFeedback.buttonPress();
-                  loadChapters(book);
+                  openBook(book);
                   setExpandedTestament(null);
                 }}
                 activeOpacity={0.6}
@@ -3661,7 +3835,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 }}
                 onPress={() => {
                   hapticFeedback.buttonPress();
-                  loadChapters(book);
+                  openBook(book);
                   setExpandedTestament(null);
                 }}
                 activeOpacity={0.6}
@@ -3701,7 +3875,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const renderChapters = () => (
     <ScrollView 
       style={[styles.content, { backgroundColor: theme.background }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
       {/* Clean Header with theme colors */}
@@ -3761,9 +3934,8 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         <ScrollView 
           ref={versesScrollViewRef}
           style={[styles.content, { backgroundColor: theme.background, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }]}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.youversionContentContainer, { paddingTop: 170, paddingBottom: showAudioPlayer ? Math.max(300, windowHeight * 0.6) : 40 }]}
+          contentContainerStyle={[styles.youversionContentContainer, { paddingTop: asScreen ? 126 : 170, paddingBottom: showAudioPlayer ? Math.max(300, windowHeight * 0.6) : 40 }]}
           scrollEventThrottle={16}
           directionalLockEnabled={true}
         >
@@ -4127,7 +4299,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const renderOldTestament = () => (
     <ScrollView 
       style={[styles.content, { backgroundColor: theme.background }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
       {/* Clean Header with theme colors */}
@@ -4148,7 +4319,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             style={styles.modernBookCard}
             onPress={() => {
               hapticFeedback.buttonPress();
-              loadChapters(book);
+              openBook(book);
             }}
           >
             <View style={[styles.cleanBookCard, { 
@@ -4182,7 +4353,6 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
   const renderNewTestament = () => (
     <ScrollView 
       style={[styles.content, { backgroundColor: theme.background }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
       {/* Clean Header with theme colors */}
@@ -4203,7 +4373,7 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
             style={styles.modernBookCard}
             onPress={() => {
               hapticFeedback.buttonPress();
-              loadChapters(book);
+              openBook(book);
             }}
           >
             <View style={[styles.cleanBookCard, { 
@@ -4279,9 +4449,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
                 onPress={() => setShowAccessibilityPopup(false)}
               />
-              <View style={[styles.aaPopupContainer, { 
+              <View style={[styles.aaPopupContainer, {
                 backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
                 shadowColor: '#000',
+                top: asScreen ? 116 : 160,
               }]}>
                 {/* Font Size Slider */}
                 <View style={styles.aaSection}>
@@ -4380,6 +4551,14 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 zIndex: 99999,
                 opacity: bookSelectorFadeAnim
               }}>
+                {/* Tap outside to close: the drag on the grabber can be stolen
+                    by the parent sheet's dismissal recognizer, so this sheet
+                    needs an affordance that never depends on a gesture */}
+                <TouchableOpacity
+                  style={StyleSheet.absoluteFill}
+                  activeOpacity={1}
+                  onPress={() => { hapticFeedback.light(); setShowBookSelector(false); }}
+                />
                 <Animated.View style={{
                   position: 'absolute',
                   bottom: 0,
@@ -4540,6 +4719,12 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 zIndex: 99998,
                 opacity: versionPickerFadeAnim
               }}>
+                {/* Tap outside to close (see the book selector above) */}
+                <TouchableOpacity
+                  style={StyleSheet.absoluteFill}
+                  activeOpacity={1}
+                  onPress={() => { hapticFeedback.light(); setShowVersionPicker(false); }}
+                />
                 <Animated.View style={{
                   position: 'absolute',
                   bottom: 0,
@@ -4866,23 +5051,15 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                             onPress={() => {
                               hapticFeedback.light();
                               addRecentSearch(result.reference);
-                              // Navigate to the verse
                               if (result.bookId && result.chapter && result.verse) {
                                 const book = books.find(b => b.id === result.bookId);
                                 if (book) {
-                                  setCurrentBook(book);
-                                  // Set the target verse number to scroll to
-                                  setTargetVerseNumber(result.verse);
-                                  const service = getBibleService(selectedBibleVersion);
-                                  service.getChapters(book.id).then(chapters => {
-                                    const chapter = chapters.find(c => c.number === result.chapter.toString());
-                                    if (chapter) {
-                                      loadVerses(chapter);
-                                      setShowSearchModal(false);
-                                      setSearchQuery('');
-                                      setSearchResults([]);
-                                    }
-                                  });
+                                  setShowSearchModal(false);
+                                  setSearchQuery('');
+                                  setSearchResults([]);
+                                  // From the books sheet this pushes the reading
+                                  // sheet; inside it the chapter swaps in place
+                                  openBook(book, result.chapter, result.verse);
                                 }
                               }
                             }}
@@ -4945,8 +5122,22 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         )}
           </View>
           
-          {/* Verse Action Menu - INSIDE main modal */}
-          {showVerseMenu && selectedVerseForMenu && (
+          {/* Verse Action Menu.
+              Rendered in a real RN <Modal>, i.e. its own window ABOVE the
+              presentation:'modal' screen. In-tree overlays can't be pulled
+              down: UIKit's sheet-dismissal pan recognizer claims every
+              downward drag before a JS PanResponder sees it, and
+              modalInPresentation (what gestureEnabled maps to) only blocks
+              the dismissal — it doesn't hand the drag back. A separate window
+              never competes, so the drag-to-close below actually works. */}
+          <Modal
+            visible={!!(showVerseMenu && selectedVerseForMenu)}
+            transparent
+            animationType="none"
+            statusBarTranslucent
+            onRequestClose={() => closeVerseMenu()}
+          >
+            {showVerseMenu && selectedVerseForMenu && (
             <View style={{
               position: 'absolute',
               top: 0,
@@ -4961,10 +5152,10 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 opacity: verseMenuFadeAnim 
               }}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={{ flex: 1 }}
                   activeOpacity={0.7}
-                  onPress={closeVerseMenu}
+                  onPress={() => closeVerseMenu()}
                 />
               </Animated.View>
               
@@ -5381,11 +5572,30 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
                       </View>
                       <MaterialIcons name="arrow-forward" size={20} color={theme.textSecondary} />
                     </TouchableOpacity>
+
+                    {/* Explicit close, so dismissing never depends on a gesture */}
+                    <TouchableOpacity
+                      style={{
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingVertical: 16,
+                        borderRadius: 12,
+                        backgroundColor: theme.card,
+                        marginTop: 4,
+                      }}
+                      onPress={() => { hapticFeedback.light(); closeVerseMenu(); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: theme.textSecondary }}>
+                        Close
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </Animated.View>
             </View>
-          )}
+            )}
+          </Modal>
 
           {/* Note Modal - Modal Presentation with Interactive Dismissal */}
           {showJournalingModal && selectedVerseForJournal && (
@@ -6743,19 +6953,49 @@ const BibleReader = ({ visible, onClose, onNavigateToAI, initialVerseReference, 
         </View>
   );
 
+  // Screen mode needs no hand-built gesture: books and reading are separate
+  // sheets, so iOS drives both the pull-down dismiss and the pop underneath.
+  // The overlay Modal (ProfileTab) has no navigator, so it keeps the edge
+  // swipe to step verses -> books. Disabled while an in-tree overlay is open
+  // (overlay drags must not trigger it) and while a chapter loads (a pending
+  // loadVerses would setView('verses') and yank the user straight back).
+  const swipeBackEnabled =
+    view !== 'books' &&
+    !loading &&
+    !rangeSelectionMode &&
+    !showBookSelector &&
+    !showVersionPicker &&
+    !showSearchModal &&
+    !showVerseMenu &&
+    !showJournalingModal &&
+    !showShareCard &&
+    !showTextSelectionModal &&
+    !showAccessibilityPopup;
+
   if (asScreen) {
     return bibleContent;
   }
 
   return (
     <>
-      <Modal 
-        visible={visible} 
-        animationType="slide" 
+      <Modal
+        visible={visible}
+        animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => {}}
+        onRequestClose={() => {
+          // Android hardware back inside the overlay Modal: RN routes it
+          // here, not to BackHandler listeners
+          if (!handleHardwareBack()) onClose();
+        }}
       >
-        {bibleContent}
+        <InteractiveSwipeBack
+          enabled={swipeBackEnabled}
+          onSwipeBack={goBack}
+          backgroundColor={theme.background}
+          resetKey={`${view}:${visible}`}
+        >
+          {bibleContent}
+        </InteractiveSwipeBack>
       </Modal>
     </>
   );

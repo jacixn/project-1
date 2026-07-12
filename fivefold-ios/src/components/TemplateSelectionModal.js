@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   Animated,
+  ActivityIndicator,
   DeviceEventEmitter,
   KeyboardAvoidingView,
   Keyboard,
@@ -20,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext";
 import { hapticFeedback } from "../utils/haptics";
 import WorkoutExercisePicker from "./WorkoutExercisePicker";
+import AddExerciseModal from "./AddExerciseModal";
 import WorkoutService from "../services/workoutService";
 import ExercisesService from "../services/exercisesService";
 import ScheduleWorkoutModal from "./ScheduleWorkoutModal";
@@ -60,6 +62,9 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   const [editorTemplate, setEditorTemplate] = useState(null); // Template being created/edited
   const [editorExercises, setEditorExercises] = useState([]); // Exercises in editor
   const [showExercisePickerInEditor, setShowExercisePickerInEditor] = useState(false); // Embedded picker
+  const [showCreateExerciseInEditor, setShowCreateExerciseInEditor] = useState(false); // Custom exercise form
+  const [editorBodyPartFilter, setEditorBodyPartFilter] = useState('All');
+  const [editorNameFocused, setEditorNameFocused] = useState(false);
   const [editorExercisesList, setEditorExercisesList] = useState([]); // All exercises for picker
   const [editorSearchQuery, setEditorSearchQuery] = useState('');
   const [loadingExercises, setLoadingExercises] = useState(false);
@@ -652,7 +657,25 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   // NEW TEMPLATE EDITOR FUNCTIONS
   const handleAddExerciseToEditor = () => {
     hapticFeedback.light();
+    setEditorBodyPartFilter('All');
     setShowExercisePickerInEditor(true); // Show embedded picker instead of navigating
+  };
+
+  // Create a custom exercise straight from the picker, then drop it into the
+  // template. Persists via the same service the Exercises library uses, so it
+  // shows up everywhere afterwards.
+  const handleCreateCustomExerciseInEditor = async (exercise) => {
+    try {
+      const created = await ExercisesService.addCustomExercise(exercise);
+      setShowCreateExerciseInEditor(false);
+      setEditorExercisesList((prev) => [created, ...prev]);
+      hapticFeedback.success();
+      handleExerciseSelectedForEditor(created);
+    } catch (error) {
+      console.error('Error creating custom exercise:', error);
+      hapticFeedback.error();
+      Alert.alert('Error', 'Could not create that exercise. Please try again.');
+    }
   };
 
   const handleExerciseSelectedForEditor = (exercise) => {
@@ -661,6 +684,10 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
       name: exercise.name,
       bodyPart: exercise.bodyPart,
       equipment: exercise.equipment || 'Machine',
+      // Carried through so Physique scores the muscles this exercise declares
+      // rather than re-guessing them from its name
+      target: exercise.target,
+      muscles: exercise.muscles,
       sets: 3,
       reps: '',
       weight: '',
@@ -1644,10 +1671,9 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                     // Store template and close detail modal first
                     const templateToSched = selectedTemplate;
                     setShowTemplateDetail(false);
-                    // Use setTimeout to allow the detail modal to close first
+                    // Open the native pull-to-dismiss Schedule Workout modal screen.
                     setTimeout(() => {
-                      setTemplateToSchedule(templateToSched);
-                      setShowScheduleModal(true);
+                      navigation.navigate('ScheduleWorkout', { template: templateToSched });
                     }, 300);
                   }}
                 >
@@ -1826,253 +1852,403 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             keyboardVerticalOffset={0}
           >
             {/* Header */}
-            <View style={[styles.editorHeader, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-              <TouchableOpacity onPress={handleCancelEditor}>
-                <Text style={[styles.editorHeaderButton, { color: theme.primary }]}>Cancel</Text>
+            <View style={[styles.editorHeader, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+              <TouchableOpacity onPress={handleCancelEditor} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Text style={[styles.editorCancel, { color: theme.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={[styles.editorHeaderTitle, { color: theme.text }]}>
-                {editorTemplate?.exercises?.length > 0 ? 'Edit Template' : 'Create Template'}
+
+              <Text style={[styles.editorHeaderTitle, { color: theme.text }]} numberOfLines={1}>
+                {editorTemplate?.exercises?.length > 0 ? "Edit Template" : "Create Template"}
               </Text>
-              <TouchableOpacity onPress={handleSaveTemplate}>
-                <Text style={[styles.editorHeaderButton, { color: theme.primary, fontWeight: '700' }]}>Save</Text>
+
+              <TouchableOpacity
+                onPress={handleSaveTemplate}
+                activeOpacity={0.85}
+                style={[
+                  styles.editorSavePill,
+                  {
+                    backgroundColor:
+                      editorTemplate?.name?.trim() && editorExercises.length > 0
+                        ? theme.primary
+                        : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.editorSavePillText,
+                    {
+                      color:
+                        editorTemplate?.name?.trim() && editorExercises.length > 0
+                          ? "#FFFFFF"
+                          : theme.textSecondary,
+                    },
+                  ]}
+                >
+                  Save
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView 
-              style={styles.editorContent} 
+            <ScrollView
+              style={styles.editorContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
               contentContainerStyle={styles.editorContentContainer}
             >
-              {/* Template Name */}
-              <View style={styles.editorSection}>
-                <Text style={[styles.editorLabel, { color: theme.textSecondary }]}>Template Name</Text>
-                <TextInput
-                  style={[styles.editorNameInput, { 
-                    color: theme.text, 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                    borderColor: theme.border 
-                  }]}
-                  value={editorTemplate?.name || ''}
-                  onChangeText={(text) => setEditorTemplate({ ...editorTemplate, name: text })}
-                  placeholder="e.g., Monday Workout"
-                  placeholderTextColor={theme.textSecondary}
-                />
-              </View>
-
-              {/* Exercises List - Show when NOT in picker mode */}
               {!showExercisePickerInEditor && (
-                <View style={styles.editorSection}>
-                  <View style={styles.editorExercisesHeader}>
-                    <Text style={[styles.editorLabel, { color: theme.textSecondary }]}>
-                      Exercises ({editorExercises.length})
-                    </Text>
-                    <TouchableOpacity 
-                      onPress={handleAddExerciseToEditor}
-                      style={[styles.addExerciseButton, { backgroundColor: theme.primary }]}
-                    >
-                      <MaterialIcons name="add" size={20} color="#FFFFFF" />
-                      <Text style={styles.addExerciseButtonText}>Add Exercise</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {editorExercises.map((exercise, index) => (
-                    <View key={index} style={[styles.exerciseEditorCard, { 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                      borderColor: theme.border 
-                    }]}>
-                      {/* Exercise Header */}
-                      <View style={styles.exerciseEditorHeader}>
-                        <View style={styles.exerciseEditorInfo}>
-                          <Text style={[styles.exerciseEditorName, { color: theme.text }]}>{exercise.name}</Text>
-                          <Text style={[styles.exerciseEditorBodyPart, { color: theme.textSecondary }]}>
-                            {exercise.bodyPart}
-                          </Text>
-                        </View>
-                        <TouchableOpacity 
-                          onPress={() => handleRemoveExerciseFromEditor(index)}
-                          style={styles.removeExerciseButton}
-                        >
-                          <MaterialIcons name="close" size={22} color={theme.error || '#FF3B30'} />
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* Exercise Fields */}
-                      <View style={styles.exerciseFields}>
-                        {/* Sets */}
-                        <View style={styles.exerciseField}>
-                          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Sets</Text>
-                          <View style={styles.setsSelector}>
-                            {[1, 2, 3, 4, 5, 6].map((num) => (
-                              <TouchableOpacity
-                                key={num}
-                                style={[
-                                  styles.setsSelectorButton,
-                                  {
-                                    backgroundColor: exercise.sets === num
-                                      ? theme.primary
-                                      : isDark
-                                        ? 'rgba(255,255,255,0.1)'
-                                        : 'rgba(0,0,0,0.05)',
-                                  },
-                                ]}
-                                onPress={() => handleUpdateExerciseInEditor(index, 'sets', num)}
-                              >
-                                <Text
-                                  style={[
-                                    styles.setsSelectorText,
-                                    { color: exercise.sets === num ? '#FFFFFF' : theme.text },
-                                  ]}
-                                >
-                                  {num}
-                                </Text>
-                              </TouchableOpacity>
-                            ))}
-                          </View>
-                        </View>
-
-                        {/* Weight and Reps */}
-                        <View style={styles.exerciseFieldsRow}>
-                          <View style={[styles.exerciseField, { flex: 1 }]}>
-                            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Weight (kg)</Text>
-                            <TextInput
-                              style={[styles.fieldInput, { 
-                                color: theme.text, 
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                                borderColor: theme.border 
-                              }]}
-                              value={exercise.weight}
-                              onChangeText={(text) => handleUpdateExerciseInEditor(index, 'weight', text)}
-                              placeholder="0"
-                              placeholderTextColor={theme.textSecondary}
-                              keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
-                            />
-                          </View>
-
-                          <View style={[styles.exerciseField, { flex: 1 }]}>
-                            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Reps</Text>
-                            <TextInput
-                              style={[styles.fieldInput, { 
-                                color: theme.text, 
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                                borderColor: theme.border 
-                              }]}
-                              value={exercise.reps}
-                              onChangeText={(text) => handleUpdateExerciseInEditor(index, 'reps', text)}
-                              placeholder="0"
-                              placeholderTextColor={theme.textSecondary}
-                              keyboardType="number-pad"
-                            />
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-
-                  {editorExercises.length === 0 && (
-                    <View style={styles.emptyExercisesState}>
-                      <MaterialIcons name="fitness-center" size={48} color={theme.textSecondary} opacity={0.5} />
-                      <Text style={[styles.emptyExercisesText, { color: theme.textSecondary }]}>
-                        No exercises yet
-                      </Text>
-                      <Text style={[styles.emptyExercisesSubtext, { color: theme.textSecondary }]}>
-                        Tap "Add Exercise" to get started
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Embedded Exercise Picker - Show when in picker mode */}
-              {showExercisePickerInEditor && (
-                <View style={styles.embeddedPicker}>
-                  <View style={styles.embeddedPickerHeader}>
-                    <TouchableOpacity 
-                      onPress={() => {
-                        setShowExercisePickerInEditor(false);
-                        setEditorSearchQuery('');
-                      }}
-                      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
-                      activeOpacity={0.7}
-                    >
-                      <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
-                    </TouchableOpacity>
-                    <Text style={[styles.embeddedPickerTitle, { color: theme.text }]}>Select Exercise</Text>
-                    <View style={{ width: 80 }} />
-                  </View>
-
-                  {/* Search Bar */}
-                  <View style={[styles.embeddedSearchContainer, { 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' 
-                  }]}>
-                    <MaterialIcons name="search" size={20} color={theme.textSecondary} />
+                <>
+                  {/* Template name */}
+                  <View style={styles.editorBlock}>
+                    <Text style={[styles.editorOverline, { color: theme.textSecondary }]}>TEMPLATE NAME</Text>
                     <TextInput
-                      style={[styles.embeddedSearchInput, { color: theme.text }]}
-                      placeholder="Search exercises..."
-                      placeholderTextColor={theme.textSecondary}
-                      value={editorSearchQuery}
-                      onChangeText={setEditorSearchQuery}
+                      style={[
+                        styles.editorNameInput,
+                        { color: theme.text, borderBottomColor: editorNameFocused ? theme.primary : theme.border },
+                      ]}
+                      value={editorTemplate?.name || ""}
+                      onChangeText={(text) => setEditorTemplate({ ...editorTemplate, name: text })}
+                      onFocus={() => setEditorNameFocused(true)}
+                      onBlur={() => setEditorNameFocused(false)}
+                      placeholder="Push Day"
+                      placeholderTextColor={isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)"}
+                      returnKeyType="done"
                     />
                   </View>
 
-                  {/* Exercise List */}
-                  {loadingExercises ? (
-                    <View style={styles.loadingContainer}>
-                      <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading exercises...</Text>
+                  {/* Exercises */}
+                  <View style={styles.editorBlock}>
+                    <View style={styles.editorSectionRow}>
+                      <View style={styles.editorSectionTitleWrap}>
+                        <Text style={[styles.editorSectionTitle, { color: theme.text }]}>Exercises</Text>
+                        {editorExercises.length > 0 && (
+                          <View style={[styles.editorCountPill, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}>
+                            <Text style={[styles.editorCountPillText, { color: theme.textSecondary }]}>{editorExercises.length}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={handleAddExerciseToEditor}
+                        activeOpacity={0.85}
+                        style={[styles.editorAddPill, { backgroundColor: theme.primary }]}
+                      >
+                        <MaterialIcons name="add" size={18} color="#FFFFFF" />
+                        <Text style={styles.editorAddPillText}>Add Exercise</Text>
+                      </TouchableOpacity>
                     </View>
-                  ) : (
-                    <ScrollView style={styles.embeddedExerciseList} showsVerticalScrollIndicator={false}>
-                      {editorExercisesList
-                        .filter(ex => 
-                          ex.name.toLowerCase().includes(editorSearchQuery.toLowerCase()) ||
-                          ex.bodyPart.toLowerCase().includes(editorSearchQuery.toLowerCase())
-                        )
-                        .map((exercise, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            style={[styles.embeddedExerciseItem, { borderBottomColor: theme.border }]}
-                            onPress={() => handleExerciseSelectedForEditor(exercise)}
-                          >
-                            <View style={styles.embeddedExerciseInfo}>
-                              <Text style={[styles.embeddedExerciseName, { color: theme.text }]}>
-                                {exercise.name}
-                              </Text>
-                              <Text style={[styles.embeddedExerciseBodyPart, { color: theme.textSecondary }]}>
-                                {exercise.bodyPart}
+
+                    {editorExercises.map((exercise, index) => {
+                      const setCount = Number(exercise.sets) || 0;
+                      const summary = [
+                        `${setCount} ${setCount === 1 ? "set" : "sets"}`,
+                        exercise.reps ? `${exercise.reps} reps` : null,
+                        exercise.weight ? `${exercise.weight} kg` : null,
+                      ]
+                        .filter(Boolean)
+                        .join("  ·  ");
+
+                      return (
+                        <View
+                          key={index}
+                          style={[
+                            styles.exCard,
+                            {
+                              backgroundColor: isDark ? "rgba(255,255,255,0.045)" : "#FFFFFF",
+                              borderColor: theme.border,
+                            },
+                          ]}
+                        >
+                          <View style={styles.exCardTop}>
+                            <Text style={[styles.exIndex, { color: theme.primary }]}>
+                              {String(index + 1).padStart(2, "0")}
+                            </Text>
+
+                            <View style={styles.exTitleWrap}>
+                              <Text style={[styles.exName, { color: theme.text }]}>{exercise.name}</Text>
+                              <Text style={[styles.exMeta, { color: theme.textSecondary }]}>
+                                {[exercise.bodyPart, exercise.equipment].filter(Boolean).join("  ·  ")}
                               </Text>
                             </View>
-                            <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
-                          </TouchableOpacity>
-                        ))
-                      }
-                    </ScrollView>
-                  )}
-                </View>
+
+                            <TouchableOpacity
+                              onPress={() => handleRemoveExerciseFromEditor(index)}
+                              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                            >
+                              <MaterialIcons name="close" size={20} color={theme.error || "#FF3B30"} />
+                            </TouchableOpacity>
+                          </View>
+
+                          <Text style={[styles.exSummary, { color: theme.textSecondary }]}>{summary}</Text>
+
+                          <Text style={[styles.exMicroLabel, { color: theme.textSecondary }]}>SETS</Text>
+                          <View style={styles.exSetsRow}>
+                            {[1, 2, 3, 4, 5, 6].map((num) => {
+                              const active = setCount === num;
+                              return (
+                                <TouchableOpacity
+                                  key={num}
+                                  onPress={() => {
+                                    hapticFeedback.selection();
+                                    handleUpdateExerciseInEditor(index, "sets", num);
+                                  }}
+                                  activeOpacity={0.8}
+                                  style={[
+                                    styles.exSetChip,
+                                    {
+                                      backgroundColor: active
+                                        ? theme.primary
+                                        : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                                      borderColor: active ? theme.primary : theme.border,
+                                    },
+                                  ]}
+                                >
+                                  <Text style={[styles.exSetChipText, { color: active ? "#FFFFFF" : theme.text }]}>
+                                    {num}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+
+                          <View style={styles.exFieldRow}>
+                            <View style={styles.exField}>
+                              <Text style={[styles.exMicroLabel, { color: theme.textSecondary }]}>WEIGHT</Text>
+                              <View
+                                style={[
+                                  styles.exInputWrap,
+                                  {
+                                    backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                                    borderColor: theme.border,
+                                  },
+                                ]}
+                              >
+                                <TextInput
+                                  style={[styles.exInput, { color: theme.text }]}
+                                  value={exercise.weight}
+                                  onChangeText={(text) => handleUpdateExerciseInEditor(index, "weight", text)}
+                                  placeholder="0"
+                                  placeholderTextColor={isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)"}
+                                  keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
+                                />
+                                <Text style={[styles.exUnit, { color: theme.textSecondary }]}>kg</Text>
+                              </View>
+                            </View>
+
+                            <View style={styles.exField}>
+                              <Text style={[styles.exMicroLabel, { color: theme.textSecondary }]}>REPS</Text>
+                              <View
+                                style={[
+                                  styles.exInputWrap,
+                                  {
+                                    backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                                    borderColor: theme.border,
+                                  },
+                                ]}
+                              >
+                                <TextInput
+                                  style={[styles.exInput, { color: theme.text }]}
+                                  value={exercise.reps}
+                                  onChangeText={(text) => handleUpdateExerciseInEditor(index, "reps", text)}
+                                  placeholder="0"
+                                  placeholderTextColor={isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)"}
+                                  keyboardType="number-pad"
+                                />
+                                <Text style={[styles.exUnit, { color: theme.textSecondary }]}>reps</Text>
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })}
+
+                    {editorExercises.length === 0 && (
+                      <View style={styles.exEmpty}>
+                        <MaterialIcons name="fitness-center" size={40} color={theme.textSecondary} style={{ opacity: 0.35 }} />
+                        <Text style={[styles.exEmptyTitle, { color: theme.text }]}>No exercises yet</Text>
+                        <Text style={[styles.exEmptySub, { color: theme.textSecondary }]}>
+                          Add your first exercise to build this template.
+                        </Text>
+                        <TouchableOpacity
+                          onPress={handleAddExerciseToEditor}
+                          activeOpacity={0.85}
+                          style={[styles.exEmptyBtn, { backgroundColor: theme.primary }]}
+                        >
+                          <MaterialIcons name="add" size={18} color="#FFFFFF" />
+                          <Text style={styles.exEmptyBtnText}>Add Exercise</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </>
               )}
+
+              {/* Embedded exercise picker */}
+              {showExercisePickerInEditor && (() => {
+                const q = editorSearchQuery.trim().toLowerCase();
+                const bodyParts = ["All", ...Array.from(new Set(editorExercisesList.map((e) => e.bodyPart).filter(Boolean)))];
+                const filtered = editorExercisesList.filter((ex) => {
+                  const matchesQuery =
+                    !q ||
+                    ex.name.toLowerCase().includes(q) ||
+                    (ex.bodyPart || "").toLowerCase().includes(q);
+                  const matchesPart = editorBodyPartFilter === "All" || ex.bodyPart === editorBodyPartFilter;
+                  return matchesQuery && matchesPart;
+                });
+
+                return (
+                  <View style={styles.pickerWrap}>
+                    <View style={styles.pickerHeader}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowExercisePickerInEditor(false);
+                          setEditorSearchQuery("");
+                        }}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      >
+                        <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+                      </TouchableOpacity>
+                      <Text style={[styles.pickerTitle, { color: theme.text }]}>Add Exercise</Text>
+                      <View style={{ width: 24 }} />
+                    </View>
+
+                    <View
+                      style={[
+                        styles.pickerSearch,
+                        {
+                          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
+                      <MaterialIcons name="search" size={20} color={theme.textSecondary} />
+                      <TextInput
+                        style={[styles.pickerSearchInput, { color: theme.text }]}
+                        placeholder="Search exercises"
+                        placeholderTextColor={theme.textSecondary}
+                        value={editorSearchQuery}
+                        onChangeText={setEditorSearchQuery}
+                        autoCorrect={false}
+                      />
+                      {editorSearchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setEditorSearchQuery("")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                          <MaterialIcons name="close" size={18} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {bodyParts.length > 1 && (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.pickerChipsRow}
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        {bodyParts.map((part) => {
+                          const active = editorBodyPartFilter === part;
+                          return (
+                            <TouchableOpacity
+                              key={part}
+                              onPress={() => {
+                                hapticFeedback.selection();
+                                setEditorBodyPartFilter(part);
+                              }}
+                              activeOpacity={0.8}
+                              style={[
+                                styles.pickerChip,
+                                {
+                                  backgroundColor: active ? theme.primary : "transparent",
+                                  borderColor: active ? theme.primary : theme.border,
+                                },
+                              ]}
+                            >
+                              <Text style={[styles.pickerChipText, { color: active ? "#FFFFFF" : theme.textSecondary }]}>
+                                {part}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setShowCreateExerciseInEditor(true);
+                      }}
+                      activeOpacity={0.8}
+                      style={[styles.pickerCreateRow, { borderColor: theme.primary }]}
+                    >
+                      <MaterialIcons name="add" size={20} color={theme.primary} />
+                      <Text style={[styles.pickerCreateText, { color: theme.primary }]}>
+                        {editorSearchQuery.trim()
+                          ? `Create "${editorSearchQuery.trim()}"`
+                          : "Create custom exercise"}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {loadingExercises ? (
+                      <View style={styles.pickerLoading}>
+                        <ActivityIndicator color={theme.primary} />
+                        <Text style={[styles.pickerLoadingText, { color: theme.textSecondary }]}>Loading exercises</Text>
+                      </View>
+                    ) : filtered.length === 0 ? (
+                      <View style={styles.pickerEmpty}>
+                        <Text style={[styles.pickerEmptyTitle, { color: theme.text }]}>No matches</Text>
+                        <Text style={[styles.pickerEmptySub, { color: theme.textSecondary }]}>
+                          Nothing here by that name. Create it as a custom exercise above.
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.pickerList}>
+                        {filtered.map((exercise, index) => (
+                          <TouchableOpacity
+                            key={exercise.id || index}
+                            style={[styles.pickerItem, { borderBottomColor: theme.border }]}
+                            onPress={() => handleExerciseSelectedForEditor(exercise)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={styles.pickerItemInfo}>
+                              <View style={styles.pickerItemNameRow}>
+                                <Text style={[styles.pickerItemName, { color: theme.text }]}>{exercise.name}</Text>
+                                {exercise.isCustom && (
+                                  <View style={[styles.pickerCustomTag, { borderColor: theme.primary }]}>
+                                    <Text style={[styles.pickerCustomTagText, { color: theme.primary }]}>Custom</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={[styles.pickerItemMeta, { color: theme.textSecondary }]}>
+                                {[exercise.bodyPart, exercise.equipment].filter(Boolean).join("  ·  ")}
+                              </Text>
+                            </View>
+                            <MaterialIcons name="add" size={22} color={theme.primary} />
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
 
               <View style={{ height: 100 }} />
             </ScrollView>
           </KeyboardAvoidingView>
+
+          {/* Create a custom exercise without leaving the template editor. Saves via
+              ExercisesService, then drops straight into the template. */}
+          <AddExerciseModal
+            visible={showCreateExerciseInEditor}
+            onClose={() => setShowCreateExerciseInEditor(false)}
+            onAdd={handleCreateCustomExerciseInEditor}
+            initialName={editorSearchQuery.trim()}
+          />
         </Modal>
 
         {/* Mini Workout Player removed — it overlapped template cards and duplicated
            the active workout display. Users resume workouts from the Gym tab. */}
 
-        {/* Schedule Workout Modal */}
-        <ScheduleWorkoutModal
-          visible={showScheduleModal}
-          onClose={() => {
-            setShowScheduleModal(false);
-            setTemplateToSchedule(null);
-          }}
-          template={templateToSchedule}
-          onScheduled={(schedule) => {
-            console.log('Workout scheduled:', schedule);
-            // Emit event to refresh calendar
-            DeviceEventEmitter.emit('workoutScheduled', schedule);
-          }}
-        />
+        {/* Schedule Workout is now a native modal screen (navigation.navigate). */}
 
         {/* Workout Split Modal */}
         <WorkoutSplitModal
@@ -2587,15 +2763,35 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "ios" ? 60 : 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  editorCancel: {
+    fontSize: 16,
+    fontWeight: "500",
+    minWidth: 62,
   },
   editorHeaderButton: {
     fontSize: 16,
     fontWeight: "600",
   },
   editorHeaderTitle: {
-    fontSize: 18,
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+    flex: 1,
+    textAlign: "center",
+  },
+  editorSavePill: {
+    minWidth: 62,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editorSavePillText: {
+    fontSize: 15,
     fontWeight: "700",
   },
   editorContent: {
@@ -2604,22 +2800,314 @@ const styles = StyleSheet.create({
   editorContentContainer: {
     paddingBottom: Platform.OS === "ios" ? 40 : 60, // Minimal inset so keyboard does not leave a gap
   },
-  editorSection: {
-    padding: 20,
+
+  // ── Redesigned editor ────────────────────────────────────────────────
+  editorBlock: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
-  editorLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 12,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  editorOverline: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    marginBottom: 6,
   },
   editorNameInput: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    borderBottomWidth: 2,
+  },
+  editorSectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  editorSectionTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  editorSectionTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+  },
+  editorCountPill: {
+    minWidth: 24,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  editorCountPillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  editorAddPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 22,
+  },
+  editorAddPillText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  exCard: {
+    borderRadius: 16,
     borderWidth: 1,
-    borderRadius: 12,
     padding: 16,
+    marginBottom: 12,
+  },
+  exCardTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  exIndex: {
+    fontSize: 13,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+    marginTop: 3,
+  },
+  exTitleWrap: {
+    flex: 1,
+  },
+  exName: {
     fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  exMeta: {
+    fontSize: 13,
     fontWeight: "500",
+    marginTop: 2,
+  },
+  exSummary: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 10,
+    fontVariant: ["tabular-nums"],
+  },
+  exMicroLabel: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  exSetsRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  exSetChip: {
+    flex: 1,
+    height: 42,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  exSetChipText: {
+    fontSize: 15,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  exFieldRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  exField: {
+    flex: 1,
+  },
+  exInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 11,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  exInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    padding: 0,
+  },
+  exUnit: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+
+  exEmpty: {
+    alignItems: "center",
+    paddingVertical: 44,
+    gap: 8,
+  },
+  exEmptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginTop: 6,
+  },
+  exEmptySub: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 24,
+  },
+  exEmptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 22,
+    marginTop: 10,
+  },
+  exEmptyBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  // ── Embedded exercise picker ─────────────────────────────────────────
+  pickerWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  pickerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  pickerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  pickerSearch: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 46,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    padding: 0,
+  },
+  pickerChipsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 14,
+    paddingRight: 4,
+  },
+  pickerChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  pickerChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  pickerCreateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  pickerCreateText: {
+    fontSize: 15,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  pickerLoading: {
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 40,
+  },
+  pickerLoadingText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  pickerEmpty: {
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 40,
+  },
+  pickerEmptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  pickerEmptySub: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  pickerList: {
+    marginTop: 4,
+  },
+  pickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  pickerItemInfo: {
+    flex: 1,
+  },
+  pickerItemNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  pickerItemName: {
+    fontSize: 16,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  pickerCustomTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  pickerCustomTagText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  pickerItemMeta: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginTop: 2,
   },
   editorExercisesHeader: {
     flexDirection: "row",

@@ -13,9 +13,6 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import notificationService from './src/services/notificationService';
 import { setCurrentNotificationUser, clearCurrentNotificationUser } from './src/services/notificationService';
-import { subscribeToConversations } from './src/services/messageService';
-import { subscribeToPendingRequests } from './src/services/friendsService';
-import { subscribeToChallenges } from './src/services/challengeService';
 // OnboardingWrapper is now handled inside RootNavigator
 import { initializeApiSecurity } from './src/utils/secureApiKey';
 import { getStoredData } from './src/utils/localStorage';
@@ -34,7 +31,6 @@ import {
   syncUserStatsToCloud,
 } from './src/services/userSyncService';
 import MiniWorkoutPlayer from './src/components/MiniWorkoutPlayer';
-import WorkoutModal from './src/components/WorkoutModal';
 import AchievementToast from './src/components/AchievementToast';
 import InAppNotification from './src/components/InAppNotification';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
@@ -170,11 +166,9 @@ const getActiveRouteName = (state) => {
 const CurrentRouteContext = React.createContext(null);
 
 // App navigation wrapper with mini workout player
-const AppNavigation = () => {
+const AppNavigation = ({ navigationRef }) => {
   const { hasActiveWorkout, maximizeWorkout } = useWorkout();
   const { user } = useAuth(); // Check if user is authenticated
-  const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
-  const [modalTemplateData, setModalTemplateData] = useState(null);
   const [isAudioPlayerVisible, setIsAudioPlayerVisible] = useState(false);
 
   // Read current route from context (set by NavigationContainer.onStateChange in ThemedApp)
@@ -241,13 +235,12 @@ const AppNavigation = () => {
     const subscription = DeviceEventEmitter.addListener('openWorkoutModal', (payload = {}) => {
       console.log('🎵 Received openWorkoutModal event with payload:', payload);
       const template = payload?.template || null;
-      setModalTemplateData(template);
 
       if (hasActiveWorkout) {
         maximizeWorkout();
       }
 
-      setWorkoutModalVisible(true);
+      navigationRef?.current?.navigate('ActiveWorkout', { templateData: template });
     });
 
     // Listen for batched achievements (multiple at once)
@@ -273,8 +266,7 @@ const AppNavigation = () => {
   const handleMiniPlayerPress = () => {
     console.log('🎵 Mini player pressed - opening workout modal');
     maximizeWorkout();
-    setModalTemplateData(null);
-    setWorkoutModalVisible(true);
+    navigationRef?.current?.navigate('ActiveWorkout', { templateData: null });
   };
 
   const handleAudioPlayerNavigate = (verseData) => {
@@ -291,9 +283,9 @@ const AppNavigation = () => {
       {/* Position depends on who came first */}
       {/* Don't show on auth/login screen */}
       {hasActiveWorkout && user && (
-        <MiniWorkoutPlayer 
-          onPress={handleMiniPlayerPress} 
-          hidden={currentRoute === 'BibleReader'}
+        <MiniWorkoutPlayer
+          onPress={handleMiniPlayerPress}
+          hidden={currentRoute === 'BibleReader' || currentRoute === 'ActiveWorkout'}
           bottomOffset={
             // Only offset for the audio bar if it's actually visible (not hidden on BibleReader)
             (isAudioPlayerVisible && currentRoute !== 'BibleReader')
@@ -319,16 +311,6 @@ const AppNavigation = () => {
         />
       )}
 
-      {/* Workout Modal - Opens when mini player is tapped */}
-      <WorkoutModal
-        visible={workoutModalVisible}
-        onClose={() => {
-          setWorkoutModalVisible(false);
-          setModalTemplateData(null);
-        }}
-        templateData={modalTemplateData}
-      />
-
       {/* Global Achievement Notification */}
       <AchievementToast ref={achievementToastRef} />
     </>
@@ -346,9 +328,6 @@ const ThemedApp = () => {
   const prevUserIdRef = useRef(undefined);
   const [currentRoute, setCurrentRoute] = useState(null);
   const inAppNotifRef = useRef(null);
-  const prevUnreadMapRef = useRef({});
-  const prevFriendReqCountRef = useRef(-1);
-  const prevChallengeIdsRef = useRef(null);
 
   // Animated splash — zoom-through reveal
   // Icon sits center, then grows massively. The cross is cut out of AppIcon, so as
@@ -630,26 +609,6 @@ const ThemedApp = () => {
       case 'achievement':
         tab = 'Profile';
         break;
-      case 'message':
-        if (data.senderId) {
-          tab = 'Chat';
-          additionalData = {
-            otherUserId: data.senderId,
-            otherUser: data.otherUser?.displayName
-              ? { uid: data.senderId, ...data.otherUser }
-              : { uid: data.senderId, displayName: data.senderName || '' },
-          };
-        } else {
-          tab = 'Hub';
-        }
-        break;
-      case 'friend_request':
-      case 'friend_accepted':
-      case 'challenge':
-      case 'challenge_received':
-      case 'challenge_result':
-        tab = 'Hub';
-        break;
       default:
         console.log('📱 [mapNotificationToNavPayload] Unknown type:', data.type);
         return null;
@@ -679,18 +638,9 @@ const ThemedApp = () => {
     // Navigate to the appropriate screen
     if (navigationRef.current?.isReady()) {
       try {
-        // For stack screens like Chat, pass data as route params
-        if (tab === 'Chat' && data) {
-          navigationRef.current.navigate('Chat', {
-            otherUser: data.otherUser,
-            otherUserId: data.otherUserId,
-          });
-          console.log('✅ Navigated directly to Chat with:', data.otherUser?.displayName);
-        } else {
-          navigationRef.current.navigate(tab);
-          console.log('✅ Navigated to:', tab);
-        }
-        
+        navigationRef.current.navigate(tab);
+        console.log('✅ Navigated to:', tab);
+
         // Emit a secondary event for the specific screen to handle additional data
         if (data) {
           setTimeout(() => {
@@ -714,10 +664,44 @@ const ThemedApp = () => {
   // Listen for notification navigation events (from notificationService via DeviceEventEmitter)
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('notificationNavigation', handleNotificationNavigation);
-    
+
     return () => {
       subscription.remove();
     };
+  }, []);
+
+  // "Done" tapped on a notification (lock screen, app never opened): mark the
+  // item complete headlessly where a service supports it. The escalation is
+  // already cancelled by notificationService before this fires.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('notificationComplete', async ({ type, data, fireDate } = {}) => {
+      try {
+        // Complete the day the alert FIRED (a replayed lock-screen Done can
+        // arrive after midnight), not the day the app happened to open
+        const fired = fireDate ? new Date(fireDate) : new Date();
+        const dateStr = `${fired.getFullYear()}-${String(fired.getMonth() + 1).padStart(2, '0')}-${String(fired.getDate()).padStart(2, '0')}`;
+        if (type === 'user_reminder' && data?.reminderId) {
+          const { completeReminder } = require('./src/services/reminderService');
+          await completeReminder(data.reminderId, dateStr);
+        } else if (type === 'habit_reminder' && data?.habitId) {
+          // Habit check-ins only support "today": skip if the alert fired on a
+          // previous day rather than checking in the wrong date
+          const now = new Date();
+          const sameDay = fired.getFullYear() === now.getFullYear()
+            && fired.getMonth() === now.getMonth()
+            && fired.getDate() === now.getDate();
+          if (sameDay) {
+            const { checkIn } = require('./src/services/habitsService');
+            await checkIn(data.habitId);
+          }
+        }
+        // Tasks and prayers award points / run UI flows, so their "Done" just
+        // stops the nagging here; the user finishes them in-app.
+      } catch (e) {
+        console.warn('notificationComplete handler failed:', e);
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   // In-app notification banner for foreground push notifications
@@ -730,111 +714,13 @@ const ThemedApp = () => {
     return () => sub.remove();
   }, []);
 
-  // ── Track current user for notification filtering + reset tracking refs ──
+  // ── Track current user for notification filtering ──
   useEffect(() => {
     if (user?.uid) {
       setCurrentNotificationUser(user.uid);
     } else {
       clearCurrentNotificationUser();
     }
-    // Reset notification tracking refs so a new user doesn't get false notifications
-    prevUnreadMapRef.current = {};
-    prevFriendReqCountRef.current = -1;
-    prevChallengeIdsRef.current = null;
-  }, [user?.uid]);
-
-  // ── Real-time conversation watcher ──
-  // Fires an in-app notification when unread count increases for any
-  // conversation, without relying on push notifications at all.
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    const unsub = subscribeToConversations(user.uid, (conversations) => {
-      const prev = prevUnreadMapRef.current;
-      const next = {};
-
-      conversations.forEach((conv) => {
-        next[conv.id] = {
-          unread: conv.unreadCount || 0,
-          name: conv.otherUser?.displayName || 'Someone',
-          senderId: conv.otherUserId,
-          otherUser: conv.otherUser || {},
-        };
-      });
-
-      // Compare — show in-app banner for any conversation whose unread count went UP
-      Object.keys(next).forEach((convId) => {
-        const prevCount = prev[convId]?.unread || 0;
-        const nowCount = next[convId].unread;
-        if (nowCount > prevCount && prevCount >= 0 && Object.keys(prev).length > 0) {
-          // New message(s) arrived
-          DeviceEventEmitter.emit('inAppNotification', {
-            title: 'New Message',
-            body: `${next[convId].name} sent you a message`,
-            data: {
-              type: 'message',
-              senderId: next[convId].senderId,
-              senderName: next[convId].name,
-              otherUser: next[convId].otherUser,
-            },
-          });
-        }
-      });
-
-      prevUnreadMapRef.current = next;
-    });
-
-    return () => unsub();
-  }, [user?.uid]);
-
-  // ── Real-time friend request watcher ──
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    const unsub = subscribeToPendingRequests(user.uid, (count) => {
-      const prev = prevFriendReqCountRef.current;
-      if (prev >= 0 && count > prev) {
-        DeviceEventEmitter.emit('inAppNotification', {
-          title: 'Friend Request',
-          body: 'Someone wants to be your friend',
-          data: { type: 'friend_request' },
-        });
-      }
-      prevFriendReqCountRef.current = count;
-    });
-
-    return () => unsub();
-  }, [user?.uid]);
-
-  // ── Real-time challenge watcher ──
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    const unsub = subscribeToChallenges(user.uid, (result) => {
-      // result may be { pending, active, completed } or a flat array
-      const pending = Array.isArray(result)
-        ? result.filter(c => c.status === 'pending' && c.challengedId === user.uid)
-        : (result?.pending || []);
-      const currentIds = new Set(pending.map(c => c.id));
-      const prev = prevChallengeIdsRef.current;
-
-      if (prev !== null) {
-        // Find new challenges that weren't in the previous set
-        currentIds.forEach((id) => {
-          if (!prev.has(id)) {
-            const challenge = pending.find(c => c.id === id);
-            DeviceEventEmitter.emit('inAppNotification', {
-              title: 'New Challenge',
-              body: `${challenge?.challengerName || 'Someone'} challenged you!`,
-              data: { type: 'challenge_received' },
-            });
-          }
-        });
-      }
-      prevChallengeIdsRef.current = currentIds;
-    });
-
-    return () => unsub();
   }, [user?.uid]);
 
   // CRITICAL: Direct Expo notification response listener as a safety net.
@@ -846,9 +732,16 @@ const ThemedApp = () => {
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const responseId = response.notification.request.identifier;
       const data = response.notification.request.content?.data;
-      
+
       console.log('📱 [App.js Direct Listener] Notification response:', responseId, data?.type);
-      
+
+      // Done/Snooze action presses are fully handled by notificationService
+      // (they keep the app closed) — mapping them to navigation here would
+      // queue a stale tab-switch for the next app open
+      if (response.actionIdentifier === 'COMPLETE' || response.actionIdentifier === 'SNOOZE') {
+        return;
+      }
+
       // Avoid double-processing (notificationService also handles this)
       if (handledResponseIdsRef.current.has(responseId)) {
         console.log('📱 [App.js Direct Listener] Already handled, skipping');
@@ -876,14 +769,22 @@ const ThemedApp = () => {
         const responseId = lastResponse.notification.request.identifier;
         const data = lastResponse.notification.request.content?.data;
         
+        // Done/Snooze are handled (and replayed on cold start) entirely by
+        // notificationService — navigating for them here would be wrong
+        if (lastResponse.actionIdentifier === 'COMPLETE' || lastResponse.actionIdentifier === 'SNOOZE') {
+          return;
+        }
+
         // Guard against stale responses from previous app sessions.
         // Only process if the notification was interacted with in the last 30 seconds.
-        const actionTimestamp = lastResponse.actionIdentifier 
-          ? Date.now() // actionIdentifier present means it was a real tap
-          : 0;
-        const notifDate = lastResponse.notification?.date;
+        // iOS serializes notification.date in epoch SECONDS — normalize before
+        // any arithmetic or every response reads as years old.
+        const rawDate = Number(lastResponse.notification?.date);
+        const notifDate = Number.isFinite(rawDate) && rawDate > 0
+          ? (rawDate < 1e12 ? rawDate * 1000 : rawDate)
+          : null;
         const responseAge = notifDate ? (Date.now() - notifDate) : Infinity;
-        
+
         console.log('📱 [App.js Cold Start] Found last notification response:', responseId, data?.type, 'age:', Math.round(responseAge / 1000), 's');
         
         // Only process if notification is fresh (< 30 seconds old) and not already handled
@@ -1279,7 +1180,7 @@ const ThemedApp = () => {
             }}
           >
             <CurrentRouteContext.Provider value={currentRoute}>
-              <AppNavigation />
+              <AppNavigation navigationRef={navigationRef} />
             </CurrentRouteContext.Provider>
           </NavigationContainer>
         </WorkoutProvider>

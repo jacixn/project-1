@@ -131,14 +131,8 @@ const PrayerDetailScreen = ({ navigation, route }) => {
     navigation.goBack();
   }, [navigation]);
 
-  const handleDiscuss = useCallback((verse) => {
-    navigation.navigate('FriendChat', {
-      initialVerse: { text: verse.text, reference: verse.reference },
-    });
-  }, [navigation]);
-
   const handleNavigateToBible = useCallback((verseRef) => {
-    navigation.navigate('BibleReader', { verseRef });
+    navigation.navigate('BibleChapter', { verseRef, verseTapTs: Date.now() });
   }, [navigation]);
 
   const handleComplete = useCallback(() => {
@@ -197,7 +191,7 @@ const PrayerDetailScreen = ({ navigation, route }) => {
       canComplete={canComplete}
       onComplete={handleComplete}
       onSimplify={handleSimplify}
-      onDiscuss={handleDiscuss}
+      onDiscuss={(versePayload) => navigation.navigate('BibleChat', { initialVerse: versePayload })}
       onNavigateToBible={handleNavigateToBible}
       simpleVerseText={simpleVerseText}
       loadingSimple={loadingSimple}

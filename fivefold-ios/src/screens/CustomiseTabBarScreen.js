@@ -31,7 +31,6 @@ const TAB_META = {
   BiblePrayer: { label: 'Bible', icon: 'menu-book', color: '#3B82F6' },
   Todos: { label: 'Tasks', icon: 'check-circle', color: '#10B981' },
   Gym: { label: 'Fitness', icon: 'fitness-center', color: '#F59E0B' },
-  Hub: { label: 'Hub', icon: 'forum', color: '#8B5CF6' },
   Profile: { label: 'Profile', icon: 'person', color: '#EC4899' },
 };
 
@@ -56,7 +55,7 @@ const TabRow = React.memo(({
   onDragMove,
   onDragEnd,
 }) => {
-  const meta = TAB_META[name];
+  const meta = TAB_META[name] || { label: name, icon: 'help-outline', color: '#888' };
 
   const gesture = React.useMemo(() =>
     Gesture.Pan()
@@ -182,9 +181,16 @@ const CustomiseTabBarScreen = () => {
     try {
       const config = await userStorage.get('tabBarConfig');
       if (config) {
-        if (config.order) setOrder(config.order);
+        if (config.order) {
+          // A saved config can hold a tab that no longer exists (tabs were
+          // renamed/removed since — e.g. the Hub removal). Drop unknown names
+          // so the preview's TAB_META lookup can't be undefined (crash), and
+          // append any new default tabs missing from the stored order.
+          const valid = config.order.filter(n => TAB_META[n]);
+          setOrder([...valid, ...DEFAULT_ORDER.filter(n => !valid.includes(n))]);
+        }
         if (config.hidden) {
-          const filteredHidden = config.hidden.filter(h => h !== 'Profile');
+          const filteredHidden = config.hidden.filter(h => h !== 'Profile' && TAB_META[h]);
           setHidden(filteredHidden);
           setInitialHidden(filteredHidden);
         }
@@ -285,7 +291,7 @@ const CustomiseTabBarScreen = () => {
 
   return (
     <GestureHandlerRootView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: 16 }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -312,7 +318,7 @@ const CustomiseTabBarScreen = () => {
         <View style={[styles.previewBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}>
           <Text style={[styles.previewLabel, { color: textSecondary }]}>Preview</Text>
           <View style={styles.previewTabs}>
-            {order.filter(n => !hidden.includes(n)).map(name => {
+            {order.filter(n => !hidden.includes(n) && TAB_META[n]).map(name => {
               const meta = TAB_META[name];
               return (
                 <View key={name} style={styles.previewTab}>

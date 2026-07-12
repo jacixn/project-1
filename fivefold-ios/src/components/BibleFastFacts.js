@@ -25,6 +25,7 @@ import { hapticFeedback } from '../utils/haptics';
 import userStorage from '../utils/userStorage';
 import { pushToCloud } from '../services/userSyncService';
 import SimplePercentageLoader from './SimplePercentageLoader';
+import SheetHeader from './SheetHeader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -57,13 +58,14 @@ const CATEGORY_THEMES = {
   miracles: { gradient: ['#F97316', '#FBBF24'], icon: 'flash-on', bgIcon: 'flash' },
 };
 
-const COLLAPSED_HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 80;
-const EXPANDED_HEADER_HEIGHT = Platform.OS === 'ios' ? 265 : 235;
+const COLLAPSED_HEADER_HEIGHT = 71;
+const EXPANDED_HEADER_HEIGHT = 226;
 
-const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
+const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false, initialFact = null, onOpenFact }) => {
   const { theme, isDark } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedFact, setSelectedFact] = useState(null);
+  // In detailMode this component IS the fact-detail native modal screen.
+  const [selectedFact, setSelectedFact] = useState(detailMode ? initialFact : null);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
   const [viewMode, setViewMode] = useState('list');
@@ -101,10 +103,13 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
 
   // Load data on mount
   useEffect(() => {
-    if (visible) {
+    // Load on a normal Modal open (visible) OR whenever mounted as a screen
+    // (asScreen) — a screen has no `visible` prop, so gating only on `visible`
+    // left screen usages stuck on the loading spinner forever.
+    if (visible || asScreen) {
       loadFacts();
     }
-  }, [visible]);
+  }, [visible, asScreen]);
 
   // Load favorites from storage
   useEffect(() => {
@@ -520,7 +525,9 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
 
   const handleFactPress = (fact) => {
     hapticFeedback.light();
-    setSelectedFact(fact);
+    // As a screen, open the fact as its own native pull-to-dismiss modal screen.
+    if (onOpenFact) onOpenFact(fact);
+    else setSelectedFact(fact);
   };
 
   const renderCategoryFilters = () => {
@@ -757,9 +764,9 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   };
 
   const renderFactDetail = () => {
-    if (!selectedFact || !factsData) return null;
+    if (!selectedFact) return null;
 
-    const category = factsData.categories.find(c => c.id === selectedFact.category);
+    const category = factsData?.categories?.find(c => c.id === selectedFact.category);
     const catTheme = CATEGORY_THEMES[selectedFact.category] || CATEGORY_THEMES.all;
     const isFavorite = favorites.includes(selectedFact.id);
 
@@ -771,6 +778,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
     const combinedTranslateY = Animated.add(modalTranslateY, detailPanY);
 
     const handleBackdropClose = () => {
+      // As the native modal screen, closing = dismissing the screen.
+      if (detailMode) { onClose?.(); return; }
       Animated.parallel([
         Animated.timing(detailSlideAnim, {
           toValue: 0,
@@ -787,53 +796,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
       });
     };
 
-    return (
-      <Modal
-        visible={!!selectedFact}
-        transparent={true}
-        animationType="none"
-        onRequestClose={handleBackdropClose}
-        statusBarTranslucent={true}
-      >
-        <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
-          {/* Backdrop */}
-          <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: detailFadeAnim }}>
-            <TouchableOpacity
-              style={styles.modalBackdrop}
-              activeOpacity={0.7}
-              onPress={handleBackdropClose}
-            />
-          </Animated.View>
-
-          {/* Modal Content */}
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{ translateY: combinedTranslateY }],
-                opacity: detailFadeAnim,
-                backgroundColor: theme.background,
-                maxHeight: '90%',
-                borderTopLeftRadius: 32,
-                borderTopRightRadius: 32,
-                overflow: 'hidden',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: -10 },
-                shadowOpacity: 0.3,
-                shadowRadius: 20,
-                elevation: 20,
-              },
-            ]}
-          >
-            <View style={styles.detailSafeArea}>
-              {/* Custom Handle */}
-              <View
-                style={styles.modalHandleWrapper}
-                {...detailPanResponder.panHandlers}
-              >
-                <View style={[styles.modalHandleBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]} />
-              </View>
-
+    const detailBody = (
+      <>
               <ScrollView
                 style={styles.detailContent}
                 showsVerticalScrollIndicator={false}
@@ -981,6 +945,60 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
                   <Text style={styles.closeModalBtnText}>Got it!</Text>
                 </TouchableOpacity>
               </BlurView>
+      </>
+    );
+
+    // Native pull-to-dismiss modal SCREEN — matches the era/guide details.
+    if (detailMode) {
+      return (
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <SheetHeader
+            title={category?.name || 'Fast Fact'}
+            leftLabel="Done"
+            onLeft={handleBackdropClose}
+          />
+          {detailBody}
+        </View>
+      );
+    }
+
+    // Legacy in-place overlay.
+    return (
+      <Modal
+        visible={!!selectedFact}
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleBackdropClose}
+        statusBarTranslucent={true}
+      >
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
+          <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: detailFadeAnim }}>
+            <TouchableOpacity style={styles.modalBackdrop} activeOpacity={0.7} onPress={handleBackdropClose} />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.modalContainer,
+              {
+                transform: [{ translateY: combinedTranslateY }],
+                opacity: detailFadeAnim,
+                backgroundColor: theme.background,
+                maxHeight: '90%',
+                borderTopLeftRadius: 32,
+                borderTopRightRadius: 32,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20,
+                elevation: 20,
+              },
+            ]}
+          >
+            <View style={styles.detailSafeArea}>
+              <View style={styles.modalHandleWrapper} {...detailPanResponder.panHandlers}>
+                <View style={[styles.modalHandleBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]} />
+              </View>
+              {detailBody}
             </View>
           </Animated.View>
         </View>
@@ -989,6 +1007,14 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   };
 
   const filteredFacts = getFilteredFacts();
+
+  // In detailMode this component IS the fact-detail screen. The detail needs only
+  // the passed-in fact, NOT the facts feed — so render it immediately and never
+  // sit behind the feed's loading gate (which otherwise leaves it stuck forever
+  // on "Loading Bible facts..." because the feed load is gated on `visible`).
+  if (detailMode) {
+    return renderFactDetail();
+  }
 
   // Loading state
   if (loading) {
@@ -1017,7 +1043,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
       <View style={[styles.errorContainer, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         
-        <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? 70 : 30 }]}>
+        <View style={[styles.header, { paddingTop: 24 }]}>
           <TouchableOpacity
             onPress={onClose}
             style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
@@ -1059,7 +1085,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
   
   const headerHeight = headerExpanded ? EXPANDED_HEADER_HEIGHT : COLLAPSED_HEADER_HEIGHT;
 
-  const content = (
+  const content = detailMode ? renderFactDetail() : (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
@@ -1072,8 +1098,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false }) => {
             }
             style={styles.headerGradient}
           >
-            {/* Safe area spacer */}
-            <View style={{ height: Platform.OS === 'ios' ? 55 : 25 }} />
+            {/* Safe area spacer (trimmed for modal presentation) */}
+            <View style={{ height: 16 }} />
             
             {/* Fixed Header Row - Always visible */}
             <View style={styles.headerRow}>

@@ -16,6 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
+import notificationService from '../services/notificationService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
@@ -131,7 +132,7 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
           : `${reminderBefore} minutes`;
 
         try {
-          await Notifications.scheduleNotificationAsync({
+          await notificationService.scheduleNotif({
             identifier: task.id,
             content: {
               title: 'Task Reminder',

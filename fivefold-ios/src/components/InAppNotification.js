@@ -30,14 +30,10 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 54 : 24;
 const { width } = Dimensions.get('window');
 
 const ICON_MAP = {
-  message: { name: 'chat-bubble', color: '#667eea' },
-  friend_request: { name: 'person-add', color: '#10b981' },
-  challenge: { name: 'emoji-events', color: '#f59e0b' },
   prayer: { name: 'self-improvement', color: '#8b5cf6' },
   workout: { name: 'fitness-center', color: '#ef4444' },
   task: { name: 'check-circle', color: '#14b8a6' },
   streak: { name: 'local-fire-department', color: '#f97316' },
-  token_arrived: { name: 'stars', color: '#eab308' },
   achievement: { name: 'military-tech', color: '#a855f7' },
   default: { name: 'notifications', color: '#6366f1' },
 };

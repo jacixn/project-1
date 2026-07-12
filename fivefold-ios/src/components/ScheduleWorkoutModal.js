@@ -2,21 +2,26 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   Alert,
   Platform,
-  SafeAreaView,
+  DeviceEventEmitter,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import WorkoutService from '../services/workoutService';
 import { hapticFeedback } from '../utils/haptics';
 import * as Notifications from 'expo-notifications';
+import notificationService from '../services/notificationService';
 import { getStoredData } from '../utils/localStorage';
+import DayTimeline from './DayTimeline';
+import MultiDateCalendar from './MultiDateCalendar';
+import DurationField from './DurationField';
+import { formatDuration } from '../utils/duration';
 
 const DAYS_OF_WEEK = [
   { id: 0, short: 'S', name: 'Sunday' },
@@ -27,31 +32,73 @@ const DAYS_OF_WEEK = [
   { id: 5, short: 'F', name: 'Friday' },
   { id: 6, short: 'S', name: 'Saturday' },
 ];
+const DAY_NAMES = DAYS_OF_WEEK.map((d) => d.name);
+const DAY_SHORT = DAYS_OF_WEEK.map((d) => d.short);
+const DEFAULT_WORKOUT_DURATION = 60;
 
-const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
+const pad2 = (n) => String(n).padStart(2, '0');
+const fmtDateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const fmtHM = (h, m) => {
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${pad2(m)} ${ap}`;
+};
+const nextDateForWeekday = (dayIdx) => {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + ((dayIdx - d.getDay() + 7) % 7));
+  return d;
+};
+
+// Presented as a native pull-to-dismiss modal SCREEN (presentation:'modal') —
+// parent scales back, drag down to dismiss (like Bible Timeline). template (new)
+// or editingSchedule (edit) arrive via route.params.
+const ScheduleWorkoutModal = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
-  
+  const template = route?.params?.template || null;
+  const editingSchedule = route?.params?.editingSchedule || null;
+  const onClose = () => navigation.goBack();
+  const onScheduled = (saved) => { try { DeviceEventEmitter.emit('workoutScheduled', saved); } catch {} };
+
+  // When editing, there may be no template object — fall back to the saved schedule.
+  const tmpl = template || (editingSchedule
+    ? { id: editingSchedule.templateId, name: editingSchedule.templateName }
+    : null);
+
+  const [step, setStep] = useState('setup');           // setup | time
   const [scheduleType, setScheduleType] = useState('recurring'); // 'recurring' or 'one-time'
   const [selectedDays, setSelectedDays] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [notifyBefore, setNotifyBefore] = useState(60); // 60 minutes default
+  const [oneTimeDates, setOneTimeDates] = useState([new Date()]);
+  const [duration, setDuration] = useState(DEFAULT_WORKOUT_DURATION);
+  const [time, setTime] = useState({ hour: 18, minute: 0 });
+  const [notifyBefore, setNotifyBefore] = useState(0); // 0 = At start (default), >0 = mins before
 
+  // Runs once on mount — the screen is presented fresh each time.
   useEffect(() => {
-    if (visible) {
-      // Reset state when modal opens
+    setStep('setup');
+    if (editingSchedule) {
+      setScheduleType(editingSchedule.type || 'recurring');
+      setSelectedDays(editingSchedule.type === 'recurring' ? (editingSchedule.days || []) : []);
+      if (editingSchedule.type === 'one-time' && editingSchedule.date) {
+        const [y, mo, dd] = editingSchedule.date.split('-').map(Number);
+        setOneTimeDates([new Date(y, mo - 1, dd)]);
+      } else {
+        setOneTimeDates([new Date()]);
+      }
+      const [h, m] = (editingSchedule.time || '18:00').split(':').map(Number);
+      setTime({ hour: Number.isFinite(h) ? h : 18, minute: Number.isFinite(m) ? m : 0 });
+      setDuration(editingSchedule.duration ?? DEFAULT_WORKOUT_DURATION);
+      // Legacy None (-1) or missing -> At start (default now that None is gone).
+      setNotifyBefore(editingSchedule.notifyBefore == null || editingSchedule.notifyBefore < 0 ? 0 : editingSchedule.notifyBefore);
+    } else {
       setScheduleType('recurring');
       setSelectedDays([]);
-      setSelectedDate(new Date());
-      // Default time to 6:00 PM
-      const defaultTime = new Date();
-      defaultTime.setHours(18, 0, 0, 0);
-      setSelectedTime(defaultTime);
-      setNotifyBefore(60);
+      setOneTimeDates([new Date()]);
+      setTime({ hour: 18, minute: 0 });
+      setDuration(DEFAULT_WORKOUT_DURATION);
+      setNotifyBefore(0);
     }
-  }, [visible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleDay = (dayId) => {
     hapticFeedback.light();
@@ -114,7 +161,15 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
         console.log('Could not clear old workout notifications:', e);
       }
 
-      const notifyMinutes = schedule.notifyBefore || 60;
+      // "None" reminder (notifyBefore < 0): old notifications cleared above, schedule
+      // nothing. 0 = "At start" (notify at the workout time); >0 = minutes before.
+      if (schedule.notifyBefore == null || schedule.notifyBefore < 0) {
+        console.log('No workout reminder set, skipping notification scheduling');
+        return;
+      }
+
+      const notifyMinutes = schedule.notifyBefore; // 0 = at start
+      const atStart = notifyMinutes === 0;
       const [hours, minutes] = schedule.time.split(':').map(Number);
 
       // Calculate notification time (X minutes before workout)
@@ -142,11 +197,11 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
         for (const day of schedule.days) {
           console.log(`📅 Scheduling notification for day ${day} at ${notifyHours}:${notifyMins}`);
           
-          await Notifications.scheduleNotificationAsync({
+          await notificationService.scheduleNotif({
             identifier: `${schedule.id}_${day}`,
             content: {
-              title: 'Workout Reminder',
-              body: `${schedule.templateName} starts in ${reminderText}!`,
+              title: atStart ? 'Workout Time' : 'Workout Reminder',
+              body: atStart ? `Time for ${schedule.templateName}!` : `${schedule.templateName} starts in ${reminderText}!`,
               data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
               sound: soundSetting,
             },
@@ -170,11 +225,11 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
         if (notifyTime > new Date()) {
           console.log(`📅 Scheduling one-time notification for ${notifyTime.toLocaleString()}`);
           
-          await Notifications.scheduleNotificationAsync({
+          await notificationService.scheduleNotif({
             identifier: schedule.id,
             content: {
-              title: 'Workout Reminder',
-              body: `${schedule.templateName} starts in ${reminderText}!`,
+              title: atStart ? 'Workout Time' : 'Workout Reminder',
+              body: atStart ? `Time for ${schedule.templateName}!` : `${schedule.templateName} starts in ${reminderText}!`,
               data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
               sound: soundSetting,
             },
@@ -192,60 +247,55 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
     }
   };
 
-  const handleSave = async () => {
-    if (!template) return;
+  const repeatValid = scheduleType === 'one-time' ? oneTimeDates.length > 0 : selectedDays.length > 0;
 
-    // Validation
-    if (scheduleType === 'recurring' && selectedDays.length === 0) {
-      Alert.alert('Select Days', 'Please select at least one day for your recurring workout.');
+  const handleSave = async () => {
+    if (!tmpl) return;
+    if (!repeatValid) {
+      Alert.alert(scheduleType === 'one-time' ? 'Pick a date' : 'Select days', 'Choose when this workout happens.');
+      setStep('setup');
       return;
     }
-
-    if (scheduleType === 'one-time') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        Alert.alert('Invalid Date', 'Please select a date in the future.');
-        return;
-      }
-    }
-
     hapticFeedback.success();
 
-    const timeString = `${String(selectedTime.getHours()).padStart(2, '0')}:${String(selectedTime.getMinutes()).padStart(2, '0')}`;
-
-    const schedule = {
-      templateId: template.id,
-      templateName: template.name,
-      type: scheduleType,
-      time: timeString,
-      notifyBefore: notifyBefore,
-      ...(scheduleType === 'recurring' 
-        ? { days: selectedDays }
-        : { date: selectedDate.toISOString().split('T')[0] }
-      ),
-    };
+    const timeString = `${pad2(time.hour)}:${pad2(time.minute)}`;
+    const base = { templateId: tmpl.id, templateName: tmpl.name, time: timeString, duration, notifyBefore };
 
     try {
-      const savedSchedule = await WorkoutService.addScheduledWorkout(schedule);
-      
-      // Schedule notifications
-      await scheduleNotification(savedSchedule);
-      
-      if (onScheduled) {
-        onScheduled(savedSchedule);
+      if (scheduleType === 'recurring') {
+        const schedule = { ...base, type: 'recurring', days: selectedDays };
+        const saved = editingSchedule
+          ? await WorkoutService.updateScheduledWorkout(editingSchedule.id, schedule)
+          : await WorkoutService.addScheduledWorkout(schedule);
+        await scheduleNotification(saved || { ...schedule, id: editingSchedule?.id });
+        onScheduled?.(saved);
+      } else {
+        const dates = oneTimeDates.length ? oneTimeDates : [new Date()];
+        if (editingSchedule) {
+          const schedule = { ...base, type: 'one-time', date: fmtDateKey(dates[0]) };
+          const saved = await WorkoutService.updateScheduledWorkout(editingSchedule.id, schedule);
+          await scheduleNotification(saved || { ...schedule, id: editingSchedule.id });
+          onScheduled?.(saved);
+        } else {
+          for (const d of dates) {
+            const schedule = { ...base, type: 'one-time', date: fmtDateKey(d) };
+            const saved = await WorkoutService.addScheduledWorkout(schedule);
+            await scheduleNotification(saved);
+          }
+          onScheduled?.(null);
+        }
       }
-      
+
       onClose();
-      
-      // Show success message
-      const daysText = scheduleType === 'recurring'
-        ? selectedDays.map(d => DAYS_OF_WEEK[d].name).join(', ')
-        : formatDate(selectedDate);
-      
+
+      const whenText = scheduleType === 'recurring'
+        ? (selectedDays.length === 7 ? 'every day' : selectedDays.map((d) => DAY_NAMES[d]).join(', '))
+        : (oneTimeDates.length > 1 ? `${oneTimeDates.length} dates` : formatDate(oneTimeDates[0]));
+
       Alert.alert(
-        '✅ Workout Scheduled!',
-        `${template.name} scheduled for ${daysText} at ${formatTime(selectedTime)}.\n\nYou'll get a reminder ${notifyBefore} minutes before.`,
+        editingSchedule ? 'Workout Updated' : 'Workout Scheduled',
+        `${tmpl.name} ${editingSchedule ? 'updated' : 'scheduled'} for ${whenText} at ${fmtHM(time.hour, time.minute)} · ${formatDuration(duration)}.` +
+          (notifyBefore < 0 ? '\n\nNo reminder set.' : notifyBefore === 0 ? '\n\nReminder at start time.' : `\n\nReminder ${notifyBefore} min before.`),
         [{ text: 'Great!' }]
       );
     } catch (error) {
@@ -254,235 +304,168 @@ const ScheduleWorkoutModal = ({ visible, onClose, template, onScheduled }) => {
     }
   };
 
-  if (!template) return null;
+  const toggleOneTimeDate = (date) => {
+    const key = fmtDateKey(date);
+    if (editingSchedule) { setOneTimeDates([new Date(date)]); return; }
+    setOneTimeDates((prev) =>
+      prev.some((d) => fmtDateKey(d) === key)
+        ? prev.filter((d) => fmtDateKey(d) !== key)
+        : [...prev, new Date(date)].sort((a, b) => a - b)
+    );
+  };
+
+  const timelineDate = scheduleType === 'one-time'
+    ? (oneTimeDates[0] || new Date())
+    : nextDateForWeekday((selectedDays.slice().sort((a, b) => a - b)[0]) ?? new Date().getDay());
+  const timelineSubtitle = scheduleType === 'one-time'
+    ? (oneTimeDates.length > 1
+        ? `${oneTimeDates.length} dates · same time`
+        : timelineDate.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }))
+    : (selectedDays.length === 7 ? 'Every day' : selectedDays.slice().sort((a, b) => a - b).map((d) => DAY_SHORT[d]).join(', '));
+
+  if (!tmpl) return null;
+
+  const onNext = () => { hapticFeedback.light(); setStep('time'); };
+  const rightLabel = step === 'setup' ? 'Next' : 'Save';
+  const rightOn = step === 'setup' ? repeatValid : true;
+  const onRight = step === 'setup' ? onNext : handleSave;
+  const onLeft = step === 'setup' ? onClose : () => setStep('setup');
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <MaterialIcons name="close" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.text }]}>Schedule Workout</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Text style={[styles.saveText, { color: theme.primary }]}>Save</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Template Info */}
-          <View style={[styles.templateCard, { backgroundColor: theme.card }]}>
-            <View style={[styles.templateIcon, { backgroundColor: `${theme.primary}20` }]}>
-              <MaterialIcons name="fitness-center" size={24} color={theme.primary} />
-            </View>
-            <View style={styles.templateInfo}>
-              <Text style={[styles.templateName, { color: theme.text }]}>{template.name}</Text>
-              <Text style={[styles.templateDetails, { color: theme.textSecondary }]}>
-                {template.exercises?.length || 0} exercises
-              </Text>
-            </View>
-          </View>
-
-          {/* Schedule Type */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Schedule Type</Text>
-          <View style={styles.typeButtons}>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                { 
-                  backgroundColor: scheduleType === 'recurring' ? theme.primary : theme.card,
-                  borderColor: scheduleType === 'recurring' ? theme.primary : theme.border,
-                }
-              ]}
-              onPress={() => {
-                hapticFeedback.light();
-                setScheduleType('recurring');
-              }}
-            >
-              <MaterialIcons 
-                name="repeat" 
-                size={20} 
-                color={scheduleType === 'recurring' ? '#FFF' : theme.textSecondary} 
-              />
-              <Text style={[
-                styles.typeButtonText,
-                { color: scheduleType === 'recurring' ? '#FFF' : theme.text }
-              ]}>
-                Recurring
-              </Text>
-              <Text style={[
-                styles.typeButtonSubtext,
-                { color: scheduleType === 'recurring' ? 'rgba(255,255,255,0.8)' : theme.textTertiary }
-              ]}>
-                Every week
-              </Text>
+    <GestureHandlerRootView style={[styles.container, { backgroundColor: theme.background }]}>
+      <>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onLeft} style={styles.closeButton}>
+              {step === 'setup'
+                ? <MaterialIcons name="close" size={24} color={theme.text} />
+                : <Text style={{ color: theme.textSecondary, fontSize: 16 }}>Back</Text>}
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                { 
-                  backgroundColor: scheduleType === 'one-time' ? theme.primary : theme.card,
-                  borderColor: scheduleType === 'one-time' ? theme.primary : theme.border,
-                }
-              ]}
-              onPress={() => {
-                hapticFeedback.light();
-                setScheduleType('one-time');
-              }}
-            >
-              <MaterialIcons 
-                name="event" 
-                size={20} 
-                color={scheduleType === 'one-time' ? '#FFF' : theme.textSecondary} 
-              />
-              <Text style={[
-                styles.typeButtonText,
-                { color: scheduleType === 'one-time' ? '#FFF' : theme.text }
-              ]}>
-                One-Time
-              </Text>
-              <Text style={[
-                styles.typeButtonSubtext,
-                { color: scheduleType === 'one-time' ? 'rgba(255,255,255,0.8)' : theme.textTertiary }
-              ]}>
-                Specific date
-              </Text>
+            <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{tmpl.name}</Text>
+            <TouchableOpacity onPress={onRight} disabled={!rightOn} style={styles.saveButton}>
+              <Text style={[styles.saveText, { color: theme.primary, opacity: rightOn ? 1 : 0.4 }]}>{rightLabel}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Day Selection (for recurring) */}
-          {scheduleType === 'recurring' && (
-            <>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Repeat On</Text>
-              <View style={styles.daysContainer}>
-                {DAYS_OF_WEEK.map((day) => (
-                  <TouchableOpacity
-                    key={day.id}
-                    style={[
-                      styles.dayButton,
-                      {
-                        backgroundColor: selectedDays.includes(day.id) ? theme.primary : theme.card,
-                        borderColor: selectedDays.includes(day.id) ? theme.primary : theme.border,
-                      }
-                    ]}
-                    onPress={() => toggleDay(day.id)}
-                  >
-                    <Text style={[
-                      styles.dayButtonText,
-                      { color: selectedDays.includes(day.id) ? '#FFF' : theme.text }
-                    ]}>
-                      {day.short}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {selectedDays.length > 0 && (
-                <Text style={[styles.selectedDaysText, { color: theme.textSecondary }]}>
-                  {selectedDays.map(d => DAYS_OF_WEEK[d].name).join(', ')}
-                </Text>
-              )}
-            </>
-          )}
-
-          {/* Date Selection (for one-time) */}
-          {scheduleType === 'one-time' && (
-            <>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Date</Text>
-              <TouchableOpacity
-                style={[styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <MaterialIcons name="event" size={22} color={theme.primary} />
-                <Text style={[styles.pickerText, { color: theme.text }]}>
-                  {formatDate(selectedDate)}
-                </Text>
-                <MaterialIcons name="chevron-right" size={22} color={theme.textTertiary} />
-              </TouchableOpacity>
-            </>
-          )}
-
-          {/* Time Selection */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Time</Text>
-          <TouchableOpacity
-            style={[styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => setShowTimePicker(true)}
-          >
-            <MaterialIcons name="schedule" size={22} color={theme.primary} />
-            <Text style={[styles.pickerText, { color: theme.text }]}>
-              {formatTime(selectedTime)}
-            </Text>
-            <MaterialIcons name="chevron-right" size={22} color={theme.textTertiary} />
-          </TouchableOpacity>
-
-          {/* Notification Setting */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Reminder</Text>
-          <View style={styles.reminderOptions}>
-            {[30, 60, 120].map((mins) => (
-              <TouchableOpacity
-                key={mins}
-                style={[
-                  styles.reminderButton,
-                  {
-                    backgroundColor: notifyBefore === mins ? theme.primary : theme.card,
-                    borderColor: notifyBefore === mins ? theme.primary : theme.border,
-                  }
-                ]}
-                onPress={() => {
-                  hapticFeedback.light();
-                  setNotifyBefore(mins);
-                }}
-              >
-                <Text style={[
-                  styles.reminderButtonText,
-                  { color: notifyBefore === mins ? '#FFF' : theme.text }
-                ]}>
-                  {mins === 60 ? '1 hour' : mins === 120 ? '2 hours' : `${mins} min`}
-                </Text>
-              </TouchableOpacity>
+          <View style={styles.progress}>
+            {['setup', 'time'].map((s, i) => (
+              <View
+                key={s}
+                style={[styles.progressDot, {
+                  width: step === s ? 22 : 7,
+                  backgroundColor: (step === 'time' && i === 0) || step === s ? theme.primary : theme.border,
+                }]}
+              />
             ))}
           </View>
-          <Text style={[styles.reminderHint, { color: theme.textSecondary }]}>
-            You'll be notified {notifyBefore === 60 ? '1 hour' : notifyBefore === 120 ? '2 hours' : `${notifyBefore} minutes`} before your workout (only if not completed)
-          </Text>
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
+          {step === 'time' ? (
+            <View style={styles.timeBody}>
+              <View style={styles.timeSubtitleRow}>
+                <MaterialIcons name={scheduleType === 'recurring' ? 'repeat' : 'event'} size={16} color={theme.textSecondary} />
+                <Text style={[styles.timeSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>{timelineSubtitle}</Text>
+              </View>
+              <DayTimeline
+                date={timelineDate}
+                selected={time}
+                durationMinutes={duration}
+                label={tmpl.name}
+                accentColor={theme.primary}
+                onPick={(hour, minute) => setTime({ hour, minute })}
+              />
+            </View>
+          ) : (
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+              {/* Schedule Type (workout name is in the header) */}
+              <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 8 }]}>Schedule Type</Text>
+              <View style={styles.typeButtons}>
+                <TouchableOpacity
+                  style={[styles.typeButton, { backgroundColor: scheduleType === 'recurring' ? theme.primary : theme.card, borderColor: scheduleType === 'recurring' ? theme.primary : theme.border }]}
+                  onPress={() => { hapticFeedback.light(); setScheduleType('recurring'); }}
+                >
+                  <MaterialIcons name="repeat" size={20} color={scheduleType === 'recurring' ? '#FFF' : theme.textSecondary} />
+                  <Text style={[styles.typeButtonText, { color: scheduleType === 'recurring' ? '#FFF' : theme.text }]}>Recurring</Text>
+                  <Text style={[styles.typeButtonSubtext, { color: scheduleType === 'recurring' ? 'rgba(255,255,255,0.8)' : theme.textTertiary }]}>Every week</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeButton, { backgroundColor: scheduleType === 'one-time' ? theme.primary : theme.card, borderColor: scheduleType === 'one-time' ? theme.primary : theme.border }]}
+                  onPress={() => { hapticFeedback.light(); setScheduleType('one-time'); }}
+                >
+                  <MaterialIcons name="event" size={20} color={scheduleType === 'one-time' ? '#FFF' : theme.textSecondary} />
+                  <Text style={[styles.typeButtonText, { color: scheduleType === 'one-time' ? '#FFF' : theme.text }]}>One-Time</Text>
+                  <Text style={[styles.typeButtonSubtext, { color: scheduleType === 'one-time' ? 'rgba(255,255,255,0.8)' : theme.textTertiary }]}>Specific date</Text>
+                </TouchableOpacity>
+              </View>
 
-        {/* Time Picker */}
-        {showTimePicker && (
-          <DateTimePicker
-            value={selectedTime}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, date) => {
-              setShowTimePicker(Platform.OS === 'ios');
-              if (date) setSelectedTime(date);
-            }}
-          />
-        )}
+              {scheduleType === 'recurring' ? (
+                <>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Repeat On</Text>
+                  <View style={styles.daysContainer}>
+                    {DAYS_OF_WEEK.map((day) => (
+                      <TouchableOpacity
+                        key={day.id}
+                        style={[styles.dayButton, { backgroundColor: selectedDays.includes(day.id) ? theme.primary : theme.card, borderColor: selectedDays.includes(day.id) ? theme.primary : theme.border }]}
+                        onPress={() => toggleDay(day.id)}
+                      >
+                        <Text style={[styles.dayButtonText, { color: selectedDays.includes(day.id) ? '#FFF' : theme.text }]}>{day.short}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {selectedDays.length > 0 && (
+                    <Text style={[styles.selectedDaysText, { color: theme.textSecondary }]}>
+                      {selectedDays.map((d) => DAY_NAMES[d]).join(', ')}
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                    {oneTimeDates.length > 1 ? `Dates · ${oneTimeDates.length} selected` : 'Pick one or more dates'}
+                  </Text>
+                  <MultiDateCalendar
+                    selectedDates={oneTimeDates}
+                    onToggle={toggleOneTimeDate}
+                    accent={theme.primary}
+                    singleSelect={!!editingSchedule}
+                  />
+                </>
+              )}
 
-        {/* Date Picker */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={selectedDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            minimumDate={new Date()}
-            onChange={(event, date) => {
-              setShowDatePicker(Platform.OS === 'ios');
-              if (date) setSelectedDate(date);
-            }}
-          />
-        )}
-      </SafeAreaView>
-    </Modal>
+              {/* Duration */}
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>How long it takes</Text>
+              <DurationField value={duration} onChange={setDuration} accent={theme.primary} />
+
+              {/* Reminder */}
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Reminder</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.reminderOptions}
+                keyboardShouldPersistTaps="handled"
+              >
+                {[0, 30, 60, 120].map((mins) => {
+                  const active = notifyBefore === mins;
+                  const label = mins === 0 ? 'At start' : mins === 60 ? '1 hour' : mins === 120 ? '2 hours' : `${mins} min`;
+                  return (
+                    <TouchableOpacity
+                      key={mins}
+                      style={[styles.reminderButton, { backgroundColor: active ? theme.primary : theme.card, borderColor: active ? theme.primary : theme.border }]}
+                      onPress={() => { hapticFeedback.light(); setNotifyBefore(mins); }}
+                    >
+                      <Text style={[styles.reminderButtonText, { color: active ? '#FFF' : theme.text }]}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <Text style={[styles.reminderHint, { color: theme.textSecondary }]}>
+                {notifyBefore === 0
+                  ? "You'll be notified when this workout starts"
+                  : `You'll be notified ${notifyBefore === 60 ? '1 hour' : notifyBefore === 120 ? '2 hours' : `${notifyBefore} minutes`} before your workout (only if not completed)`}
+              </Text>
+            </ScrollView>
+          )}
+      </>
+    </GestureHandlerRootView>
   );
 };
 
@@ -490,15 +473,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  progress: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 12 },
+  progressDot: { height: 7, borderRadius: 3.5 },
+  timeBody: { flex: 1, paddingHorizontal: 20, paddingTop: 4 },
+  timeSubtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, paddingHorizontal: 2 },
+  timeSubtitle: { fontSize: 14, fontWeight: '600', flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128,128,128,0.25)',
   },
   closeButton: {
     padding: 8,
@@ -546,12 +534,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     marginBottom: 12,
-    marginTop: 8,
+    marginTop: 26,
   },
   typeButtons: {
     flexDirection: 'row',
@@ -560,10 +548,11 @@ const styles = StyleSheet.create({
   },
   typeButton: {
     flex: 1,
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 16,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   typeButtonText: {
     fontSize: 16,
@@ -585,7 +574,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   dayButtonText: {
     fontSize: 14,
@@ -613,15 +602,16 @@ const styles = StyleSheet.create({
   reminderOptions: {
     flexDirection: 'row',
     gap: 10,
+    paddingRight: 4,
     marginBottom: 8,
   },
   reminderButton: {
-    flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 18,
     borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 2,
+    justifyContent: 'center',
+    borderWidth: 1.5,
   },
   reminderButtonText: {
     fontSize: 14,

@@ -559,8 +559,8 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
   };
 
   const headerSpacerHeight = searchBarVisible
-    ? (Platform.OS === 'ios' ? 222 : 197)
-    : (Platform.OS === 'ios' ? 157 : 132);
+    ? (Platform.OS === 'ios' ? 184 : 189)
+    : (Platform.OS === 'ios' ? 119 : 124);
 
   if (loading) {
     const loadingContent = (
@@ -631,7 +631,7 @@ const KeyVerses = ({ visible, onClose, onNavigateToVerse, onDiscussVerse, asScre
             zIndex: 1000,
           }}
         >
-          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+          <View style={{ height: 16 }} />
           <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
             {/* Title row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

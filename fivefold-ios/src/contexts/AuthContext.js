@@ -467,20 +467,6 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
-      // Cancel any scheduled token notifications before signing out
-      try {
-        const Notifications = require('expo-notifications');
-        const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-        for (const notification of scheduledNotifications) {
-          if (notification.content.data?.type === 'token_arrived') {
-            await Notifications.cancelScheduledNotificationAsync(notification.identifier);
-            console.log('[Auth] Cancelled token notification:', notification.identifier);
-          }
-        }
-      } catch (notifError) {
-        console.log('[Auth] Error cancelling notifications:', notifError);
-      }
-      
       // Now sign out from Firebase
       await authSignOut();
       userStorage.clearUser();

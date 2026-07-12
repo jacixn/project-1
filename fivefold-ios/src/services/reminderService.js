@@ -1,52 +1,59 @@
 import { getStoredData, saveData } from '../utils/localStorage';
 import { pushToCloud } from './userSyncService';
 import notificationService from './notificationService';
+import { DEFAULT_DURATION, clampDuration } from '../utils/duration';
 
 const STORAGE_KEY = 'user_reminders';
 
 const generateId = () => `rem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-// ── Reminder presets (quick-start templates) ───────────────────────────────
-// A preset is a reusable template: tapping it pre-fills the create form so the
-// user can tweak time/days and save. Built-ins ship with the app; users can save
-// their own from any reminder. Presets hold no runtime state (no enabled/completions).
+// ── Reminder library (reusable templates) ──────────────────────────────────
+// A library entry is a reusable reminder definition: a title, how long it takes
+// (duration), an icon and a color. The user builds these FIRST, then drags them
+// onto a day to set the time (see ScheduleReminderModal). Built-ins ship with the
+// app; users add their own. Entries hold no schedule (time/days live on the
+// placed reminder) and no runtime state (no enabled/completions). The storage key
+// stays `reminder_presets` for back-compat with already-synced data.
 const PRESETS_KEY = 'reminder_presets';
 
 export const BUILTIN_REMINDER_PRESETS = [
-  { id: 'preset_breakfast', title: 'Eat breakfast', icon: 'restaurant', color: '#F59E0B', time: '08:00', type: 'recurring', days: [0, 1, 2, 3, 4, 5, 6], builtin: true },
-  { id: 'preset_water', title: 'Drink water', icon: 'water-drop', color: '#06B6D4', time: '10:00', type: 'recurring', days: [0, 1, 2, 3, 4, 5, 6], builtin: true },
-  { id: 'preset_pray', title: 'Pray', icon: 'self-improvement', color: '#8B5CF6', time: '07:00', type: 'recurring', days: [0, 1, 2, 3, 4, 5, 6], builtin: true },
-  { id: 'preset_bible', title: 'Read Bible', icon: 'school', color: '#10B981', time: '20:00', type: 'recurring', days: [0, 1, 2, 3, 4, 5, 6], builtin: true },
-  { id: 'preset_workout', title: 'Workout', icon: 'fitness-center', color: '#EF4444', time: '18:00', type: 'recurring', days: [1, 2, 3, 4, 5], builtin: true },
-  { id: 'preset_sleep', title: 'Sleep', icon: 'bedtime', color: '#6366F1', time: '22:00', type: 'recurring', days: [0, 1, 2, 3, 4, 5, 6], builtin: true },
+  { id: 'preset_breakfast', title: 'Eat breakfast', icon: 'restaurant', color: '#F59E0B', duration: 20, builtin: true },
+  { id: 'preset_water', title: 'Drink water', icon: 'water-drop', color: '#06B6D4', duration: 5, builtin: true },
+  { id: 'preset_pray', title: 'Pray', icon: 'self-improvement', color: '#8B5CF6', duration: 15, builtin: true },
+  { id: 'preset_bible', title: 'Read Bible', icon: 'school', color: '#10B981', duration: 20, builtin: true },
+  { id: 'preset_workout', title: 'Workout', icon: 'fitness-center', color: '#EF4444', duration: 60, builtin: true },
+  { id: 'preset_sleep', title: 'Sleep', icon: 'bedtime', color: '#6366F1', duration: 15, builtin: true },
 ];
+
+// Back-fill a duration on legacy entries that predate the field.
+const withDuration = (p) => ({ ...p, duration: clampDuration(p?.duration ?? DEFAULT_DURATION) });
 
 export const loadReminderPresets = async () => {
   try {
     const data = await getStoredData(PRESETS_KEY);
-    return Array.isArray(data?.presets) ? data.presets : [];
+    return Array.isArray(data?.presets) ? data.presets.map(withDuration) : [];
   } catch (e) {
     return [];
   }
 };
 
-export const saveReminderPreset = async ({ title, icon, color, time, type, days }) => {
+export const saveReminderPreset = async ({ id, title, icon, color, duration }) => {
   const presets = await loadReminderPresets();
   const clean = (title || '').trim();
   if (!clean) return null;
   const newPreset = {
-    id: `userpreset_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: id && !String(id).startsWith('preset_') ? id : `userpreset_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     title: clean,
     icon: icon || 'notifications',
     color: color || '#3B82F6',
-    time: time || '08:00',
-    type: type || 'recurring',
-    days: Array.isArray(days) ? days : [0, 1, 2, 3, 4, 5, 6],
+    duration: clampDuration(duration ?? DEFAULT_DURATION),
     builtin: false,
   };
-  // Replace an existing preset with the same title (case-insensitive) so saving
-  // the same name twice updates rather than duplicates.
-  const filtered = presets.filter(p => (p.title || '').trim().toLowerCase() !== clean.toLowerCase());
+  // Replace an entry with the same id (edit) or same title (case-insensitive) so
+  // saving updates rather than duplicates.
+  const filtered = presets.filter(
+    p => p.id !== newPreset.id && (p.title || '').trim().toLowerCase() !== clean.toLowerCase()
+  );
   const updated = [newPreset, ...filtered];
   await saveData(PRESETS_KEY, { presets: updated });
   pushToCloud(PRESETS_KEY, { presets: updated });
@@ -60,11 +67,21 @@ export const deleteReminderPreset = async (id) => {
   pushToCloud(PRESETS_KEY, { presets: updated });
 };
 
+// Friendly aliases — the "library" vocabulary the new UI speaks.
+export const loadLibrary = loadReminderPresets;
+export const saveLibraryItem = saveReminderPreset;
+export const deleteLibraryItem = deleteReminderPreset;
+export const BUILTIN_LIBRARY = BUILTIN_REMINDER_PRESETS;
+
 export const loadReminders = async () => {
   try {
     const data = await getStoredData(STORAGE_KEY);
     if (!data || !data.reminders) return [];
-    return data.reminders;
+    // Back-fill duration on reminders created before the field existed so cards,
+    // the timeline block and the calendar mirror all have a length to work with.
+    return data.reminders.map(r => (
+      r && r.duration == null ? { ...r, duration: DEFAULT_DURATION } : r
+    ));
   } catch (e) {
     console.error('Error loading reminders:', e);
     return [];
@@ -79,13 +96,14 @@ const persist = async (reminders) => {
   try { require('./calendarSync').syncReminders(reminders); } catch {}
 };
 
-export const addReminder = async ({ title, time, type, days, icon, color, date }) => {
+export const addReminder = async ({ title, time, type, days, icon, color, date, duration }) => {
   const reminders = await loadReminders();
   const reminderType = type || 'recurring';
   const newReminder = {
     id: generateId(),
     title,
     time: time || '08:00',
+    duration: clampDuration(duration ?? DEFAULT_DURATION),
     type: reminderType,
     days: days || [0, 1, 2, 3, 4, 5, 6],
     icon: icon || 'notifications',
@@ -153,6 +171,8 @@ export const completeReminder = async (id, dateStr) => {
     if (!reminders[idx].completions) reminders[idx].completions = {};
     reminders[idx].completions[dateStr] = true;
     await persist(reminders);
+    // Completing it stops any relentless escalation pings still queued for today
+    notificationService.cancelItemEscalation({ type: 'user_reminder', reminderId: id }).catch(() => {});
   } catch (e) {
     console.error('[Reminders] completeReminder failed:', e);
   }

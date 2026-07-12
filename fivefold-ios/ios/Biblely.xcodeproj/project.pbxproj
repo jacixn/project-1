@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		50B1B1E5000000000000001 /* biblely_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 50B1B1E5000000000000000 /* biblely_bell.wav */; };
+		50B1B1E5000000000000011 /* biblely_chime.wav in Resources */ = {isa = PBXBuildFile; fileRef = 50B1B1E5000000000000010 /* biblely_chime.wav */; };
+		50B1B1E5000000000000021 /* biblely_ding.wav in Resources */ = {isa = PBXBuildFile; fileRef = 50B1B1E5000000000000020 /* biblely_ding.wav */; };
+		50B1B1E5000000000000031 /* biblely_gong.wav in Resources */ = {isa = PBXBuildFile; fileRef = 50B1B1E5000000000000030 /* biblely_gong.wav */; };
+		50B1B1E5000000000000041 /* biblely_pulse.wav in Resources */ = {isa = PBXBuildFile; fileRef = 50B1B1E5000000000000040 /* biblely_pulse.wav */; };
 		0703F7959EADAB182BB8D414 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00010E897515DD053E931506 /* ExpoModulesProvider.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		18AB099E4B148ED7282A9CFD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3B0BDF1F8E10A41762E7ECA9 /* PrivacyInfo.xcprivacy */; };
@@ -46,6 +51,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		50B1B1E5000000000000000 /* biblely_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = biblely_bell.wav; path = ../assets/sounds/biblely_bell.wav; sourceTree = "<group>"; };
+		50B1B1E5000000000000010 /* biblely_chime.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = biblely_chime.wav; path = ../assets/sounds/biblely_chime.wav; sourceTree = "<group>"; };
+		50B1B1E5000000000000020 /* biblely_ding.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = biblely_ding.wav; path = ../assets/sounds/biblely_ding.wav; sourceTree = "<group>"; };
+		50B1B1E5000000000000030 /* biblely_gong.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = biblely_gong.wav; path = ../assets/sounds/biblely_gong.wav; sourceTree = "<group>"; };
+		50B1B1E5000000000000040 /* biblely_pulse.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = biblely_pulse.wav; path = ../assets/sounds/biblely_pulse.wav; sourceTree = "<group>"; };
 		00010E897515DD053E931506 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Biblely/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* Biblely.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Biblely.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Biblely/Images.xcassets; sourceTree = "<group>"; };
@@ -124,6 +134,11 @@
 		13B07FAE1A68108700A75B9A /* Biblely */ = {
 			isa = PBXGroup;
 			children = (
+				50B1B1E5000000000000000 /* biblely_bell.wav */,
+				50B1B1E5000000000000010 /* biblely_chime.wav */,
+				50B1B1E5000000000000020 /* biblely_ding.wav */,
+				50B1B1E5000000000000030 /* biblely_gong.wav */,
+				50B1B1E5000000000000040 /* biblely_pulse.wav */,
 				2ABD71982F412BC300F65ECD /* WidgetBridge.m */,
 				2ABD71992F412BC300F65ECD /* WidgetBridge.swift */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
@@ -293,6 +308,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				50B1B1E5000000000000001 /* biblely_bell.wav in Resources */,
+				50B1B1E5000000000000011 /* biblely_chime.wav in Resources */,
+				50B1B1E5000000000000021 /* biblely_ding.wav in Resources */,
+				50B1B1E5000000000000031 /* biblely_gong.wav in Resources */,
+				50B1B1E5000000000000041 /* biblely_pulse.wav in Resources */,
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,

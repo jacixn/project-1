@@ -7,7 +7,6 @@ import {
   Dimensions,
   FlatList,
   ScrollView,
-  Modal,
   Alert,
   Animated,
 } from 'react-native';
@@ -17,8 +16,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import {
   loadReminders,
-  addReminder,
-  updateReminder,
   deleteReminder,
   completeReminder,
   uncompleteReminder,
@@ -27,7 +24,7 @@ import {
   DAY_NAMES,
   DAY_SHORT,
 } from '../services/reminderService';
-import CreateReminderModal from './CreateReminderModal';
+import { formatDurationShort } from '../utils/duration';
 import userStorage from '../utils/userStorage';
 import AchievementService from '../services/achievementService';
 
@@ -55,9 +52,7 @@ const RemindersScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [reminders, setReminders] = useState([]);
-  const [showCreate, setShowCreate] = useState(false);
-  const [editingReminder, setEditingReminder] = useState(null);
-  const [showAll, setShowAll] = useState(false);
+  const [activePage, setActivePage] = useState(0);
   const flatListRef = useRef(null);
   const [floatingPoints, setFloatingPoints] = useState([]);
   const floatingIdRef = useRef(0);
@@ -79,51 +74,10 @@ const RemindersScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation, refresh]);
 
-  // Human-readable schedule for the "All reminders" list.
-  const scheduleLabel = (r) => {
-    if (r.type === 'one-time') {
-      if (r.date) {
-        const [y, mo, dd] = r.date.split('-').map(Number);
-        return new Date(y, mo - 1, dd).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      }
-      return 'One-time';
-    }
-    return (r.days || []).length === 7 ? 'Every day' : (r.days || []).map(d => DAY_SHORT[d]).join(', ');
-  };
-
-  // All reminders, sorted: one-time by date (so far-future Oct ones surface), then recurring by time.
-  const allSorted = [...reminders].sort((a, b) => {
-    const aOne = a.type === 'one-time';
-    const bOne = b.type === 'one-time';
-    if (aOne !== bOne) return aOne ? -1 : 1;
-    if (aOne && bOne) return (a.date || '').localeCompare(b.date || '');
-    const [ah, am] = (a.time || '08:00').split(':').map(Number);
-    const [bh, bm] = (b.time || '08:00').split(':').map(Number);
-    return (ah * 60 + am) - (bh * 60 + bm);
-  });
-
-  const handleDeleteReminder = (r) => {
-    hapticFeedback.medium();
-    Alert.alert(r.title, 'Delete this reminder?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => { await deleteReminder(r.id); await refresh(); } },
-    ]);
-  };
-
-  const handleSave = async (data) => {
-    if (editingReminder) {
-      await updateReminder(editingReminder.id, data);
-    } else if (Array.isArray(data)) {
-      // Multi-date one-time: one reminder per date. Sequential await so each
-      // addReminder reads the freshly-persisted list (no read-modify-write race).
-      for (const d of data) {
-        await addReminder(d);
-      }
-    } else {
-      await addReminder(data);
-    }
-    await refresh();
-    setEditingReminder(null);
+  // Open the schedule wizard (native modal screen); pass an existing reminder to edit.
+  const openSchedule = (editingReminder) => {
+    hapticFeedback.light();
+    navigation.navigate('ScheduleReminder', editingReminder ? { editingReminder } : undefined);
   };
 
   const showFloatingPts = useCallback((points, color) => {
@@ -212,7 +166,7 @@ const RemindersScreen = ({ navigation }) => {
             <MaterialIcons name="wb-sunny" size={48} color={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'} />
             <Text style={[styles.emptyText, { color: textSecondary }]}>No reminders for this day</Text>
             <TouchableOpacity
-              onPress={() => { hapticFeedback.light(); setEditingReminder(null); setShowCreate(true); }}
+              onPress={() => openSchedule()}
               style={[styles.emptyAddBtn, { borderColor: theme.primary }]}
             >
               <MaterialIcons name="add" size={18} color={theme.primary} />
@@ -252,7 +206,7 @@ const RemindersScreen = ({ navigation }) => {
                     onLongPress={() => {
                       hapticFeedback.medium();
                       Alert.alert(reminder.title, null, [
-                        { text: 'Edit', onPress: () => { setEditingReminder(reminder); setShowCreate(true); } },
+                        { text: 'Edit', onPress: () => openSchedule(reminder) },
                         {
                           text: 'Delete',
                           style: 'destructive',
@@ -279,6 +233,11 @@ const RemindersScreen = ({ navigation }) => {
                       <Text style={[styles.cardTime, { color: rColor }]}>
                         {formatTime(reminder.time)}
                       </Text>
+                      {reminder.duration ? (
+                        <View style={[styles.durPill, { backgroundColor: rColor + '18' }]}>
+                          <Text style={[styles.durPillText, { color: rColor }]}>{formatDurationShort(reminder.duration)}</Text>
+                        </View>
+                      ) : null}
                     </View>
                     <Text
                       style={[
@@ -314,61 +273,76 @@ const RemindersScreen = ({ navigation }) => {
     );
   };
 
+  const iconBtnBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
+  const goToPage = (offset) => {
+    hapticFeedback.light();
+    setActivePage(offset);
+    flatListRef.current?.scrollToOffset({ offset: offset * SCREEN_WIDTH, animated: true });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Static back button (mirrors Vision screen) */}
-      <TouchableOpacity
-        style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', position: 'absolute', top: insets.top + 8, left: 20, zIndex: 10 }]}
-        onPress={() => navigation.goBack()}
-        activeOpacity={0.7}
-      >
-        <MaterialIcons name="arrow-back" size={22} color={textPrimary} />
-      </TouchableOpacity>
+      {/* Top bar: back (left) · title (centered in the middle band) · actions
+          (right). Title takes the flexible middle so it centers between the two
+          control clusters and never overlaps a button. */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={[styles.iconBtn, { backgroundColor: iconBtnBg }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="arrow-back" size={22} color={textPrimary} />
+        </TouchableOpacity>
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={{ width: 96 }} />
-        <Text style={[styles.headerTitle, { color: textPrimary }]}>Reminders</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Text style={[styles.topBarTitle, { color: textPrimary }]} numberOfLines={1}>Reminders</Text>
+
+        <View style={styles.actionCluster}>
           <TouchableOpacity
-            onPress={() => { hapticFeedback.light(); setShowAll(true); }}
-            style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            onPress={() => { hapticFeedback.light(); navigation.navigate('ReminderLibrary'); }}
+            style={[styles.iconBtn, { backgroundColor: iconBtnBg }]}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="format-list-bulleted" size={22} color={textPrimary} />
+            <MaterialIcons name="bookmarks" size={19} color={textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => { hapticFeedback.light(); setEditingReminder(null); setShowCreate(true); }}
-            style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            onPress={() => { hapticFeedback.light(); navigation.navigate('AllReminders'); }}
+            style={[styles.iconBtn, { backgroundColor: iconBtnBg }]}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="add" size={22} color={textPrimary} />
+            <MaterialIcons name="format-list-bulleted" size={20} color={textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => openSchedule()}
+            style={[styles.addBtn, { backgroundColor: theme.primary }]}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="add" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Day Indicator Dots */}
-      <View style={styles.dayIndicator}>
+      {/* Week strip: weekday + date, active day underlined, today in green */}
+      <View style={styles.weekStrip}>
         {dayPages.slice(0, 7).map((offset) => {
           const d = getDateForDayOffset(offset);
           const isToday = offset === 0;
-          const dayLetter = DAY_SHORT[d.getDay()].charAt(0);
+          const isActive = offset === activePage;
+          const activeColor = isToday ? '#10B981' : theme.primary;
+          const numColor = isActive ? activeColor : (isToday ? '#10B981' : textSecondary);
           return (
             <TouchableOpacity
               key={offset}
-              onPress={() => {
-                hapticFeedback.light();
-                flatListRef.current?.scrollToOffset({ offset: offset * SCREEN_WIDTH, animated: true });
-              }}
-              style={styles.dayIndicatorItem}
+              onPress={() => goToPage(offset)}
+              style={styles.weekItem}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.dayIndicatorLetter, { color: isToday ? '#10B981' : textSecondary }]}>
-                {dayLetter}
+              <Text style={[styles.weekLetter, { color: isToday ? '#10B981' : textSecondary }]}>
+                {DAY_SHORT[d.getDay()].charAt(0)}
               </Text>
-              <View style={[
-                styles.dayIndicatorDot,
-                { backgroundColor: isToday ? '#10B981' : 'transparent' },
-              ]} />
+              <Text style={[styles.weekNum, { color: numColor, fontWeight: isActive ? '800' : '600' }]}>
+                {d.getDate()}
+              </Text>
+              <View style={[styles.weekBar, { backgroundColor: isActive ? activeColor : 'transparent' }]} />
             </TouchableOpacity>
           );
         })}
@@ -385,6 +359,10 @@ const RemindersScreen = ({ navigation }) => {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={0}
+        onMomentumScrollEnd={(e) => {
+          const page = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          setActivePage(page);
+        }}
         getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
       />
 
@@ -402,66 +380,53 @@ const RemindersScreen = ({ navigation }) => {
         </Animated.Text>
       ))}
 
-      <CreateReminderModal
-        visible={showCreate}
-        onClose={() => { setShowCreate(false); setEditingReminder(null); }}
-        onSave={handleSave}
-        editingReminder={editingReminder}
-      />
-
-      {/* All reminders — every reminder regardless of date, to amend/delete */}
-      <Modal visible={showAll} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAll(false)}>
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-          <View style={[styles.header, { paddingTop: 16 }]}>
-            <TouchableOpacity onPress={() => setShowAll(false)} style={styles.headerBtn} activeOpacity={0.7}>
-              <MaterialIcons name="close" size={24} color={textPrimary} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: textPrimary }]}>All Reminders</Text>
-            <View style={styles.headerBtn} />
-          </View>
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-            {allSorted.length === 0 ? (
-              <Text style={{ color: textSecondary, textAlign: 'center', marginTop: 40 }}>No reminders yet</Text>
-            ) : allSorted.map((r) => {
-              const rColor = r.color || '#3B82F6';
-              const off = r.enabled === false;
-              return (
-                <View key={r.id} style={[styles.allRow, { backgroundColor: cardBg, borderColor: cardBorder, opacity: off ? 0.5 : 1 }]}>
-                  <View style={[styles.allIconBubble, { backgroundColor: rColor + '20' }]}>
-                    <MaterialIcons name={r.icon || 'notifications'} size={18} color={rColor} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.allTitle, { color: isDark ? '#FFFFFF' : '#1a1a1a' }]} numberOfLines={1}>{r.title}</Text>
-                    <Text style={[styles.allMeta, { color: textSecondary }]} numberOfLines={1}>
-                      {formatTime(r.time)} · {scheduleLabel(r)}{off ? ' · Off' : ''}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => { hapticFeedback.light(); setShowAll(false); setEditingReminder(r); setShowCreate(true); }}
-                    style={styles.allActionBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialIcons name="edit" size={20} color={theme.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteReminder(r)}
-                    style={styles.allActionBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialIcons name="delete-outline" size={20} color={theme.error || '#EF4444'} />
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  // Top bar (Reminders screen)
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    gap: 10,
+  },
+  topBarTitle: { flex: 1, fontSize: 22, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center' },
+  actionCluster: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  // Week strip
+  weekStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+  },
+  weekItem: { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  weekLetter: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  weekNum: { fontSize: 16, marginTop: 3, fontVariant: ['tabular-nums'] },
+  weekBar: { width: 16, height: 3, borderRadius: 1.5, marginTop: 5 },
+  // Shared header (used by the "All reminders" modal)
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -496,15 +461,6 @@ const styles = StyleSheet.create({
   allTitle: { fontSize: 15, fontWeight: '600' },
   allMeta: { fontSize: 12, marginTop: 2 },
   allActionBtn: { padding: 6 },
-  dayIndicator: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  dayIndicatorItem: { alignItems: 'center', gap: 4 },
-  dayIndicatorLetter: { fontSize: 13, fontWeight: '600' },
-  dayIndicatorDot: { width: 5, height: 5, borderRadius: 2.5 },
   dayPage: { flex: 1, paddingHorizontal: 20 },
   dayHeader: { marginBottom: 24, marginTop: 8 },
   dayName: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
@@ -545,6 +501,8 @@ const styles = StyleSheet.create({
   },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   cardTime: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  durPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  durPillText: { fontSize: 11, fontWeight: '700', fontVariant: ['tabular-nums'] },
   reminderTitle: { fontSize: 17, fontWeight: '600', marginBottom: 2 },
   reminderMeta: { fontSize: 13, marginTop: 1 },
   checkDone: {

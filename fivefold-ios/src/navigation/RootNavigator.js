@@ -15,18 +15,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator, { preloadTabConfig } from './TabNavigator';
 import AuthScreen from '../screens/AuthScreen';
-import FriendsScreen from '../screens/FriendsScreen';
-import LeaderboardScreen from '../screens/LeaderboardScreen';
-import MessagesScreen from '../screens/MessagesScreen';
-import ChatScreen from '../screens/ChatScreen';
-import ChallengesScreen from '../screens/ChallengesScreen';
-import ChallengeQuizScreen from '../screens/ChallengeQuizScreen';
 
 import SavedVersesScreen from '../screens/SavedVersesScreen';
 import HighlightsScreen from '../screens/HighlightsScreen';
 import JournalScreen from '../screens/JournalScreen';
 import AchievementsScreen from '../screens/AchievementsScreen';
 import ExercisesScreen from '../screens/ExercisesScreen';
+import { ExerciseDetailScreen } from '../components/ExercisesModal';
 import PhysiqueScreen from '../screens/PhysiqueScreen';
 import BodyCompositionScreen from '../screens/BodyCompositionScreen';
 import GymHistoryScreen from '../screens/GymHistoryScreen';
@@ -45,17 +40,25 @@ import BookOrderGame from '../screens/bible-games/BookOrderGame';
 import VerseCompleteGame from '../screens/bible-games/VerseCompleteGame';
 import BiblePairsGame from '../screens/bible-games/BiblePairsGame';
 import BibleTimelineScreen from '../screens/BibleTimelineScreen';
+import BibleTimelineEraScreen from '../screens/BibleTimelineEraScreen';
 import BibleMapsScreen from '../screens/BibleMapsScreen';
+import { BibleMapDetailScreen } from '../components/InteractiveBibleMaps';
 import ThematicGuidesScreen from '../screens/ThematicGuidesScreen';
+import ThematicGuideDetailScreen from '../screens/ThematicGuideDetailScreen';
 import KeyVersesScreen from '../screens/KeyVersesScreen';
 import BibleFastFactsScreen from '../screens/BibleFastFactsScreen';
 import AudioLearningScreen from '../screens/AudioLearningScreen';
 import BibleReaderScreen from '../screens/BibleReaderScreen';
-import FriendChatScreen from '../screens/FriendChatScreen';
+import BibleChatScreen from '../screens/BibleChatScreen';
+import ActiveWorkoutScreen from '../screens/ActiveWorkoutScreen';
 import CoachChatScreen from '../screens/CoachChatScreen';
-import VisionScreen from '../screens/VisionScreen';
+import VisionScreen, { AddVisionScreen } from '../screens/VisionScreen';
 import HabitsScreenWrapper from '../screens/HabitsScreen';
+import { AddHabitScreen } from '../components/HabitsScreen';
 import RemindersScreenWrapper from '../screens/RemindersScreen';
+import ScheduleReminderModal from '../components/ScheduleReminderModal';
+import LibrarySheet from '../components/LibrarySheet';
+import AllRemindersScreen from '../components/AllRemindersScreen';
 import PanicButtonScreen from '../screens/PanicButtonScreen';
 import RelapsedScreen from '../screens/RelapsedScreen';
 import DistractionGamesScreen from '../screens/DistractionGamesScreen';
@@ -590,51 +593,6 @@ const RootNavigator = () => {
         options={{ gestureEnabled: false }}
       />
       
-      {/* Friends Screen */}
-      <Stack.Screen 
-        name="Friends" 
-        component={FriendsScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      
-      {/* Leaderboard Screen */}
-      <Stack.Screen 
-        name="Leaderboard" 
-        component={LeaderboardScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      
-      {/* Messages Screen */}
-      <Stack.Screen 
-        name="Messages" 
-        component={MessagesScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      
-      {/* Chat Screen */}
-      <Stack.Screen 
-        name="Chat" 
-        component={ChatScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      
-      {/* Challenges Screen */}
-      <Stack.Screen 
-        name="Challenges" 
-        component={ChallengesScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      
       {/* Vision Screen */}
       <Stack.Screen 
         name="Vision" 
@@ -653,6 +611,10 @@ const RootNavigator = () => {
         }}
       />
 
+      {/* Add Vision / Add Habit — native modal sheets (match the rest of the app) */}
+      <Stack.Screen name="AddVision" component={AddVisionScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="AddHabit" component={AddHabitScreen} options={{ presentation: 'modal' }} />
+
       {/* Reminders Screen */}
       <Stack.Screen
         name="Reminders"
@@ -660,6 +622,90 @@ const RootNavigator = () => {
         options={{
           animation: 'slide_from_right',
         }}
+      />
+
+      {/* Reminder modals — native pull-to-dismiss sheets (parent scales back). */}
+      <Stack.Screen
+        name="ScheduleReminder"
+        component={ScheduleReminderModal}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="ReminderLibrary"
+        component={LibrarySheet}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="AllReminders"
+        component={AllRemindersScreen}
+        options={{ presentation: 'modal' }}
+      />
+
+      {/* Legal / support sheets — native pull-to-dismiss */}
+      <Stack.Screen
+        name="Legal"
+        component={require('../screens/LegalScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+
+      {/* Settings hub — native pull-to-dismiss sheet (like the reminder modals) */}
+      <Stack.Screen
+        name="Settings"
+        component={require('../screens/SettingsScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      {/* Settings child sheets — stack ON TOP of Settings (it scales back). */}
+      <Stack.Screen
+        name="ReferralSheet"
+        component={require('../screens/ReferralScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="BibleVersionSheet"
+        component={require('../screens/BibleVersionScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="LanguageSheet"
+        component={require('../screens/LanguageScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="ReadingVoiceSheet"
+        component={require('../screens/ReadingVoiceScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="NotificationsSheet"
+        component={require('../screens/NotificationsScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="TwoFactorSheet"
+        component={require('../screens/TwoFactorSetupScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+
+      {/* Prayer wizard modals — same native pull-to-dismiss sheets */}
+      <Stack.Screen
+        name="AddPrayer"
+        component={require('../components/AddPrayerModal').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="EditPrayer"
+        component={require('../components/EditPrayerModal').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="AllWorkouts"
+        component={require('../screens/AllWorkoutsScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="ScheduleWorkout"
+        component={require('../components/ScheduleWorkoutModal').default}
+        options={{ presentation: 'modal', gestureResponseDistance: 140 }}
       />
 
       {/* Panic Button Flow */}
@@ -805,49 +851,66 @@ const RootNavigator = () => {
         }}
       />
       
-      {/* Bible Study Screen */}
-      <Stack.Screen 
-        name="BibleStudy" 
+      {/* Bible Study hub — a normal push (menu). Its content readers open as
+          pull-to-dismiss modals; keeping the hub a push means the games/quiz
+          screens pushed from it don't inherit a modal's notch inset. */}
+      <Stack.Screen
+        name="BibleStudy"
         component={BibleStudyScreen}
         options={{
           animation: 'slide_from_right',
         }}
       />
-      
-      {/* Bible Study Sub-Screens */}
-      <Stack.Screen name="BibleCharacters" component={require('../screens/BibleCharactersScreen').default} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="QuizGames" component={QuizGamesScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="QuizCategories" component={QuizCategoriesScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="BibleGames" component={BibleGamesScreen} options={{ animation: 'slide_from_right' }} />
+
+      {/* Bible Study Sub-Screens. Reader/study screens present as native
+          pull-to-dismiss modals; interactive games stay as pushes. */}
+      <Stack.Screen name="BibleCharacters" component={require('../screens/BibleCharactersScreen').default} options={{ presentation: 'modal' }} />
+      {/* Story group and character each get their own sheet, stacked over the list */}
+      <Stack.Screen name="BibleCharacterGroup" component={require('../screens/BibleCharacterGroupScreen').default} options={{ presentation: 'modal', gestureResponseDistance: 140 }} />
+      <Stack.Screen name="BibleCharacter" component={require('../screens/BibleCharacterScreen').default} options={{ presentation: 'modal', gestureResponseDistance: 140 }} />
+      <Stack.Screen name="QuizGames" component={QuizGamesScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="QuizCategories" component={QuizCategoriesScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="BibleGames" component={BibleGamesScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="VerseJumbleGame" component={VerseJumbleGame} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="BibleHangmanGame" component={BibleHangmanGame} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="WhoAmIGame" component={WhoAmIGame} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="BookOrderGame" component={BookOrderGame} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="VerseCompleteGame" component={VerseCompleteGame} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="BiblePairsGame" component={BiblePairsGame} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="BibleTimeline" component={BibleTimelineScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="BibleMaps" component={BibleMapsScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="ThematicGuides" component={ThematicGuidesScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="KeyVersesScreen" component={KeyVersesScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="BibleFastFacts" component={BibleFastFactsScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="AudioLearning" component={AudioLearningScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="BibleTimeline" component={BibleTimelineScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="BibleTimelineEra" component={BibleTimelineEraScreen} options={{ presentation: 'modal', gestureResponseDistance: 140 }} />
+      <Stack.Screen name="BibleMaps" component={BibleMapsScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="BibleMapDetail" component={BibleMapDetailScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="ThematicGuides" component={ThematicGuidesScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="ThematicGuideDetail" component={ThematicGuideDetailScreen} options={{ presentation: 'modal', gestureResponseDistance: 140 }} />
+      <Stack.Screen name="KeyVersesScreen" component={KeyVersesScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="BibleFastFacts" component={BibleFastFactsScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="BibleFactDetail" component={require('../screens/BibleFactDetailScreen').default} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="AudioLearning" component={AudioLearningScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="AudioStory" component={require('../screens/AudioStoryScreen').default} options={{ presentation: 'modal' }} />
       
-      {/* Friend Chat Screen */}
-      <Stack.Screen 
-        name="FriendChat" 
-        component={FriendChatScreen}
+      {/* Bible Chat Screen (Guide AI verse study) */}
+      <Stack.Screen
+        name="BibleChat"
+        component={BibleChatScreen}
+        options={{ presentation: 'modal', gestureResponseDistance: 140 }}
+      />
+
+      {/* Active Workout — native modal sheet (parent scales back, swipe to minimize) */}
+      <Stack.Screen
+        name="ActiveWorkout"
+        component={ActiveWorkoutScreen}
         options={{
-          animation: 'slide_from_right',
+          presentation: 'modal',
+          gestureResponseDistance: 140,
         }}
       />
 
       {/* Coach Chat Screen */}
-      <Stack.Screen 
-        name="CoachChat" 
+      <Stack.Screen
+        name="CoachChat"
         component={CoachChatScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
+        options={{ presentation: 'modal', gestureResponseDistance: 140 }}
       />
       
       {/* Customisation Screen */}
@@ -863,18 +926,14 @@ const RootNavigator = () => {
       <Stack.Screen
         name="CustomiseTabBar"
         component={CustomiseTabBarScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
+        options={{ presentation: 'modal' }}
       />
 
       {/* Customise Cards Screen */}
       <Stack.Screen
         name="CustomiseCards"
         component={CustomiseCardsScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
+        options={{ presentation: 'modal' }}
       />
 
       {/* Prayer Detail Screen */}
@@ -897,11 +956,16 @@ const RootNavigator = () => {
 
       {/* Bible Reader Screen */}
       <Stack.Screen 
-        name="BibleReader" 
+        name="BibleReader"
         component={BibleReaderScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
+        options={{ presentation: 'modal', gestureResponseDistance: 140 }}
+      />
+
+      {/* Reading a chapter is its own sheet, stacked over the books sheet */}
+      <Stack.Screen
+        name="BibleChapter"
+        component={require('../screens/BibleChapterScreen').default}
+        options={{ presentation: 'modal', gestureResponseDistance: 140 }}
       />
       
       {/* Schedule Task Screen */}
@@ -997,23 +1061,17 @@ const RootNavigator = () => {
       />
       
       {/* Exercises Screen */}
-      <Stack.Screen 
-        name="Exercises" 
+      <Stack.Screen
+        name="Exercises"
         component={ExercisesScreen}
         options={{
           animation: 'slide_from_right',
         }}
       />
+
+      {/* Exercise Detail — native modal sheet (matches the rest of the app) */}
+      <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} options={{ presentation: 'modal' }} />
       
-      {/* Challenge Quiz Screen */}
-      <Stack.Screen 
-        name="ChallengeQuiz" 
-        component={ChallengeQuizScreen}
-        options={{
-          animation: 'slide_from_bottom',
-          gestureEnabled: false,
-        }}
-      />
     </Stack.Navigator>
   );
 };

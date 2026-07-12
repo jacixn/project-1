@@ -6,11 +6,9 @@ const KeyVersesScreen = ({ navigation }) => (
     visible={true}
     onClose={() => navigation.goBack()}
     onNavigateToVerse={(reference) => {
-      navigation.navigate('BibleReader', { verseRef: reference });
+      navigation.navigate('BibleChapter', { verseRef: reference, verseTapTs: Date.now() });
     }}
-    onDiscussVerse={(payload) => {
-      navigation.navigate('FriendChat', { initialVerse: payload });
-    }}
+    onDiscussVerse={(versePayload) => navigation.navigate('BibleChat', { initialVerse: versePayload })}
     asScreen={true}
   />
 );

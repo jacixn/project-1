@@ -487,6 +487,15 @@ class WorkoutService {
       const scheduled = await this.getScheduledWorkouts();
       const filtered = scheduled.filter(s => s.id !== scheduleId);
       await this.saveScheduledWorkouts(filtered);
+      // A deleted schedule's weekly primaries would otherwise fire forever.
+      // Lazy require: notificationService imports THIS module at its top, so a
+      // static import here would be circular.
+      try {
+        const notificationService = require('./notificationService').default;
+        await notificationService.cancelWorkoutScheduleNotifications(scheduleId);
+      } catch (e) {
+        console.warn('Failed to cancel notifications for deleted schedule:', e);
+      }
       console.log('✅ Schedule deleted:', scheduleId);
     } catch (error) {
       console.error('Error deleting schedule:', error);

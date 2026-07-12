@@ -183,17 +183,7 @@ const HighlightsScreen = ({ navigation }) => {
 
   const handleNavigateToVerse = (verseRef) => {
     hapticFeedback.medium();
-    navigation.navigate('BibleReader', { verseRef });
-  };
-
-  const handleDiscussVerse = (verse) => {
-    hapticFeedback.medium();
-    navigation.navigate('FriendChat', {
-      initialVerse: {
-        text: verse.text,
-        reference: verse.verseReference,
-      },
-    });
+    navigation.navigate('BibleChapter', { verseRef, verseTapTs: Date.now() });
   };
 
   useEffect(() => {
@@ -474,20 +464,31 @@ const HighlightsScreen = ({ navigation }) => {
                   >
                     <MaterialIcons name="delete-outline" size={24} color={theme.error} />
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={{
                       flex: 1, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16,
                       backgroundColor: theme.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
                       shadowColor: theme.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 3
                     }}
-                    onPress={() => handleDiscussVerse(verse)}
+                    onPress={() => {
+                      hapticFeedback.light();
+                      const cleanText = (verse.text || '').replace(/\s+/g, ' ').trim();
+                      navigation.navigate('BibleChat', {
+                        initialVerse: {
+                          text: cleanText,
+                          content: cleanText,
+                          reference: verse.verseReference,
+                          version: currentBibleVersion || undefined,
+                        },
+                      });
+                    }}
                     activeOpacity={0.8}
                   >
-                    <MaterialIcons name="forum" size={18} color="#FFFFFF" />
+                    <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
                     <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginLeft: 6 }}>Discuss</Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={{
                       flex: 1, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16,

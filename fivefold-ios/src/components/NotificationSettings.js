@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import { hapticFeedback } from '../utils/haptics';
 import notificationService from '../services/notificationService';
 import WorkoutService from '../services/workoutService';
+import { Audio } from 'expo-av';
+import { SOUND_OPTIONS, ensureSoundsInstalled } from '../services/notificationSounds';
 
 const SETTING_TO_TAB = {
   prayerReminders: 'BiblePrayer',
@@ -28,13 +30,9 @@ const SETTING_TO_TAB = {
   visionExpiryReminders: 'Todos',
   workoutReminders: 'Gym',
   weeklyBodyCheckIn: 'Gym',
-  tokenArrival: 'Hub',
-  messageNotifications: 'Hub',
-  friendRequestNotifications: 'Hub',
-  challengeNotifications: 'Hub',
 };
 
-const NotificationSettings = ({ visible, onClose }) => {
+const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
   const { theme, isDark } = useTheme();
   const [settings, setSettings] = useState({
     prayerReminders: true,
@@ -44,22 +42,22 @@ const NotificationSettings = ({ visible, onClose }) => {
     visionExpiryReminders: true,
     workoutReminders: true,
     weeklyBodyCheckIn: true,
-    tokenArrival: true,
-    messageNotifications: true,
-    friendRequestNotifications: true,
-    challengeNotifications: true,
     achievementNotifications: true,
     streakReminders: true,
     pushNotifications: true,
     sound: true,
     vibration: true,
+    insistenceLevel: 'gentle', // 'gentle' | 'strong' | 'relentless'
+    soundName: 'default', // 'default' or a filename from SOUND_OPTIONS
   });
   const [hiddenTabs, setHiddenTabs] = useState(new Set());
 
   useEffect(() => {
-    loadNotificationSettings();
-    loadHiddenTabs();
-  }, [visible]);
+    if (visible || asScreen) {
+      loadNotificationSettings();
+      loadHiddenTabs();
+    }
+  }, [visible, asScreen]);
 
   const loadHiddenTabs = async () => {
     try {
@@ -99,6 +97,65 @@ const NotificationSettings = ({ visible, onClose }) => {
       Alert.alert('Error', 'Failed to save notification settings');
     }
   };
+
+  const setInsistence = async (level) => {
+    if (settings.insistenceLevel === level) return;
+    if (settings.vibration) hapticFeedback.light();
+    // updateSettings re-arms every notification type, so the new urgency takes
+    // effect on the next scheduled alert immediately
+    await saveNotificationSettings({ ...settings, insistenceLevel: level });
+  };
+
+  // ─── Sound picker ───
+  const previewSoundRef = useRef(null);
+
+  // Release the preview player when the sheet closes
+  useEffect(() => {
+    if (visible || asScreen) ensureSoundsInstalled();
+    // This cleanup releases the preview audio player on unmount (screen dismissed
+    // or modal closed) — it is not a modal-closed data-reset, so it runs in both modes
+    return () => {
+      previewSoundRef.current?.unloadAsync().catch(() => {});
+      previewSoundRef.current = null;
+    };
+  }, [visible, asScreen]);
+
+  const previewSound = async (option) => {
+    try {
+      if (previewSoundRef.current) {
+        await previewSoundRef.current.unloadAsync().catch(() => {});
+        previewSoundRef.current = null;
+      }
+      if (!option.module) return; // 'Default' uses the system tone; nothing to preview
+      // Play through the main speaker even if the phone is on silent, matching
+      // how the actual notification will sound with the ringer on
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(option.module, { shouldPlay: true });
+      previewSoundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync().catch(() => {});
+          if (previewSoundRef.current === sound) previewSoundRef.current = null;
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to preview sound:', error);
+    }
+  };
+
+  const setSoundName = async (option) => {
+    if (settings.vibration) hapticFeedback.light();
+    previewSound(option);
+    if (settings.soundName === option.id) return; // re-tap = just replay the preview
+    // updateSettings re-arms everything, so queued alerts adopt the new tone
+    await saveNotificationSettings({ ...settings, soundName: option.id });
+  };
+
+  const INSISTENCE_OPTIONS = [
+    { key: 'gentle', label: 'Gentle', desc: 'One soft alert. Respects Focus and silent.' },
+    { key: 'strong', label: 'Strong', desc: 'Urgent alert that breaks through Focus and Do Not Disturb.' },
+    { key: 'relentless', label: 'Relentless', desc: 'Urgent, and keeps re-alerting until you act on it.' },
+  ];
 
   const sendTestNotification = async () => {
     try {
@@ -169,7 +226,7 @@ const NotificationSettings = ({ visible, onClose }) => {
           // Cancel any existing notification for this task first
           await Notifications.cancelScheduledNotificationAsync(task.id).catch(() => {});
 
-          await Notifications.scheduleNotificationAsync({
+          await notificationService.scheduleNotif({
             identifier: task.id,
             content: {
               title: 'Task Reminder',
@@ -232,7 +289,7 @@ const NotificationSettings = ({ visible, onClose }) => {
             }
 
             for (const day of schedule.days) {
-              await Notifications.scheduleNotificationAsync({
+              await notificationService.scheduleNotif({
                 identifier: `${schedule.id}_${day}`,
                 content: {
                   title: 'Workout Reminder',
@@ -260,7 +317,7 @@ const NotificationSettings = ({ visible, onClose }) => {
             const notifyTime = new Date(workoutDateTime.getTime() - notifyMinutes * 60 * 1000);
             
             if (notifyTime > new Date()) {
-              await Notifications.scheduleNotificationAsync({
+              await notificationService.scheduleNotif({
                 identifier: schedule.id,
                 content: {
                   title: 'Workout Reminder',
@@ -426,9 +483,8 @@ const NotificationSettings = ({ visible, onClose }) => {
   };
 
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+  const content = (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <TouchableOpacity 
@@ -461,6 +517,82 @@ const NotificationSettings = ({ visible, onClose }) => {
               iconColor={theme.primary}
             />
           </View>
+
+          {/* Alert Style — global insistence level */}
+          {settings.pushNotifications && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Alert Style</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                How hard every reminder tries to reach you when you're busy
+              </Text>
+              {INSISTENCE_OPTIONS.map((opt) => {
+                const active = settings.insistenceLevel === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => setInsistence(opt.key)}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    <MaterialIcons
+                      name={active ? 'radio-button-checked' : 'radio-button-unchecked'}
+                      size={22}
+                      color={active ? theme.primary : theme.textSecondary}
+                    />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: theme.text }}>{opt.label}</Text>
+                      <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>{opt.desc}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Notification Sound — tap to preview and select */}
+          {settings.pushNotifications && settings.sound !== false && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Sound</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Tap a sound to hear it. Applies to every reminder.
+              </Text>
+              {SOUND_OPTIONS.map((opt) => {
+                const active = (settings.soundName || 'default') === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    onPress={() => setSoundName(opt)}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    <MaterialIcons
+                      name={active ? 'radio-button-checked' : 'radio-button-unchecked'}
+                      size={22}
+                      color={active ? theme.primary : theme.textSecondary}
+                    />
+                    <Text style={{ flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '600', color: theme.text }}>
+                      {opt.label}
+                    </Text>
+                    {opt.module && (
+                      <MaterialIcons name="volume-up" size={18} color={theme.textSecondary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           {/* Prayer Reminders — hidden when Bible tab is hidden */}
           {!isSettingHidden('prayerReminders') && (
@@ -560,48 +692,6 @@ const NotificationSettings = ({ visible, onClose }) => {
             </View>
           )}
 
-          {/* Hub — hidden when Hub tab is hidden */}
-          {!isSettingHidden('tokenArrival') && (
-            <View style={[styles.section, { backgroundColor: theme.card }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Hub</Text>
-              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                Social and community notifications
-              </Text>
-
-              <NotificationToggle
-                title="Token Arrival"
-                subtitle="Get notified when your daily Hub token arrives"
-                icon="stars"
-                settingKey="tokenArrival"
-                iconColor="#eab308"
-              />
-
-              <NotificationToggle
-                title="Messages"
-                subtitle="Get notified when someone messages you"
-                icon="chat"
-                settingKey="messageNotifications"
-                iconColor="#3B82F6"
-              />
-
-              <NotificationToggle
-                title="Friend Requests"
-                subtitle="Get notified when someone sends a friend request"
-                icon="person-add"
-                settingKey="friendRequestNotifications"
-                iconColor="#8B5CF6"
-              />
-
-              <NotificationToggle
-                title="Challenges"
-                subtitle="Get notified about challenge invites and updates"
-                icon="emoji-events"
-                settingKey="challengeNotifications"
-                iconColor="#F59E0B"
-              />
-            </View>
-          )}
-
           {/* App Features */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>App Features</Text>
@@ -625,6 +715,14 @@ const NotificationSettings = ({ visible, onClose }) => {
 
         </ScrollView>
       </View>
+  );
+
+  // Native screen mode: render the content directly, no Modal wrapper (always open)
+  if (asScreen) return content;
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} onDismiss={onClose}>
+      {content}
     </Modal>
   );
 };

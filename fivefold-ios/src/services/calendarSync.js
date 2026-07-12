@@ -15,16 +15,44 @@ import userStorage from '../utils/userStorage';
 const ENABLED_KEY = 'biblely_calendar_sync_enabled';
 const CAL_ID_KEY = 'biblely_calendar_id';
 const EVENTS_KEY = 'biblely_calendar_events'; // { `${ns}__...`: { id, recurring } }
+// DEFAULT calendar-app alert lead time (minutes before). -1 = no alert,
+// 0 = at start, N = N minutes before. Applies only to events whose item has no
+// reminder lead time of its own (per-item notifyBefore always wins). Settable
+// from Profile; default 10.
+const ALARM_KEY = 'biblely_cal_alarm_min';
 const CAL_NAME = 'Biblely';
 const CAL_COLOR = '#32C372';
 
 // Event length per domain (minutes).
 const DURATION = { prayer: 30, reminder: 30, gym: 60, todo: 30 };
 
+// Calendar alarm offsets from an item's reminder lead time (notifyBefore):
+// negative -> no alarm (None), 0 -> at start, N -> N minutes before. Undefined
+// (legacy items with no reminder field) returns undefined so reconcile keeps its
+// 10-min-before default.
+const alarmsFromNotify = (nb) => {
+  const n = Number(nb);
+  if (!Number.isFinite(n)) return undefined;
+  if (n < 0) return [];
+  return [{ relativeOffset: n === 0 ? 0 : -n }];
+};
+
 const DAY_INDEX = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const isEnabled = async () => (await userStorage.getRaw(ENABLED_KEY)) === 'true';
+
+export const getDefaultAlarmMinutes = async () => {
+  const n = Number(await userStorage.getRaw(ALARM_KEY));
+  return Number.isFinite(n) ? n : 10;
+};
+
+// Persist the new default and re-sync every domain so EXISTING calendar events
+// without a per-item lead time pick up the change too.
+export const setDefaultAlarmMinutes = async (minutes) => {
+  await userStorage.setRaw(ALARM_KEY, String(minutes));
+  await syncAll();
+};
 
 export const requestPermission = async () => {
   try {
@@ -84,7 +112,8 @@ const localDateAt = (dateStr, h, m) => {
 
 // ── desired-event builders (one per domain) ─────────────────────────────────────
 
-// Prayers: simplePrayers array. Persistent prayers repeat DAILY; one-time
+// Prayers: simplePrayers array. Persistent prayers repeat DAILY (or one
+// WEEKLY series per selected weekday when limited via days[]); one-time
 // prayers are a single event today (skipped if already passed). Skip prayers
 // with no/invalid time.
 const buildPrayers = (list) => {
@@ -95,15 +124,49 @@ const buildPrayers = (list) => {
     if (!t) continue;
     if (p.id == null) continue;
     const recurring = p.type !== 'one-time';
-    const start = recurring ? todayOrTomorrowAt(t.h, t.m) : new Date(new Date().setHours(t.h, t.m, 0, 0));
-    if (!recurring && start.getTime() + DURATION.prayer * 60000 < now) continue;
+    // The prayer's own length (from the duration picker), falling back to the
+    // domain default for legacy prayers that never had one.
+    const durMs = (Number(p.duration) > 0 ? Number(p.duration) : DURATION.prayer) * 60000;
+    // Weekday-limited recurring prayers mirror as one WEEKLY series per
+    // selected day (same scheme as reminders); full-week prayers stay DAILY.
+    const dayList = recurring && Array.isArray(p.days) && p.days.length > 0 && p.days.length < 7
+      ? p.days
+      : null;
+    if (dayList) {
+      for (const dayIdx of dayList) {
+        if (dayIdx == null || dayIdx < 0 || dayIdx > 6) continue;
+        const start = nextWeekdayDate(dayIdx, t.h, t.m);
+        out.push({
+          stableKey: `prayer__${p.id}__${dayIdx}`,
+          title: p.name || 'Prayer',
+          start,
+          end: new Date(start.getTime() + durMs),
+          recurring: true,
+          frequency: Calendar.Frequency.WEEKLY,
+          alarms: alarmsFromNotify(p.notifyBefore),
+        });
+      }
+      continue;
+    }
+    let start;
+    if (recurring) {
+      start = todayOrTomorrowAt(t.h, t.m);
+    } else if (p.date) {
+      const [y, mo, d] = String(p.date).split('-').map(Number);
+      if (!y || !mo || !d) continue;
+      start = new Date(y, mo - 1, d, t.h, t.m, 0, 0);
+    } else {
+      start = new Date(new Date().setHours(t.h, t.m, 0, 0));
+    }
+    if (!recurring && start.getTime() + durMs < now) continue;
     out.push({
       stableKey: `prayer__${p.id}`,
       title: p.name || 'Prayer',
       start,
-      end: new Date(start.getTime() + DURATION.prayer * 60000),
+      end: new Date(start.getTime() + durMs),
       recurring,
       frequency: recurring ? Calendar.Frequency.DAILY : null,
+      alarms: alarmsFromNotify(p.notifyBefore),
     });
   }
   return out;
@@ -120,14 +183,17 @@ const buildReminders = (list) => {
     const t = parseTime(r.time);
     if (!t) continue;
     const title = r.title || 'Reminder';
+    // The reminder's own length (set by dragging), falling back to the domain
+    // default for legacy reminders that never had a duration.
+    const durMs = (Number(r.duration) > 0 ? Number(r.duration) : DURATION.reminder) * 60000;
     if (r.type === 'one-time' && r.date) {
       const start = localDateAt(r.date, t.h, t.m);
-      if (!start || start.getTime() + DURATION.reminder * 60000 < now) continue;
+      if (!start || start.getTime() + durMs < now) continue;
       out.push({
         stableKey: `reminder__${r.id}`,
         title,
         start,
-        end: new Date(start.getTime() + DURATION.reminder * 60000),
+        end: new Date(start.getTime() + durMs),
         recurring: false,
         frequency: null,
       });
@@ -140,7 +206,7 @@ const buildReminders = (list) => {
           stableKey: `reminder__${r.id}__${dayIdx}`,
           title,
           start,
-          end: new Date(start.getTime() + DURATION.reminder * 60000),
+          end: new Date(start.getTime() + durMs),
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
         });
@@ -160,16 +226,19 @@ const buildGym = (list) => {
     const t = parseTime(s.time);
     if (!t) continue;
     const title = s.templateName || 'Workout';
+    // The workout's own length (set when scheduling), falling back to 60 min.
+    const durMs = (Number(s.duration) > 0 ? Number(s.duration) : DURATION.gym) * 60000;
     if (s.type === 'one-time' && s.date) {
       const start = localDateAt(s.date, t.h, t.m);
-      if (!start || start.getTime() + DURATION.gym * 60000 < now) continue;
+      if (!start || start.getTime() + durMs < now) continue;
       out.push({
         stableKey: `gym__${s.id}`,
         title,
         start,
-        end: new Date(start.getTime() + DURATION.gym * 60000),
+        end: new Date(start.getTime() + durMs),
         recurring: false,
         frequency: null,
+        alarms: alarmsFromNotify(s.notifyBefore),
       });
     } else {
       const days = Array.isArray(s.days) ? s.days : [];
@@ -180,9 +249,10 @@ const buildGym = (list) => {
           stableKey: `gym__${s.id}__${dayIdx}`,
           title,
           start,
-          end: new Date(start.getTime() + DURATION.gym * 60000),
+          end: new Date(start.getTime() + durMs),
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
+          alarms: alarmsFromNotify(s.notifyBefore),
         });
       }
     }
@@ -250,6 +320,9 @@ const reconcile = (namespace, desired) => serialize(async () => {
   const calId = await ensureCalendar();
   if (!calId) return;
 
+  // Setting-driven default for events with no per-item lead time.
+  const defaultAlarms = alarmsFromNotify(await getDefaultAlarmMinutes()) || [{ relativeOffset: -10 }];
+
   const prefix = `${namespace}__`;
   const desiredByKey = new Map(desired.map((d) => [d.stableKey, d]));
   const map = (await userStorage.get(EVENTS_KEY)) || {};
@@ -276,7 +349,10 @@ const reconcile = (namespace, desired) => serialize(async () => {
       title: d.title,
       startDate: d.start,
       endDate: d.end,
-      alarms: [{ relativeOffset: -10 }],
+      // Honor a per-event alarm (from the item's reminder lead time); domains
+      // that don't specify one use the user's DEFAULT from Profile. An empty
+      // array means no calendar alert fires.
+      alarms: d.alarms !== undefined ? d.alarms : defaultAlarms,
       notes: 'Added by Biblely',
       ...(d.recurring ? { recurrenceRule: { frequency: d.frequency } } : {}),
     };
@@ -400,4 +476,6 @@ export default {
   syncGym,
   syncTodos,
   syncAll,
+  getDefaultAlarmMinutes,
+  setDefaultAlarmMinutes,
 };

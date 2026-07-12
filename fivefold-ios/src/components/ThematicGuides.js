@@ -27,6 +27,7 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import userStorage from '../utils/userStorage';
 import SimplePercentageLoader from './SimplePercentageLoader';
 import verseByReferenceService from '../services/verseByReferenceService';
+import SheetHeader from './SheetHeader';
 
 // const { width, height } = Dimensions.get('window');
 
@@ -45,10 +46,12 @@ const GUIDES_CONFIG = {
   CACHE_DURATION: 60 * 60 * 1000, // 1 hour
 };
 
-const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false }) => {
+const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false, detailMode = false, initialGuide = null, onOpenGuide }) => {
   const { theme, isDark } = useTheme();
   const [selectedTheme, setSelectedTheme] = useState('all');
-  const [selectedGuide, setSelectedGuide] = useState(null);
+  // In detailMode this component IS the guide-detail screen (native modal), so it
+  // opens straight to the passed guide instead of showing the list.
+  const [selectedGuide, setSelectedGuide] = useState(detailMode ? initialGuide : null);
   const [sortBy, setSortBy] = useState('helpful');
   const [reflectionNotes, setReflectionNotes] = useState({});
   const [completedGuides, setCompletedGuides] = useState([]);
@@ -87,8 +90,8 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
   };
 
   const headerSpacerHeight = searchBarVisible
-    ? (Platform.OS === 'ios' ? 215 : 190)
-    : (Platform.OS === 'ios' ? 155 : 130);
+    ? (Platform.OS === 'ios' ? 177 : 182)
+    : (Platform.OS === 'ios' ? 117 : 122);
 
   // Modal animation refs for guide detail view
   const guideSlideAnim = useRef(new Animated.Value(0)).current;
@@ -505,7 +508,10 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
         }}
         onPress={() => {
           hapticFeedback.light();
-          setSelectedGuide(guide);
+          // As a screen, open the guide as its own native pull-to-dismiss modal
+          // screen; otherwise fall back to the in-place detail overlay.
+          if (onOpenGuide) onOpenGuide(guide);
+          else setSelectedGuide(guide);
         }}
       >
         {/* Gradient Background */}
@@ -827,64 +833,13 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
       </View>
     );
 
-    return (
-      <Modal 
-        visible={!!selectedGuide}
-        transparent={true}
-        animationType="none"
-        onRequestClose={handleBackdropClose}
-        statusBarTranslucent={true}
+    const detailScroll = (
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        contentContainerStyle={{ paddingBottom: 40 }}
       >
-        <View style={[styles.guideModalOverlay, { justifyContent: 'flex-end' }]}>
-          {/* Backdrop */}
-          <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: guideFadeAnim }}>
-            <TouchableOpacity 
-              style={styles.guideModalBackdrop}
-              activeOpacity={0.7}
-              onPress={handleBackdropClose}
-            />
-          </Animated.View>
-          
-          {/* Modal Content */}
-          <Animated.View
-            style={[
-              styles.guideModalContainer,
-              {
-                transform: [{ translateY: combinedTranslateY }],
-                opacity: guideFadeAnim,
-                backgroundColor: isDark ? theme.background : '#F8F9FD',
-                height: '94%',
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
-                overflow: 'hidden',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: -8 },
-                shadowOpacity: 0.4,
-                shadowRadius: 20,
-                elevation: 15
-              }
-            ]}
-          >
-            <View style={styles.guideDetailSafeArea}>
-              {/* Drag Handle — always on top, grabs pull-down gesture */}
-              <View
-                {...handleDragPanResponder.panHandlers}
-                style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 14 }}
-              >
-                <View style={{
-                  width: 48,
-                  height: 5,
-                  borderRadius: 3,
-                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)'
-                }} />
-              </View>
-
-              <ScrollView 
-                style={{ flex: 1 }} 
-                showsVerticalScrollIndicator={false} 
-                bounces={true}
-                contentContainerStyle={{ paddingBottom: 40 }}
-              >
                 {/* Hero Header with Gradient */}
                 <LinearGradient
                   colors={gradientColors}
@@ -1310,7 +1265,73 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
                     </Text>
                   </View>
                 )}
-              </ScrollView>
+      </ScrollView>
+    );
+
+    // Native pull-to-dismiss modal SCREEN: no backdrop/drag/Animated — the OS
+    // sheet handles the gesture and the parent scaling back.
+    if (detailMode) {
+      return (
+        <View style={{ flex: 1, backgroundColor: isDark ? theme.background : '#F8F9FD' }}>
+          <SheetHeader
+            title={themeCategories.find(cat => cat.id === selectedGuide.theme)?.name || 'Guide'}
+            leftLabel="Done"
+            onLeft={onClose}
+          />
+          {detailScroll}
+        </View>
+      );
+    }
+
+    // Legacy in-place overlay (kept for any non-screen usage).
+    return (
+      <Modal
+        visible={!!selectedGuide}
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleBackdropClose}
+        statusBarTranslucent={true}
+      >
+        <View style={[styles.guideModalOverlay, { justifyContent: 'flex-end' }]}>
+          <Animated.View style={{ ...StyleSheet.absoluteFillObject, opacity: guideFadeAnim }}>
+            <TouchableOpacity
+              style={styles.guideModalBackdrop}
+              activeOpacity={0.7}
+              onPress={handleBackdropClose}
+            />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.guideModalContainer,
+              {
+                transform: [{ translateY: combinedTranslateY }],
+                opacity: guideFadeAnim,
+                backgroundColor: isDark ? theme.background : '#F8F9FD',
+                height: '94%',
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -8 },
+                shadowOpacity: 0.4,
+                shadowRadius: 20,
+                elevation: 15,
+              },
+            ]}
+          >
+            <View style={styles.guideDetailSafeArea}>
+              <View
+                {...handleDragPanResponder.panHandlers}
+                style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 14 }}
+              >
+                <View style={{
+                  width: 48,
+                  height: 5,
+                  borderRadius: 3,
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)',
+                }} />
+              </View>
+              {detailScroll}
             </View>
           </Animated.View>
         </View>
@@ -1320,7 +1341,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
 
   const filteredGuides = getFilteredGuides();
 
-  const content = (
+  const content = detailMode ? renderGuideDetail() : (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent={true} />
         <LinearGradient
@@ -1395,7 +1416,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false 
             zIndex: 1000,
           }}
         >
-          <View style={{ height: Platform.OS === 'ios' ? 54 : 24 }} />
+          <View style={{ height: 16 }} />
           <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
             {/* Title row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

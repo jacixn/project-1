@@ -1,6 +1,7 @@
 import { getStoredData, saveData } from '../utils/localStorage';
 import { pushToCloud } from './userSyncService';
 import { updateHabitsWidget } from '../utils/widgetBridge';
+import notificationService from './notificationService';
 
 const STORAGE_KEY = 'user_habits';
 
@@ -115,6 +116,8 @@ export const checkIn = async (habitId) => {
     habits[idx].longestStreak = habits[idx].currentStreak;
   }
   await persist(habits);
+  // Checking in stops any relentless escalation pings for this habit today
+  notificationService.cancelItemEscalation({ type: 'habit_reminder', habitId }).catch(() => {});
   return habits[idx];
 };
 

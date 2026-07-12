@@ -135,17 +135,7 @@ const SavedVersesScreen = ({ navigation }) => {
 
   const handleNavigateToVerse = (verseRef) => {
     hapticFeedback.medium();
-    navigation.navigate('BibleReader', { verseRef });
-  };
-
-  const handleDiscussVerse = (verse) => {
-    hapticFeedback.medium();
-    navigation.navigate('FriendChat', {
-      initialVerse: {
-        text: verse.text || verse.content,
-        reference: verse.reference,
-      },
-    });
+    navigation.navigate('BibleChapter', { verseRef, verseTapTs: Date.now() });
   };
 
   useEffect(() => {
@@ -362,36 +352,6 @@ const SavedVersesScreen = ({ navigation }) => {
                     <MaterialIcons name="delete-outline" size={20} color={theme.error} />
                   </TouchableOpacity>
 
-                  {/* Discuss Button */}
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      height: 44,
-                      borderRadius: 22,
-                      backgroundColor: theme.primary,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      shadowColor: theme.primary,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 8
-                    }}
-                    onPress={() => handleDiscussVerse(verse)}
-                    activeOpacity={0.7}
-                    delayPressIn={0}
-                  >
-                    <MaterialIcons name="forum" size={18} color="#FFFFFF" />
-                    <Text style={{
-                      fontSize: 14,
-                      fontWeight: '700',
-                      color: '#FFFFFF'
-                    }}>
-                      Discuss
-                    </Text>
-                  </TouchableOpacity>
-
                   {/* Go to Verse Button */}
                   <TouchableOpacity
                     style={{
@@ -419,6 +379,47 @@ const SavedVersesScreen = ({ navigation }) => {
                       color: '#FFFFFF'
                     }}>
                       Read
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Discuss Button */}
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: theme.primary,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      shadowColor: theme.primary,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8
+                    }}
+                    onPress={() => {
+                      hapticFeedback.light();
+                      const cleanText = (verse.text || verse.content || '').replace(/\s+/g, ' ').trim();
+                      navigation.navigate('BibleChat', {
+                        initialVerse: {
+                          text: cleanText,
+                          content: cleanText,
+                          reference: verse.reference,
+                          version: verse.version || currentBibleVersion || undefined,
+                        },
+                      });
+                    }}
+                    activeOpacity={0.7}
+                    delayPressIn={0}
+                  >
+                    <MaterialIcons name="chat-bubble-outline" size={18} color="#FFFFFF" />
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: '#FFFFFF'
+                    }}>
+                      Discuss
                     </Text>
                   </TouchableOpacity>
                 </View>

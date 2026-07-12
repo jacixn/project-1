@@ -349,7 +349,7 @@ const VisionScreen = () => {
           <Text style={[styles.dashTitle, { color: textPrimary }]}>Vision</Text>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-            onPress={() => { hapticFeedback.light(); setShowAddModal(true); }}
+            onPress={() => { hapticFeedback.light(); navigation.navigate('AddVision'); }}
           >
             <MaterialIcons name="add" size={22} color={textPrimary} />
           </TouchableOpacity>
@@ -366,7 +366,7 @@ const VisionScreen = () => {
             </Text>
             <TouchableOpacity
               style={[styles.emptyButton, { backgroundColor: theme.primary }]}
-              onPress={() => { hapticFeedback.light(); setShowAddModal(true); }}
+              onPress={() => { hapticFeedback.light(); navigation.navigate('AddVision'); }}
             >
               <MaterialIcons name="add" size={18} color="#FFFFFF" />
               <Text style={styles.emptyButtonText}>Set Your Vision</Text>
@@ -417,21 +417,6 @@ const VisionScreen = () => {
         onClose={() => { setCompletionVision(null); refresh(); }}
       />
 
-      <AddVisionModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={async (data) => {
-          const result = await addVision(data);
-          if (result?.vision) {
-            notificationService.scheduleVisionExpiryNotification(result.vision);
-          }
-          refresh();
-          setShowAddModal(false);
-        }}
-        theme={theme}
-        isDark={isDark}
-      />
-
       <ReflectionModal
         visible={!!showReflectionModal}
         onClose={() => setShowReflectionModal(null)}
@@ -451,7 +436,7 @@ const VisionScreen = () => {
 
 // ── Add Vision Modal ─────────────────────────────────────────────────
 
-const AddVisionModal = ({ visible, onClose, onAdd, theme, isDark }) => {
+const AddVisionModal = ({ visible, onClose, onAdd, theme, isDark, asScreen = false }) => {
   const [title, setTitle] = useState('');
   const [timeframe, setTimeframe] = useState('5yr');
   const [customDate, setCustomDate] = useState(() => {
@@ -485,14 +470,7 @@ const AddVisionModal = ({ visible, onClose, onAdd, theme, isDark }) => {
   const textColor = isDark ? '#fff' : '#111';
   const secondaryColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
 
-  return (
-    <Modal
-      visible={visible}
-      transparent={false}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+  const body = (
       <View style={[styles.modalContainer, { backgroundColor: isDark ? '#111' : '#fff' }]}>
         <SafeAreaView style={{ flex: 1 }}>
           <KeyboardAvoidingView
@@ -589,7 +567,44 @@ const AddVisionModal = ({ visible, onClose, onAdd, theme, isDark }) => {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </View>
+  );
+
+  if (asScreen) return body;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={false}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      {body}
     </Modal>
+  );
+};
+
+// Native-stack modal wrapper — parent scales back + native pull-down like the
+// rest of the app. Persists via the vision service, list refreshes on focus.
+export const AddVisionScreen = ({ navigation }) => {
+  const { theme, isDark } = useTheme();
+  return (
+    <AddVisionModal
+      asScreen
+      visible={true}
+      theme={theme}
+      isDark={isDark}
+      onClose={() => { if (navigation.canGoBack()) navigation.goBack(); }}
+      onAdd={async (data) => {
+        try {
+          const result = await addVision(data);
+          if (result?.vision) {
+            notificationService.scheduleVisionExpiryNotification(result.vision);
+          }
+        } catch (e) {}
+        if (navigation.canGoBack()) navigation.goBack();
+      }}
+    />
   );
 };
 

@@ -199,37 +199,70 @@ const EXERCISE_NAME_OVERRIDES = {
   'kettlebell swing':     { primary: ['glutes', 'hamstrings'], secondary: ['lowerBack', 'abs', 'frontDelts'] },
 };
 
+// A stored mapping is usable only if it names at least one real muscle
+const isUsableMuscleSet = (muscles) =>
+  !!muscles &&
+  Array.isArray(muscles.primary) &&
+  muscles.primary.some((id) => !!MUSCLE_GROUPS[id]);
+
+const sanitizeMuscleSet = (muscles) => {
+  const primary = [...new Set(muscles.primary)].filter((id) => !!MUSCLE_GROUPS[id]);
+  const secondary = [...new Set(muscles.secondary || [])]
+    .filter((id) => !!MUSCLE_GROUPS[id] && !primary.includes(id));
+  return { primary, secondary };
+};
+
 /**
  * Get muscle mapping for an exercise.
- * Checks name overrides first, then target field, then bodyPart fallback.
- * 
+ * Precedence: muscles the user chose > name overrides > target > bodyPart.
+ *
  * @param {string} exerciseName - The exercise name
  * @param {string} target - The target field from exercise data
  * @param {string} bodyPart - The bodyPart field from exercise data
+ * @param {{primary: string[], secondary: string[]}} [explicitMuscles] - muscles
+ *        stored on the exercise (custom exercises pick these by hand). Always
+ *        wins: guessing from a name the user already annotated is a downgrade.
  * @returns {{ primary: string[], secondary: string[] }}
  */
-export const getMusclesForExercise = (exerciseName, target, bodyPart) => {
+export const getMusclesForExercise = (exerciseName, target, bodyPart, explicitMuscles) => {
+  // 0. Muscles chosen on the exercise itself
+  if (isUsableMuscleSet(explicitMuscles)) {
+    return sanitizeMuscleSet(explicitMuscles);
+  }
+
   // 1. Check name overrides (most accurate)
   const nameLower = (exerciseName || '').toLowerCase().trim();
-  
+
   // Try exact match first
   if (EXERCISE_NAME_OVERRIDES[nameLower]) {
     return EXERCISE_NAME_OVERRIDES[nameLower];
   }
-  
-  // Try partial match (e.g., "Barbell Bench Press" contains "bench press")
-  for (const [key, mapping] of Object.entries(EXERCISE_NAME_OVERRIDES)) {
-    if (nameLower.includes(key) || key.includes(nameLower)) {
-      return mapping;
+
+  // Then a WHOLE-PHRASE match: "Barbell Bench Press" contains "bench press".
+  // Matching on bare substrings both ways was wrong — an exercise called "Row"
+  // matched "barbell row", and "Dips" matched every key containing "dip". We
+  // require the key to appear as a full phrase, longest key first so
+  // "incline bench press" beats "bench press".
+  //
+  // The keys are singular but the exercise library is overwhelmingly plural
+  // ("Leg Curls", "Shrugs", "Cable Flyes"), so the final word may carry an
+  // "s"/"es" — without that, ~87 built-in exercises silently fall through to
+  // the coarse bodyPart guess (Leg Extensions would light the whole leg).
+  const keysByLength = Object.keys(EXERCISE_NAME_OVERRIDES).sort((a, b) => b.length - a.length);
+  for (const key of keysByLength) {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+    const phrase = new RegExp(`(^|\\s)${escaped}(?:e?s)?(\\s|$)`);
+    if (phrase.test(nameLower)) {
+      return EXERCISE_NAME_OVERRIDES[key];
     }
   }
-  
+
   // 2. Check target field
   const targetLower = (target || '').toLowerCase().trim();
   if (TARGET_TO_MUSCLES[targetLower]) {
     return TARGET_TO_MUSCLES[targetLower];
   }
-  
+
   // 3. Fallback: use bodyPart field
   const bodyPartLower = (bodyPart || '').toLowerCase().trim();
   const BODY_PART_FALLBACK = {
