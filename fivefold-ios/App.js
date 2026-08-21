@@ -513,6 +513,17 @@ const ThemedApp = () => {
             pendingWidgetVerseRef.current = decodedRef;
           }
         }
+      } else if (url.startsWith('biblely://shift')) {
+        // Cross-app bridge: a sibling app (EyeCandy) asks Biblely to move one
+        // of Biblely's own prayers/reminders. Biblely confirms with the user,
+        // applies through the normal service paths, and deep-links the result
+        // back. See src/services/crossAppShift.js.
+        try {
+          const { handleShiftRequest } = require('./src/services/crossAppShift');
+          handleShiftRequest(url);
+        } catch (e) {
+          console.log('shift request failed', e?.message);
+        }
       } else if (url.startsWith('biblely://fuel')) {
         // Fuel widget tapped — navigate to Nutrition screen
         console.log('🔥 Fuel widget tap — navigating to Nutrition');
