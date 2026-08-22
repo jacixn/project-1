@@ -1,19 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { computeDayFlow, fmtFlowTime, clashFor } from '../utils/dayFlow';
 import { loadBusyForDate } from '../utils/dayBusy';
-import DayTimeline from './DayTimeline';
 
 // Picking a start time without dragging: the day itself as a list where every free gap is a tap target
-// that says whether the workout fits, an exact wheel, and the drag timeline
-// only for people who want it. Same onPick(hour, minute) contract as
-// DayTimeline so callers swap without changes.
+// that says whether the workout fits, and an exact wheel. Same
+// onPick(hour, minute) contract as the old drag timeline.
 
 const FreeRow = ({ row, active, theme, accent, tile, onPick }) => {
   const shakeX = useSharedValue(0);
@@ -84,7 +81,6 @@ const StartTimePicker = ({
   const tile = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
   const [busy, setBusy] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState('flow'); // flow | timeline
   const [showWheel, setShowWheel] = useState(false);
   const dayKey = date ? date.toDateString() : '';
 
@@ -106,32 +102,6 @@ const StartTimePicker = ({
   const pick = (min) => onPick(Math.floor(min / 60), min % 60);
   const dayName = date ? date.toLocaleDateString('en', { weekday: 'long' }) : 'that day';
   const wheelDate = new Date(2000, 0, 1, selected?.hour ?? 18, selected?.minute ?? 0, 0);
-
-  if (view === 'timeline') {
-    return (
-      <View style={styles.fill}>
-        <View style={styles.switchRow}>
-          <Text style={[styles.kicker, { color: theme.textSecondary }]}>Drag the block to move it</Text>
-          <TouchableOpacity onPress={() => { hapticFeedback.light(); setView('flow'); }} style={[styles.smallBtn, { borderColor: accent, backgroundColor: tile }]} accessibilityRole="button">
-            <Text style={[styles.link, { color: accent }]}>Back to free times</Text>
-          </TouchableOpacity>
-        </View>
-        {/* DayTimeline uses gesture-handler views; give it a root wherever this picker is mounted */}
-        <GestureHandlerRootView style={styles.fill}>
-          <DayTimeline
-            date={date}
-            selected={selected}
-            durationMinutes={durationMinutes}
-            label={label}
-            accentColor={accent}
-            onPick={(h, m) => onPick(h, m)}
-            extraEvents={busy}
-            exclude={excludeEvent}
-          />
-        </GestureHandlerRootView>
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.fill} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -157,9 +127,6 @@ const StartTimePicker = ({
 
       <View style={[styles.switchRow, { marginTop: 22 }]}>
         <Text style={[styles.kicker, { color: theme.textSecondary }]}>{`Your ${dayName}`}</Text>
-        <TouchableOpacity onPress={() => { hapticFeedback.light(); setView('timeline'); }} style={[styles.smallBtn, { borderColor: accent, backgroundColor: tile }]} accessibilityRole="button">
-          <Text style={[styles.link, { color: accent }]}>Timeline</Text>
-        </TouchableOpacity>
       </View>
       <View style={styles.list}>
         {!loaded ? (
@@ -184,7 +151,6 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 14, fontWeight: '600' },
   clash: { fontSize: 14, fontWeight: '600', lineHeight: 20, marginBottom: 14 },
   exactBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5 },
-  smallBtn: { height: 36, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, justifyContent: 'center' },
   link: { fontSize: 15, fontWeight: '800' },
   wheel: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, marginTop: 10, paddingVertical: 4 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
