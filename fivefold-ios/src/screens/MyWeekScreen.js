@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, ActivityIndicator, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import SheetHeader from '../components/SheetHeader';
-import StartTimePicker from '../components/StartTimePicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { computeDayFlow } from '../utils/dayFlow';
 import {
   loadDayItems, buildAgenda, countByKind, daySummary, weekOf,
   KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope,
@@ -48,7 +50,8 @@ const MyWeekScreen = ({ navigation }) => {
   const [moving, setMoving] = useState(null);
   const [draftMin, setDraftMin] = useState(0);
   const [draftDate, setDraftDate] = useState(null);
-  const [pickOpen, setPickOpen] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
+  const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
   const [view, setView] = useState('timeline'); // timeline | list
@@ -223,10 +226,10 @@ const MyWeekScreen = ({ navigation }) => {
     setMoving(item);
     setDraftMin(item.startMin);
     setDraftDate(dateKeyOf(anchor));
-    setPickOpen(false);
+    setShowWheel(false);
     setStatus(null);
   };
-  const cancelMove = () => { hapticFeedback.light(); setMoving(null); setPickOpen(false); };
+  const cancelMove = () => { hapticFeedback.light(); setMoving(null); setShowWheel(false); };
   const nudge = (delta) => {
     hapticFeedback.selection();
     setDraftMin((m) => Math.max(0, Math.min(23 * 60 + 55, Math.round((m + delta) / 5) * 5)));
@@ -241,7 +244,7 @@ const MyWeekScreen = ({ navigation }) => {
       const movedDay = draftDate && draftDate !== dateKeyOf(anchor);
       setStatus(`${moving.title} moved to ${fmtClock(draftMin)}${movedDay ? ` on ${draftDate}` : ''}.`);
       setMoving(null);
-      setPickOpen(false);
+      setShowWheel(false);
       await loadWeek();
     } catch (e) {
       hapticFeedback.error();
@@ -267,11 +270,17 @@ const MyWeekScreen = ({ navigation }) => {
 
   const nextDays = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(anchor); d.setDate(anchor.getDate() + i); return d; }), [anchor]);
   const draftEnd = moving ? draftMin + (moving.endMin - moving.startMin) : 0;
-  const excludeProps = moving ? {
-    excludePrayerId: moving.kind === 'prayer' ? moving.raw?.id : null,
-    excludeReminderId: moving.kind === 'reminder' ? moving.raw?.id : null,
-    excludeGymId: moving.kind === 'gym' ? moving.raw?.id : null,
-  } : {};
+  // The next few free gaps on the draft day that fit the item (the item
+  // itself excluded), straight in the panel as chips.
+  const freeSlots = useMemo(() => {
+    if (!moving) return [];
+    const key = draftDate || dateKeyOf(anchor);
+    const dayList = (itemsByDay[key] || []).filter((i) => i.id !== moving.id).map((i) => ({ title: i.title, startMin: i.startMin, endMin: i.endMin }));
+    const todayKey = dateKeyOf(new Date());
+    const n = new Date();
+    const rows = computeDayFlow({ events: dayList, durationMinutes: moving.endMin - moving.startMin, isToday: key === todayKey, nowMin: n.getHours() * 60 + n.getMinutes() });
+    return rows.filter((r) => r.type === 'free' && r.fits).slice(0, 6);
+  }, [moving, draftDate, anchor, itemsByDay]);
   const pickDate = useMemo(() => {
     if (!draftDate) return anchor;
     const [y, m, d] = draftDate.split('-').map(Number);
@@ -319,13 +328,13 @@ const MyWeekScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView ref={scrollRef} onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16} contentContainerStyle={[styles.body, moving && { paddingBottom: pickOpen ? 620 : 360 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16} contentContainerStyle={[styles.body, moving && { paddingBottom: showWheel ? 560 : 380 }]} showsVerticalScrollIndicator={false}>
         <Text style={[styles.kicker, { color: theme.textSecondary }]}>{relDay(anchor)}</Text>
         <Text style={[styles.headline, { color: theme.text }]}>{anchor.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'short' })}</Text>
         <Text style={[styles.summary, { color: theme.textSecondary }]}>{loading ? 'Checking every source...' : daySummary(dayItems)}</Text>
 
         {/* Kind filters */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.chipsScroll, { marginTop: 14 }]} contentContainerStyle={styles.chipsRow}>
           {KIND_ORDER.map((k) => {
             const n = counts[k] || 0;
             const off = hidden.has(k);
@@ -462,14 +471,30 @@ const MyWeekScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.panelTime, { color: theme.text }]}>
-            {fmtClock(draftMin)}<Text style={{ color: theme.textSecondary, fontSize: 15, fontWeight: '600' }}>{`  to ${fmtClock(draftEnd)}`}</Text>
-          </Text>
-          {draftMin !== moving.startMin || (draftDate && draftDate !== dateKeyOf(anchor)) ? (
-            <Text style={[styles.panelWas, { color: theme.textSecondary }]}>was {fmtClock(moving.startMin)}{draftDate && draftDate !== dateKeyOf(anchor) ? `  ·  now on ${pickDate.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}` : ''}</Text>
-          ) : (
-            <Text style={[styles.panelWas, { color: theme.textSecondary }]}>Nudge it, pick a free time, or choose another day.</Text>
-          )}
+          <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Start time ${fmtClock(draftMin)}, tap to set exactly`}>
+            <Text style={[styles.panelTime, { color: theme.text }]}>
+              {fmtClock(draftMin)}<Text style={{ color: theme.textSecondary, fontSize: 15, fontWeight: '600' }}>{`  to ${fmtClock(draftEnd)}`}</Text>
+            </Text>
+            <Text style={[styles.panelWas, { color: showWheel ? accent : theme.textSecondary }]}>
+              {showWheel ? 'Done setting the exact time' : draftMin !== moving.startMin || (draftDate && draftDate !== dateKeyOf(anchor))
+                ? `was ${fmtClock(moving.startMin)}${draftDate && draftDate !== dateKeyOf(anchor) ? `  ·  now on ${pickDate.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}` : ''}  ·  tap the time to set it exactly`
+                : 'Tap the time to set it exactly, nudge it, or pick a free time.'}
+            </Text>
+          </TouchableOpacity>
+
+          {showWheel && Platform.OS === 'ios' ? (
+            <View style={[styles.wheel, { borderColor: hairline }]}>
+              <DateTimePicker
+                value={new Date(2000, 0, 1, Math.floor(draftMin / 60), draftMin % 60, 0)}
+                mode="time"
+                display="spinner"
+                minuteInterval={5}
+                textColor={theme.text}
+                style={{ alignSelf: 'stretch' }}
+                onChange={(_, d) => { if (d) setDraftMin(d.getHours() * 60 + d.getMinutes()); }}
+              />
+            </View>
+          ) : null}
 
           <View style={styles.nudgeRow}>
             {NUDGES.map((n) => (
@@ -479,45 +504,44 @@ const MyWeekScreen = ({ navigation }) => {
             ))}
           </View>
 
-          <View style={styles.panelActions}>
-            <TouchableOpacity onPress={() => { hapticFeedback.light(); setPickOpen((v) => !v); }} style={[styles.outlineBtn, { borderColor: accent, backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button">
-              <MaterialIcons name="schedule" size={18} color={accent} />
-              <Text style={[styles.outlineBtnText, { color: accent }]}>{pickOpen ? 'Hide free times' : 'Pick a free time'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={saveMove} disabled={saving} style={[styles.saveBtn, { backgroundColor: accent, opacity: saving ? 0.6 : 1 }]} activeOpacity={0.8} accessibilityRole="button">
-              <MaterialIcons name="check" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>{saving ? 'Saving' : 'Save'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {!pickOpen ? <View style={{ height: 12 }} /> : null}
-          {moving.raw?.type === 'one-time' ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={[styles.chipsRow, { paddingTop: 10 }]}>
-              {nextDays.map((d) => {
-                const key = dateKeyOf(d);
-                const on = key === draftDate;
+          <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>
+            {freeSlots.length ? `Free times ${draftDate && draftDate !== dateKeyOf(anchor) ? 'that day' : relDay(anchor) === 'Today' ? 'today' : relDay(anchor)}` : `No free time ${relDay(anchor) === 'Today' ? 'left today' : 'on ' + relDay(anchor)} that fits ${fmtDur(moving.endMin - moving.startMin)}`}
+          </Text>
+          {freeSlots.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsRow}>
+              {freeSlots.map((r) => {
+                const on = draftMin === r.pickMin;
                 return (
-                  <TouchableOpacity key={key} onPress={() => { hapticFeedback.light(); setDraftDate(key); }} style={[styles.chip, { backgroundColor: on ? accent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
-                    <Text style={[styles.chipText, { color: on ? '#fff' : theme.text }]}>{relDay(d) === 'Today' || relDay(d) === 'Tomorrow' ? relDay(d) : d.toLocaleDateString('en', { weekday: 'short', day: 'numeric' })}</Text>
+                  <TouchableOpacity key={r.pickMin} onPress={() => { hapticFeedback.selection(); setDraftMin(r.pickMin); }} style={[styles.freeChip, { backgroundColor: on ? accent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                    <Text style={[styles.freeChipTime, { color: on ? '#fff' : theme.text }]}>{fmtClock(r.pickMin)}</Text>
+                    <Text style={[styles.freeChipSub, { color: on ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>{fmtDur(r.endMin - r.startMin)} free</Text>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
           ) : null}
 
-          {pickOpen ? (
-            <View style={styles.pickerBox}>
-              <StartTimePicker
-                date={pickDate}
-                selected={{ hour: Math.floor(draftMin / 60), minute: draftMin % 60 }}
-                durationMinutes={moving.endMin - moving.startMin}
-                label={moving.title}
-                accentColor={accent}
-                onPick={(h, m) => setDraftMin(h * 60 + m)}
-                {...excludeProps}
-              />
-            </View>
+          {moving.raw?.type === 'one-time' ? (
+            <>
+              <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Another day</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsRow}>
+                {nextDays.map((d) => {
+                  const key = dateKeyOf(d);
+                  const on = key === draftDate;
+                  return (
+                    <TouchableOpacity key={key} onPress={() => { hapticFeedback.light(); setDraftDate(key); }} style={[styles.chip, { backgroundColor: on ? accent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                      <Text style={[styles.chipText, { color: on ? '#fff' : theme.text }]}>{relDay(d) === 'Today' || relDay(d) === 'Tomorrow' ? relDay(d) : d.toLocaleDateString('en', { weekday: 'short', day: 'numeric' })}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </>
           ) : null}
+
+          <TouchableOpacity onPress={saveMove} disabled={saving} style={[styles.saveBtn, { backgroundColor: accent, opacity: saving ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
+            <MaterialIcons name="check" size={20} color="#fff" />
+            <Text style={styles.saveBtnText}>{saving ? 'Saving' : `Save ${fmtClock(draftMin)}`}</Text>
+          </TouchableOpacity>
         </View>
       ) : null}
     </View>
@@ -539,7 +563,7 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 13, fontWeight: '600' },
   headline: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginTop: 2 },
   summary: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-  chipsScroll: { marginHorizontal: -20, marginTop: 14 },
+  chipsScroll: { marginHorizontal: -20, marginTop: 8 },
   chipsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   chip: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 12, borderRadius: 12 },
   chipText: { fontSize: 14, fontWeight: '700' },
@@ -596,12 +620,13 @@ const styles = StyleSheet.create({
   nudgeRow: { flexDirection: 'row', gap: 6, marginTop: 12 },
   nudge: { flex: 1, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   nudgeText: { fontSize: 12.5, fontWeight: '800' },
-  panelActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  outlineBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 48, borderRadius: 14, borderWidth: 1.5 },
-  outlineBtnText: { fontSize: 15, fontWeight: '800' },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 48, paddingHorizontal: 22, borderRadius: 14 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  pickerBox: { height: 300, marginTop: 12 },
+  wheel: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, marginTop: 10, paddingVertical: 4 },
+  panelKicker: { fontSize: 13, fontWeight: '600', marginTop: 16, marginBottom: 2 },
+  freeChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, minWidth: 96 },
+  freeChipTime: { fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  freeChipSub: { fontSize: 11.5, fontWeight: '600', marginTop: 1 },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, borderRadius: 16, marginTop: 18 },
+  saveBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
 });
 
 export default MyWeekScreen;
