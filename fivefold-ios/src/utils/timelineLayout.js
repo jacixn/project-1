@@ -15,7 +15,6 @@ export const ZOOM_MAX = 720;  // px per hour, 5-minute marks, 1 min = 12 px
 export const CARD_H = 52;
 export const CARD_H_TINY = 40;
 export const CARD_GAP = 6;
-export const COL_MIN_W = 90; // narrowest readable column; three columns fit a phone, four or more scroll sideways in that band
 export const NEST_INSET = 28;  // px a later overlapping block is inset when drawn on top of an earlier one
 export const STRIP_H = 20;     // px height of a tiny item drawn as a full-width strip
 export const STRIP_MAX_MIN = 15; // items this short (minutes) become strips
@@ -101,11 +100,20 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
       const colLastBottom = []; // last real bottom per column (for first-fit)
       for (const i of blocks) {
         const top = topOf(i);
-        // Overlapping, already-placed blocks whose title has room above this one
-        const hosts = placed.filter((p) => bottomOf(p.i) > top && topOf(p.i) + LABEL_PX <= top);
+        // In each column, the block on top at this time is the only possible
+        // host; it qualifies when its title has room above this block. Among
+        // qualifying hosts prefer the shallowest, then the earliest started,
+        // then the leftmost (what the iPhone Calendar does in practice).
+        const hosts = [];
+        for (let col = 0; col < colLastBottom.length; col++) {
+          const open = placed.filter((p) => p.col === col && bottomOf(p.i) > top && topOf(p.i) <= top);
+          if (!open.length) continue;
+          const topMost = open.reduce((best, p) => (p.depth > best.depth ? p : best), open[0]);
+          if (topOf(topMost.i) + LABEL_PX <= top) hosts.push(topMost);
+        }
         if (hosts.length) {
-          // Nest into the most recently started host (ties: the one placed last)
-          const host = hosts.reduce((best, p) => (!best || topOf(p.i) >= topOf(best.i) ? p : best), null);
+          hosts.sort((a, b) => a.depth - b.depth || topOf(a.i) - topOf(b.i) || a.col - b.col);
+          const host = hosts[0];
           placed.push({ i, col: host.col, depth: host.depth + 1 });
           colLastBottom[host.col] = Math.max(colLastBottom[host.col], bottomOf(i));
           continue;

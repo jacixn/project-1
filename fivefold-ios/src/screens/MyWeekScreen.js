@@ -10,7 +10,7 @@ import {
   KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope,
 } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
-import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, COL_MIN_W, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
+import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { moveItem } from '../services/rescheduleItem';
 
@@ -84,31 +84,31 @@ const MyWeekScreen = ({ navigation }) => {
   const isTodaySelected = sameDay(anchor, today);
   const nowMin = isTodaySelected ? new Date(nowTick).getHours() * 60 + new Date(nowTick).getMinutes() : null;
   const layout = useMemo(() => layoutDay(visible, { nowMin, pxPerHour }), [visible, nowMin, pxPerHour]);
-  // Card area. Each overlap group sizes itself: a lone item takes the whole
-  // width, two things share it, and only a band with more columns than fit
-  // at a readable width scrolls sideways, just that band, everything else
-  // stays put.
+  // Card area: like the iPhone Calendar, columns simply share the width,
+  // however many there are. Nothing ever scrolls sideways.
   const cardAreaLeft = 56;
   const cardAreaW = Math.max(0, timelineW - cardAreaLeft);
   const groupWidths = useMemo(() => {
     const out = {};
-    for (const g of layout.groups || []) {
-      const scroll = g.cols * COL_MIN_W > cardAreaW;
-      out[g.index] = { scroll, colW: scroll ? COL_MIN_W : cardAreaW / g.cols, contentW: scroll ? g.cols * COL_MIN_W : cardAreaW };
-    }
+    for (const g of layout.groups || []) out[g.index] = { colW: cardAreaW / Math.max(1, g.cols), contentW: cardAreaW };
     return out;
   }, [layout.groups, cardAreaW]);
-  const scrollGroups = (layout.groups || []).filter((g) => groupWidths[g.index]?.scroll);
-  const sideScroll = scrollGroups.length > 0;
+  // 8:15 – 9:50 PM (one suffix when both sides share it)
+  const fmtRange = (a, b) => {
+    const ca = fmtClock(a), cb = fmtClock(b);
+    const sa = ca.slice(-2), sb = cb.slice(-2);
+    return sa === sb ? `${ca.slice(0, -3)} – ${cb}` : `${ca} – ${cb}`;
+  };
   const renderCard = (c, originY) => {
     const it = c.item;
     const isMoving = moving && moving.id === it.id;
     const gw = c.group != null ? groupWidths[c.group] : null;
     const colW = gw ? gw.colW : cardAreaW;
     const inset = (c.depth || 0) * NEST_INSET;
-    const width = c.strip ? (gw ? gw.contentW : cardAreaW) : Math.max(60, Math.round(colW) - (c.cols > 1 ? 6 : 0) - inset);
+    const width = c.strip ? (gw ? gw.contentW : cardAreaW) : Math.max(40, Math.round(colW) - (c.cols > 1 ? 4 : 0) - inset);
     const tinyCard = c.h <= 44;
-    const narrowCard = c.cols > 1 && width < 200;
+    const narrowCard = width < 200;
+    const roomForGlyph = width >= 110;
     if (c.strip) {
       return (
         <TouchableOpacity
@@ -139,8 +139,8 @@ const MyWeekScreen = ({ navigation }) => {
           borderColor: isMoving ? accent : (c.proportional ? it.color + '55' : 'transparent'),
           alignItems: c.proportional ? 'flex-start' : 'center',
           paddingTop: c.proportional ? 8 : 0,
-          paddingLeft: c.cols > 1 || inset ? 10 : 12,
-          paddingRight: c.cols > 1 ? 8 : 12,
+          paddingLeft: narrowCard ? 8 : 12,
+          paddingRight: narrowCard ? 6 : 12,
         }]}
         accessibilityRole="button"
         accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
@@ -150,14 +150,14 @@ const MyWeekScreen = ({ navigation }) => {
         <View style={[styles.cardBar, { backgroundColor: it.color }]} />
         <View style={{ flex: 1 }}>
           {tinyCard ? (
-            <Text style={[styles.cardTitle, { color: theme.text }]}>
+            <Text style={[styles.cardTitle, { color: c.proportional ? it.color : theme.text }]}>
               {narrowCard ? it.title : <><Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}</>}
             </Text>
           ) : (
             <>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{it.title}</Text>
-              <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{narrowCard ? ` to ${fmtClock(it.endMin)}` : ` to ${fmtClock(it.endMin)}  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
+              <Text style={[styles.cardTitle, { color: c.proportional ? it.color : theme.text }]}>{it.title}</Text>
+              <Text style={[styles.cardMeta, { color: c.proportional ? it.color : theme.textSecondary, opacity: c.proportional ? 0.85 : 1 }]}>
+                {fmtRange(it.startMin, it.endMin)}{narrowCard ? '' : `  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
               </Text>
             </>
           )}
@@ -165,7 +165,7 @@ const MyWeekScreen = ({ navigation }) => {
         {it.movable ? (
           narrowCard ? null : <Text style={[styles.cardMove, { color: accent }]}>Move</Text>
         ) : (
-          <MaterialIcons name="lock-outline" size={16} color={theme.textSecondary} />
+          roomForGlyph ? <MaterialIcons name="lock-outline" size={12} color={theme.textSecondary} style={{ opacity: 0.8 }} /> : null
         )}
       </TouchableOpacity>
     );
@@ -365,21 +365,9 @@ const MyWeekScreen = ({ navigation }) => {
                 <View style={[styles.hourLine, { backgroundColor: hairline, opacity: h.major ? 1 : 0.5 }]} />
               </View>
             ))}
-            {/* Cards: fixed ones directly, crowded bands in their own sideways scroller */}
+            {/* Cards: columns share the width, nested blocks on top, strips last */}
             <View style={[styles.cardArea, { left: cardAreaLeft }]}>
-              {layout.cards.filter((c) => c.group == null || !groupWidths[c.group]?.scroll).map((c) => renderCard(c, 0))}
-              {scrollGroups.map((g) => (
-                <ScrollView
-                  key={`g${g.index}`}
-                  horizontal
-                  showsHorizontalScrollIndicator
-                  nestedScrollEnabled
-                  style={{ position: 'absolute', left: 0, right: 0, top: g.y, height: g.h }}
-                  contentContainerStyle={{ width: groupWidths[g.index].contentW, height: g.h }}
-                >
-                  {layout.cards.filter((c) => c.group === g.index).map((c) => renderCard(c, g.y))}
-                </ScrollView>
-              ))}
+              {layout.cards.map((c) => renderCard(c, 0))}
             </View>
             {layout.nowY != null ? (
               <View style={[styles.nowRow, { top: layout.nowY }]} pointerEvents="none">
@@ -392,7 +380,7 @@ const MyWeekScreen = ({ navigation }) => {
           </GestureHandlerRootView>
         ) : null}
         {view === 'timeline' && !loading && visible.length > 0 ? (
-          <Text style={[styles.zoomHint, { color: theme.textSecondary }]}>{sideScroll ? 'Swipe sideways where several things happen at once. ' : ''}Pinch to zoom in to the minutes, or use the − and + buttons. Double tap to reset.</Text>
+          <Text style={[styles.zoomHint, { color: theme.textSecondary }]}>Pinch to zoom in to the minutes, or use the − and + buttons. Double tap to reset.</Text>
         ) : null}
 
         {/* List */}
@@ -564,10 +552,10 @@ const styles = StyleSheet.create({
   stripDot: { width: 6, height: 12, borderRadius: 3, marginRight: 8 },
   stripText: { fontSize: 12, fontWeight: '800' },
   cardArea: { position: 'absolute', right: 0, top: 0, bottom: 0 },
-  card: { position: 'absolute', flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, overflow: 'hidden' },
+  card: { position: 'absolute', flexDirection: 'row', alignItems: 'flex-start', borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
   cardBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
-  cardTitle: { fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2, lineHeight: 18 },
-  cardMeta: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+  cardTitle: { fontSize: 14, fontWeight: '700', letterSpacing: -0.2, lineHeight: 17 },
+  cardMeta: { fontSize: 12, fontWeight: '600', marginTop: 2, lineHeight: 15 },
   cardMove: { fontSize: 13, fontWeight: '800', marginLeft: 8 },
   nowRow: { position: 'absolute', left: 50, right: 0, flexDirection: 'row', alignItems: 'center' },
   nowDot: { width: 8, height: 8, borderRadius: 4 },

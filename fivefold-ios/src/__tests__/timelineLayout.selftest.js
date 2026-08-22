@@ -19,13 +19,13 @@ const evening = [
 const E = layoutDay(evening);
 check(PX_PER_HOUR === 160 && E.step === 30, 'default zoom is the 30-minute ruler');
 check(card(E, 'stade').col === 0 && card(E, 'torino').col === 1 && card(E, 'shower').col === 2 && card(E, 'stade').cols === card(E, 'torino').cols, 'three things starting at 7:45 get three columns');
-check(card(E, 'candy').col === 1 && card(E, 'candy').depth === 1, 'Candy Jar (8:15) nests inside the Torino column, inset, on top');
-check(card(E, 'elche').depth === 1 && card(E, 'elche').col === 3, 'Elche (8:30) nests inside the most recently started block with room (Social Media)');
+check(card(E, 'candy').depth === 1 && card(E, 'candy').col === 0, 'Candy Jar (8:15) nests inside the earliest block with room (Stade Rennais column), inset, on top');
+check(card(E, 'elche').depth === 1 && card(E, 'elche').col === 1, 'Elche (8:30) cannot go under Candy (too close) so it nests in the Torino column');
 check(card(E, 'social').depth === 0 && card(E, 'social').col === 3 && E.groups[0].cols === 4, 'Social Media (8:00) starts too soon after the shower to nest, so it gets a fourth column (as iOS does)');
 check(card(E, 'p5').strip && card(E, 'p5').width === 1 && card(E, 'p5').h === STRIP_H && card(E, 'p5').y === ((1320 - E.axisStart) / 60) * PX_PER_HOUR, '5th Prayer is a full-width strip at exactly 10 PM');
 check(E.cards[E.cards.length - 1].strip === true, 'strips are drawn last (on top)');
 const order = E.cards.map((c) => c.item.id);
-check(order.indexOf('stade') < order.indexOf('elche') && order.indexOf('torino') < order.indexOf('candy'), 'nested blocks draw after their host');
+check(order.indexOf('stade') < order.indexOf('candy') && order.indexOf('torino') < order.indexOf('elche'), 'nested blocks draw after their host');
 check(card(E, 'stade').h === 2 * PX_PER_HOUR && card(E, 'shower').h === 0.5 * PX_PER_HOUR, 'blocks are as tall as their items');
 
 // Work day: prayers inside Work are strips, lunch nests
@@ -55,7 +55,8 @@ check(layoutDay([]).cards.length === 0 && layoutDay(null).height > 0 && !('rails
 check(layoutDay(evening, { nowMin: 1100 }).nowY === ((1100 - E.axisStart) / 60) * PX_PER_HOUR, 'now line');
 
 const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
-check(/NEST_INSET/.test(screen) && /c\.strip/.test(screen) && /styles\.stripDot/.test(screen) && !/layout\.rails/.test(screen), 'screen draws nested blocks and strips, no rails');
+check(/NEST_INSET/.test(screen) && /c\.strip/.test(screen) && /styles\.stripDot/.test(screen) && !/layout\.rails/.test(screen) && !/horizontal/.test(screen.slice(screen.indexOf('{/* Cards'), screen.indexOf('{layout.nowY'))) && /colW: cardAreaW \/ Math\.max\(1, g\.cols\)/.test(screen), 'screen draws nested blocks and strips; columns share the width, never scroll sideways');
+check(/fmtRange\(it\.startMin, it\.endMin\)/.test(screen) && /\$\{ca\.slice\(0, -3\)\} – \$\{cb\}/.test(screen), 'compact iOS-style time range (8:15 – 9:50 PM)');
 check(/backgroundColor: c\.proportional \? theme\.background : tile/.test(screen) && /styles\.cardFill/.test(screen), 'blocks are opaque so nested ones cover their host');
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);
