@@ -13,6 +13,26 @@ import aiRateLimiter from '../utils/aiRateLimiter';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const isOpenRouterKey = (key) => typeof key === 'string' && key.startsWith('sk-or-');
 
+// Rotating provider chain (Groq, Cerebras, SambaNova, DeepSeek, OpenRouter,
+// Mistral, GitHub Models, Hugging Face, Cohere). Keys from the gitignored
+// ai.config.js (see ai.config.example.js); the existing DeepSeek/OpenRouter
+// keys fold in automatically. See src/services/aiProviderChain.js.
+import { createChain } from './aiProviderChain';
+let AI_KEYS = {};
+try {
+  const ac = require('../../ai.config').AI_CONFIG;
+  if (ac && typeof ac === 'object') AI_KEYS = { ...ac };
+} catch (e) {
+  // ai.config.js not present — chain runs on the DeepSeek/OpenRouter keys only
+}
+// Fold the legacy DeepSeek config in: a 'sk-or-' key is really OpenRouter.
+for (const k of [DEEPSEEK_CONFIG.apiKey, DEEPSEEK_CONFIG.fallbackApiKey]) {
+  if (!k) continue;
+  if (isOpenRouterKey(k)) { if (!AI_KEYS.OPENROUTER_API_KEY) AI_KEYS.OPENROUTER_API_KEY = k; }
+  else if (!AI_KEYS.DEEPSEEK_API_KEY) AI_KEYS.DEEPSEEK_API_KEY = k;
+}
+const providerChain = createChain({ keys: AI_KEYS });
+
 let GEMINI_KEY = null;
 try {
   const gc = require('../../gemini.config').GEMINI_CONFIG;
@@ -98,7 +118,24 @@ async function deepseekFetchWithFallback(body) {
     }
   }
 
-  // ── 2) Deepseek / OpenRouter keys (fallback) ──
+  // ── 2) Rotating provider chain (Groq → Cerebras → SambaNova → DeepSeek →
+  //       OpenRouter → Mistral → GitHub → Hugging Face → Cohere) ──
+  // Whoever has a key and isn't cooling down answers; a 402/429/5xx on one
+  // provider just moves to the next.
+  try {
+    let parsed = null;
+    try { parsed = JSON.parse(body); } catch (e) {}
+    if (parsed && Array.isArray(parsed.messages)) {
+      const { model, ...rest } = parsed; // each provider picks its own model
+      const chained = await providerChain.run(rest);
+      if (chained) return chained;
+      console.warn('[AI] provider chain exhausted, falling back to direct Deepseek keys...', providerChain.status());
+    }
+  } catch (e) {
+    console.warn('[AI] provider chain error:', e.message);
+  }
+
+  // ── 3) Legacy direct Deepseek / OpenRouter request (last resort) ──
   const makeRequest = async (key) => {
     const useOpenRouter = isOpenRouterKey(key);
     let requestBody = body;

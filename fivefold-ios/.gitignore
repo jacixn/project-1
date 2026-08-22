@@ -39,6 +39,7 @@ yarn-error.*
 # API Keys & Tokens - KEEP SECRET
 github.config.js
 deepseek.config.js
+ai.config.js
 googleTts.config.js
 gemini.config.js
 ocr.config.js

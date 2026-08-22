@@ -10,7 +10,8 @@
     "fix-sim": "./fix-simulator.sh",
     "clear-start": "expo start --clear",
     "app": "./start-app.sh",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "test:ai": "node scripts/aiChainTest.mjs"
   },
   "dependencies": {
     "@bottom-tabs/react-navigation": "^1.1.0",
