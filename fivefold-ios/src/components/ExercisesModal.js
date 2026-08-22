@@ -49,7 +49,6 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const [exercises, setExercises] = useState([]);
   const [filteredExercises, setFilteredExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [headerH, setHeaderH] = useState(0);
   const [selectedBodyPart, setSelectedBodyPart] = useState('Any Body Part');
   const [selectedCategory, setSelectedCategory] = useState('Any Category');
   const [loading, setLoading] = useState(true);
@@ -392,6 +391,37 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   // Get alphabet for quick navigation
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
+  // A-Z strip: press anywhere and slide, the list follows. Letters with no
+  // entries jump to the next letter that has some, so the drag never stalls.
+  const [stripH, setStripH] = useState(0);
+  const [scrubLetter, setScrubLetter] = useState(null);
+  const lastScrubRef = useRef(null);
+  const jumpToLetter = (letter, animated) => {
+    const have = sortedSections;
+    const target = have.includes(letter) ? letter : (have.find((l) => l > letter) || have[have.length - 1]);
+    if (!target || sectionRefs.current[target] === undefined) return null;
+    scrollViewRef.current?.scrollTo({ y: sectionRefs.current[target], animated });
+    return target;
+  };
+  const scrubTo = (y) => {
+    const n = alphabet.length;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((y / Math.max(1, stripH)) * n)));
+    const letter = alphabet[i];
+    if (letter === lastScrubRef.current) return;
+    lastScrubRef.current = letter;
+    const landed = jumpToLetter(letter, false);
+    setScrubLetter(landed || letter);
+    hapticFeedback.selection();
+  };
+  const indexGesture = useMemo(() => Gesture.Pan()
+    .activateAfterLongPress(1)
+    .maxPointers(1)
+    .runOnJS(true)
+    .onBegin((e) => scrubTo(e.y))
+    .onUpdate((e) => scrubTo(e.y))
+    .onFinalize(() => { lastScrubRef.current = null; setScrubLetter(null); }),
+  [stripH, sortedSections.join('')]);
+
   const handleBodyPartPress = () => {
     hapticFeedback.light();
     closeOptionsMenu(() => openPicker('bodyPart'));
@@ -442,7 +472,6 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
         {/* Header — matches Fuel */}
         <View
           style={{ paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 10, backgroundColor: theme.background }}
-          onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <TouchableOpacity
@@ -781,30 +810,31 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
               ))}
             </ScrollView>
 
-            {/* Alphabet Navigation */}
-            <View style={[styles.alphabetNav, { top: headerH, backgroundColor: tileColor }]}>
-              {alphabet.map(letter => (
-                <TouchableOpacity
-                  key={letter}
-                  onPress={() => {
-                    hapticFeedback.light();
-                    if (sectionRefs.current[letter] !== undefined) {
-                      scrollViewRef.current?.scrollTo({
-                        y: sectionRefs.current[letter],
-                        animated: true,
-                      });
-                    }
-                  }}
+            {/* A-Z strip: tap or press-and-slide */}
+            <View style={styles.alphabetNav} pointerEvents="box-none">
+              <GestureDetector gesture={indexGesture}>
+                <View
+                  style={[styles.alphabetStrip, { backgroundColor: tileColor }]}
+                  onLayout={(e) => setStripH(e.nativeEvent.layout.height)}
+                  accessibilityRole="adjustable"
+                  accessibilityLabel="Jump to letter"
                 >
-                  <Text style={[
-                    styles.alphabetLetter,
-                    { color: sortedSections.includes(letter) ? theme.primary : theme.textSecondary }
-                  ]}>
-                    {letter}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                  {alphabet.map((letter) => (
+                    <Text
+                      key={letter}
+                      style={[styles.alphabetLetter, { color: sortedSections.includes(letter) ? theme.primary : theme.textSecondary, opacity: sortedSections.includes(letter) ? 1 : 0.45 }]}
+                    >
+                      {letter}
+                    </Text>
+                  ))}
+                </View>
+              </GestureDetector>
             </View>
+            {scrubLetter ? (
+              <View style={[styles.scrubBubble, { backgroundColor: theme.primary }]} pointerEvents="none">
+                <Text style={styles.scrubBubbleText}>{scrubLetter}</Text>
+              </View>
+            ) : null}
           </View>
         )}
       </View>
@@ -1165,13 +1195,29 @@ const styles = StyleSheet.create({
   alphabetNav: {
     position: 'absolute',
     right: 6,
-    marginTop: 10,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 5,
+  },
+  alphabetStrip: {
     borderRadius: 10,
     paddingVertical: 6,
     paddingHorizontal: 4,
-    alignSelf: 'flex-start',
-    zIndex: 5,
   },
+  scrubBubble: {
+    position: 'absolute',
+    right: 44,
+    top: '45%',
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 6,
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+  },
+  scrubBubbleText: { color: '#fff', fontSize: 30, fontWeight: '800' },
   alphabetLetter: {
     fontSize: 11.5,
     fontWeight: '700',
