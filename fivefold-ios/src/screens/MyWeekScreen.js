@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, A
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
-import SheetHeader from '../components/SheetHeader';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { computeDayFlow } from '../utils/dayFlow';
@@ -289,8 +288,27 @@ const MyWeekScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={{ paddingTop: insets.top }}>
-        <SheetHeader title="My Week" leftLabel="Done" onLeft={() => navigation.goBack()} rightLabel="Today" onRight={() => { hapticFeedback.light(); const d = new Date(); d.setHours(0, 0, 0, 0); setAnchor(d); }} />
+      {/* Header: same tile back button as Habits / Fuel, title centred, Today on the right */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={[styles.headerBtn, { backgroundColor: tile }]}
+          onPress={() => { hapticFeedback.light(); navigation.goBack(); }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <MaterialIcons name="arrow-back" size={22} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>My Week</Text>
+        <TouchableOpacity
+          style={[styles.headerBtn, { backgroundColor: tile, width: 'auto', paddingHorizontal: 14 }]}
+          onPress={() => { hapticFeedback.light(); const d = new Date(); d.setHours(0, 0, 0, 0); setAnchor(d); }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Jump to today"
+        >
+          <Text style={[styles.headerBtnText, { color: accent }]}>Today</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Week strip */}
@@ -561,6 +579,10 @@ const MyWeekScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 4 },
+  headerBtn: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  headerBtnText: { fontSize: 15, fontWeight: '800' },
+  headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: 0.3 },
   weekRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 12, gap: 6 },
   weekNav: { width: 34, height: 58, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   weekStrip: { flex: 1, flexDirection: 'row', gap: 5 },
