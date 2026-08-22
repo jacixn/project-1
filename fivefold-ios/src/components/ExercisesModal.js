@@ -475,8 +475,6 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
 
   const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
 
-  const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
-
   const handlePressExercise = useCallback((exercise) => {
     hapticFeedback.light();
     if (selectionMode && onSelectExercise) {
