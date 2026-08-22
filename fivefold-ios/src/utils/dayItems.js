@@ -11,16 +11,17 @@ import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { minutesOf, dateKeyOf } from './dayBusy';
 
-// Colour = where it comes from: Biblely is green (three close shades so the
-// legend still tells them apart), EyeCandy blue, EyeCandy sports orange,
-// anything else from the iPhone Calendar purple.
+// Colour = where it comes from, matching how the iPhone Calendar shows the
+// same items: Biblely green (three close shades so the legend still tells
+// prayers, reminders and workouts apart), EyeCandy purple, EyeCandy sports
+// orange, and every other iPhone calendar keeps its own colour.
 export const KINDS = {
-  prayer: { label: 'Prayer', color: '#4ADE80', icon: 'favorite' },
-  reminder: { label: 'Reminder', color: '#22C55E', icon: 'notifications' },
-  gym: { label: 'Workout', color: '#86EFAC', icon: 'fitness-center' },
-  eyecandy: { label: 'EyeCandy', color: '#3B82F6', icon: 'movie' },
-  eyecandySports: { label: 'EyeCandy Sports', color: '#F97316', icon: 'sports-soccer' },
-  calendar: { label: 'Calendar', color: '#A855F7', icon: 'event' },
+  prayer: { label: 'Prayer', color: '#34C759', icon: 'favorite' },
+  reminder: { label: 'Reminder', color: '#30D158', icon: 'notifications' },
+  gym: { label: 'Workout', color: '#4CD964', icon: 'fitness-center' },
+  eyecandy: { label: 'EyeCandy', color: '#7C5CFF', icon: 'movie' },
+  eyecandySports: { label: 'EyeCandy Sports', color: '#FF9500', icon: 'sports-soccer' },
+  calendar: { label: 'Calendar', color: '#D946EF', icon: 'event' },
 };
 export const KIND_ORDER = ['prayer', 'reminder', 'gym', 'eyecandy', 'eyecandySports', 'calendar'];
 
@@ -130,7 +131,8 @@ export const loadDayItems = async (date) => {
             title: e.title || 'Busy',
             startMin,
             endMin,
-            color: KINDS[kind].color,
+            // Other calendars keep their own colour (Work magenta, etc.), like iOS
+            color: kind === 'calendar' ? (cal.color || KINDS.calendar.color) : KINDS[kind].color,
             icon: KINDS[kind].icon,
             movable: false,
             subtitle: isEyeCandy ? (cal.title || 'EyeCandy') : (cal.title || 'Calendar'),

@@ -20,8 +20,8 @@ check(rows.map((r) => r.type[0]).join('') === 'ififififif', `free stretches betw
 check(rows[1].label === '55 min free' && rows[3].label === '30 min free' && rows[5].label === '7 hr 35 min free' && rows[9].label === '1 hr free', 'gap labels in plain words');
 check(countByKind(day).eyecandy === 1 && countByKind(day).calendar === 1 && countByKind(day).prayer === 1, 'counts per kind');
 const K = mod.KINDS;
-check(/^#/.test(K.prayer.color) && [K.prayer, K.reminder, K.gym].every((k) => k.color.toUpperCase().match(/^#(4ADE80|22C55E|86EFAC)$/)) && K.eyecandy.color === '#3B82F6' && K.eyecandySports.color === '#F97316' && K.calendar.color === '#A855F7', 'colours by source: Biblely greens, EyeCandy blue, EyeCandy sports orange, iPhone Calendar purple');
-check(/isSports \? 'eyecandySports' : isEyeCandy \? 'eyecandy' : 'calendar'/.test(src) && /color: KINDS\[kind\]\.color/.test(src), 'calendar events take the source colour, never the calendar\'s own colour');
+check([K.prayer, K.reminder, K.gym].every((k) => /^#(34C759|30D158|4CD964)$/.test(k.color)) && K.eyecandy.color === '#7C5CFF' && K.eyecandySports.color === '#FF9500', 'colours by source: Biblely greens, EyeCandy purple, EyeCandy sports orange');
+check(/isSports \? 'eyecandySports' : isEyeCandy \? 'eyecandy' : 'calendar'/.test(src) && /kind === 'calendar' \? \(cal\.color \|\| KINDS\.calendar\.color\) : KINDS\[kind\]\.color/.test(src), 'EyeCandy calendars take the source colour; other calendars keep their own, like iOS');
 check(busyMinutes([it('a', 0, 60), it('b', 30, 90), it('c', 200, 230)]) === 120, 'overlaps do not double count busy minutes');
 check(daySummary(day) === '5 things  ·  5 hr 10 min busy  ·  first at 7:10 AM', `day summary (${daySummary(day)})`);
 check(daySummary([]) === 'Nothing scheduled', 'empty summary');
