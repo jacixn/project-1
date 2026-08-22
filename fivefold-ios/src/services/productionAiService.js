@@ -103,22 +103,7 @@ async function geminiChatAttempt(parsedBody, model) {
 }
 
 async function deepseekFetchWithFallback(body) {
-  // ── 1) Gemini free tier (primary) ──
-  if (GEMINI_KEY) {
-    let parsed = null;
-    try { parsed = JSON.parse(body); } catch (e) {}
-    if (parsed) {
-      let geminiRes = await geminiChatAttempt(parsed, 'gemini-2.5-flash');
-      if (!geminiRes) {
-        // Rate limited or failed — try the lighter model before giving up
-        geminiRes = await geminiChatAttempt(parsed, 'gemini-2.5-flash-lite');
-      }
-      if (geminiRes) return geminiRes;
-      console.warn('[AI] Gemini chain exhausted, falling back to Deepseek keys...');
-    }
-  }
-
-  // ── 2) Rotating provider chain (Groq → Cerebras → SambaNova → DeepSeek →
+  // ── 1) Rotating provider chain (Groq → Cerebras → SambaNova → DeepSeek →
   //       OpenRouter → Mistral → GitHub → Hugging Face → Cohere) ──
   // Whoever has a key and isn't cooling down answers; a 402/429/5xx on one
   // provider just moves to the next.
@@ -133,6 +118,18 @@ async function deepseekFetchWithFallback(body) {
     }
   } catch (e) {
     console.warn('[AI] provider chain error:', e.message);
+  }
+
+  // ── 2) Gemini free tier (last but one — keyed providers go first) ──
+  if (GEMINI_KEY) {
+    let parsed = null;
+    try { parsed = JSON.parse(body); } catch (e) {}
+    if (parsed) {
+      let geminiRes = await geminiChatAttempt(parsed, 'gemini-2.5-flash');
+      if (!geminiRes) geminiRes = await geminiChatAttempt(parsed, 'gemini-2.5-flash-lite');
+      if (geminiRes) return geminiRes;
+      console.warn('[AI] Gemini exhausted, falling back to direct Deepseek keys...');
+    }
   }
 
   // ── 3) Legacy direct Deepseek / OpenRouter request (last resort) ──
