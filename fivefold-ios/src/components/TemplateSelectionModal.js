@@ -808,6 +808,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   };
 
   const hairlineColor = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
+  const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
 
   // One row per template: name, what is in it, when it was last done, and a
   // one-tap Start. Tapping the row opens the detail sheet.
@@ -826,7 +827,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     return (
       <TouchableOpacity
         key={template.id}
-        style={[styles.templateRow, { borderBottomColor: hairlineColor, paddingLeft: inFolder ? 14 : 0 }]}
+        style={[styles.templateRow, { backgroundColor: tileColor, marginLeft: inFolder ? 14 : 0 }]}
         activeOpacity={0.6}
         onPress={() => { hapticFeedback.light(); setSelectedTemplate(template); setShowTemplateDetail(true); }}
         accessibilityRole="button"
@@ -841,11 +842,14 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
         {summary.exerciseCount > 0 ? (
           <TouchableOpacity
             onPress={() => { hapticFeedback.medium(); handleStartTemplateWorkout(template); }}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={[styles.startPill, { backgroundColor: theme.primary }]}
+            activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={`Start ${template.name}`}
           >
-            <Text style={[styles.rowStart, { color: theme.primary }]}>Start</Text>
+            <MaterialIcons name="play-arrow" size={18} color="#FFFFFF" />
+            <Text style={styles.startPillText}>Start</Text>
           </TouchableOpacity>
         ) : null}
       </TouchableOpacity>
@@ -919,7 +923,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
               return (
                 <TouchableOpacity
                   key={s.id}
-                  style={styles.todayRow}
+                  style={[styles.todayRow, { backgroundColor: tileColor }]}
                   activeOpacity={tpl ? 0.6 : 1}
                   onPress={() => { if (!tpl) return; hapticFeedback.light(); setSelectedTemplate(tpl); setShowTemplateDetail(true); }}
                   accessibilityRole="button"
@@ -929,7 +933,18 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                     {s.templateName || 'Workout'}
                     <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>{`  at ${fmtClock(s.time)}${s.duration ? `  ·  ${formatDuration(Number(s.duration) * 60)}` : ''}`}</Text>
                   </Text>
-                  {tpl ? <Text style={[styles.rowStart, { color: theme.primary }]} onPress={() => { hapticFeedback.medium(); handleStartTemplateWorkout(tpl); }}>Start</Text> : null}
+                  {tpl ? (
+                    <TouchableOpacity
+                      onPress={() => { hapticFeedback.medium(); handleStartTemplateWorkout(tpl); }}
+                      style={[styles.startPill, { backgroundColor: theme.primary }]}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Start ${s.templateName || 'workout'}`}
+                    >
+                      <MaterialIcons name="play-arrow" size={18} color="#FFFFFF" />
+                      <Text style={styles.startPillText}>Start</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </TouchableOpacity>
               );
             })}
@@ -965,7 +980,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             {/* Set up split (only when no plan exists) */}
             {!splitPlan && !smartWorkoutLoading && (
               <TouchableOpacity
-                style={styles.splitRow}
+                style={[styles.splitRow, { backgroundColor: tileColor }]}
                 onPress={() => { hapticFeedback.light(); setShowSplitModal(true); }}
                 activeOpacity={0.6}
                 accessibilityRole="button"
@@ -1040,27 +1055,28 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             )}
 
             {smartWorkout && smartWorkout.isRestDay ? (
-              <View style={[styles.smartBlock, { borderTopColor: hairlineColor, borderBottomColor: hairlineColor }]}>
+              <View style={[styles.smartBlock, { backgroundColor: tileColor }]}>
                 <Text style={[styles.smartName, { color: theme.text }]}>Rest day</Text>
                 <Text style={[styles.smartReason, { color: theme.textSecondary }]}>
                   Recovery is where growth happens. Take it easy today, stay hydrated, and come back stronger tomorrow.
                 </Text>
               </View>
             ) : smartWorkoutLoading ? (
-              <View style={[styles.smartBlock, { borderTopColor: hairlineColor, borderBottomColor: hairlineColor }]}>
+              <View style={[styles.smartBlock, { backgroundColor: tileColor }]}>
                 <Text style={[styles.smartReason, { color: theme.textSecondary }]}>
                   {splitPlan ? 'Building your workout...' : 'Looking at your training history...'}
                 </Text>
               </View>
             ) : smartWorkout && !smartWorkout.isRestDay ? (
-              <View style={[styles.smartBlock, { borderTopColor: hairlineColor, borderBottomColor: hairlineColor }]}>
+              <View style={[styles.smartBlock, { backgroundColor: tileColor }]}>
                 <View style={styles.smartHead}>
                   <View style={{ flex: 1, paddingRight: 12 }}>
                     <Text style={[styles.smartName, { color: theme.text }]}>{smartWorkout.name}</Text>
                     <Text style={[styles.smartReason, { color: theme.textSecondary }]}>{smartWorkout.reason}</Text>
                   </View>
-                  <TouchableOpacity onPress={handleStartSmartWorkout} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={`Start ${smartWorkout.name}`}>
-                    <Text style={[styles.rowStart, { color: theme.primary }]}>Start</Text>
+                  <TouchableOpacity onPress={handleStartSmartWorkout} style={[styles.startPill, { backgroundColor: theme.primary }]} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`Start ${smartWorkout.name}`}>
+                    <MaterialIcons name="play-arrow" size={18} color="#FFFFFF" />
+                    <Text style={styles.startPillText}>Start</Text>
                   </TouchableOpacity>
                 </View>
                 {smartWorkout.exercises.map((ex, i) => (
@@ -1075,12 +1091,12 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
               </View>
             ) : (
               <TouchableOpacity
-                activeOpacity={0.6}
+                activeOpacity={0.7}
                 onPress={() => { hapticFeedback.light(); generateSmartWorkout(); }}
-                style={styles.suggestRow}
+                style={[styles.suggestRow, { borderColor: theme.primary, backgroundColor: tileColor }]}
                 accessibilityRole="button"
               >
-                <MaterialIcons name="auto-awesome" size={18} color={theme.primary} />
+                <MaterialIcons name="auto-awesome" size={20} color={theme.primary} />
                 <Text style={[styles.suggestRowText, { color: theme.primary }]}>Suggest a workout for today</Text>
               </TouchableOpacity>
             )}
@@ -1091,16 +1107,19 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>My templates</Text>
             <View style={styles.headerButtons}>
               <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowCreateFolderModal(true); }} hitSlop={{ top: 8, bottom: 8 }} accessibilityRole="button">
-                <Text style={[styles.headerLink, { color: theme.primary }]}>New folder</Text>
+                <Text style={[styles.headerLink, { color: theme.primary }]}>+ Folder</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowCreateModal(true); }} hitSlop={{ top: 8, bottom: 8 }} accessibilityRole="button">
-                <Text style={[styles.headerLink, { color: theme.primary }]}>New template</Text>
+                <Text style={[styles.headerLink, { color: theme.primary }]}>+ Template</Text>
               </TouchableOpacity>
             </View>
           </View>
 
+          {(templates.length > 0 || folders.length > 0) && (
+            <Text style={[styles.listHint, { color: theme.textSecondary }]}>Tap a workout to see its exercises. Start begins it straight away.</Text>
+          )}
           {templates.filter((t) => !t.folderId).length > 0 && (
-            <View style={[styles.rowList, { borderTopColor: hairlineColor }]}>
+            <View style={styles.rowList}>
               {templates.filter((t) => !t.folderId).map((template) => renderTemplateRow(template))}
             </View>
           )}
@@ -1111,7 +1130,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             return (
               <View key={folder.id} style={styles.folderBlock}>
                 <TouchableOpacity
-                  style={[styles.folderRow, { borderTopColor: hairlineColor }]}
+                  style={[styles.folderRow, { backgroundColor: tileColor }]}
                   onPress={() => toggleFolder(folder.id)}
                   onLongPress={() => { hapticFeedback.medium(); setSelectedFolderForMenu(folder); }}
                   activeOpacity={0.6}
@@ -2273,36 +2292,39 @@ const styles = StyleSheet.create({
   heroButtonText: { color: "#FFFFFF", fontSize: 16.5, fontWeight: "800", letterSpacing: -0.2 },
   todayBlock: { marginTop: 22, marginBottom: 26 },
   todayEmpty: { fontSize: 14, marginTop: 6, lineHeight: 20 },
-  todayRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  todayName: { flex: 1, fontSize: 17, fontWeight: "800", letterSpacing: -0.2, lineHeight: 23 },
+  todayRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 16, marginTop: 8 },
+  todayName: { flex: 1, fontSize: 17, fontWeight: "800", letterSpacing: -0.2, lineHeight: 23, paddingRight: 10 },
   rowStart: { fontSize: 15, fontWeight: "800" },
-  headerLink: { fontSize: 14, fontWeight: "700", marginLeft: 18 },
-  rowList: { borderTopWidth: StyleSheet.hairlineWidth },
-  templateRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  headerLink: { fontSize: 15, fontWeight: "800", marginLeft: 18 },
+  rowList: { gap: 10 },
+  listHint: { fontSize: 13.5, lineHeight: 19, marginBottom: 12 },
+  templateRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16 },
   templateRowName: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3, lineHeight: 23 },
-  templateRowMeta: { fontSize: 13.5, fontWeight: "500", marginTop: 3, lineHeight: 18 },
-  templateRowLast: { fontSize: 12.5, fontWeight: "600", marginTop: 3 },
-  folderBlock: { marginTop: 8 },
-  folderRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  templateRowMeta: { fontSize: 14.5, fontWeight: "500", marginTop: 4, lineHeight: 20 },
+  templateRowLast: { fontSize: 13.5, fontWeight: "600", marginTop: 3 },
+  folderBlock: { marginTop: 10, gap: 10 },
+  folderRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16 },
   folderRowName: { fontSize: 17, fontWeight: "800", letterSpacing: -0.2 },
   folderRowSub: { fontSize: 13, fontWeight: "500", marginTop: 2 },
-  folderInner: { paddingBottom: 6 },
+  folderInner: { gap: 10 },
   folderEmpty: { fontSize: 13.5, lineHeight: 19, paddingLeft: 14, paddingBottom: 10 },
-  splitRow: { paddingVertical: 6, marginBottom: 10 },
+  splitRow: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 16, marginBottom: 10 },
   splitRowTitle: { fontSize: 15, fontWeight: "800" },
   splitRowSub: { fontSize: 13, lineHeight: 18, marginTop: 2 },
   pillTab: { paddingTop: 2, marginRight: 14 },
   pillTabText: { fontSize: 13 },
   pillTabBar: { height: 2, borderRadius: 1, marginTop: 4 },
-  smartBlock: { paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, marginBottom: 4 },
+  smartBlock: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, marginBottom: 4 },
   smartHead: { flexDirection: "row", alignItems: "flex-start", marginBottom: 10 },
   smartName: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
   smartReason: { fontSize: 13.5, lineHeight: 19, marginTop: 3 },
   smartExLine: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 5 },
   smartExIndex: { width: 28, fontSize: 12.5, fontWeight: "800", lineHeight: 20, fontVariant: ["tabular-nums"] },
   smartExName: { flex: 1, fontSize: 15, fontWeight: "700", lineHeight: 20 },
-  suggestRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  suggestRowText: { fontSize: 15, fontWeight: "800" },
+  suggestRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 52, borderRadius: 16, borderWidth: 1.5 },
+  startPill: { flexDirection: "row", alignItems: "center", paddingLeft: 10, paddingRight: 14, height: 38, borderRadius: 12 },
+  startPillText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  suggestRowText: { fontSize: 16, fontWeight: "800" },
   emptyWorkoutButton: {
     paddingVertical: 18,
     borderRadius: 12,
