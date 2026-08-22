@@ -136,9 +136,11 @@ const SettingsScreen = ({ navigation }) => {
     await loadCalendarSyncSetting();
   }, []);
 
+  // Re-read once the signed-in uid is known: on cold start this screen can
+  // mount before userStorage has its uid, and scoped reads return null.
   useEffect(() => {
     loadAll();
-  }, [loadAll]);
+  }, [loadAll, user?.uid]);
 
   useFocusEffect(
     useCallback(() => {
@@ -968,7 +970,7 @@ const SettingsScreen = ({ navigation }) => {
                   Calendar Alert
                 </Text>
                 <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
-                  When the Calendar app reminds you. Items with their own reminder time keep it.
+                  When the Calendar app reminds you. Off silences every calendar alert; other values let items with their own reminder time keep it.
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                   {[

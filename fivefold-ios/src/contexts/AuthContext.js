@@ -73,7 +73,12 @@ export const AuthProvider = ({ children }) => {
         // we don't have the UID yet. Use a raw AsyncStorage scan for the cache key.
         // The onAuthStateChanged listener will handle proper scoped loading.
         const allKeys = await AsyncStorage.getAllKeys();
-        const cacheKey = allKeys.find(k => k.endsWith(':' + USER_CACHE_KEY));
+        // Prefer the last ACTIVE uid's cache (see userStorage.initUser); fall
+        // back to any cache key only when that pointer is missing.
+        let lastUid = null;
+        try { lastUid = await AsyncStorage.getItem('biblely_last_uid'); } catch {}
+        const preferred = lastUid ? allKeys.find(k => k === `u:${lastUid}:${USER_CACHE_KEY}`) : null;
+        const cacheKey = preferred || allKeys.find(k => k.endsWith(':' + USER_CACHE_KEY));
         if (cacheKey) {
           const cachedData = await AsyncStorage.getItem(cacheKey);
           if (cachedData) {

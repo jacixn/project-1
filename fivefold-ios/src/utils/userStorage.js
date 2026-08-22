@@ -127,6 +127,11 @@ const initUser = async (uid) => {
   }
   _currentUid = uid;
   console.log('[userStorage] Active user set:', uid);
+  // Device-global pointer to the last active uid. Cold start restores from
+  // cache BEFORE Firebase confirms the user; with more than one uid namespace
+  // on the device (old account, test account) the restore used to grab the
+  // first cache key it found and read every setting from the wrong user.
+  try { await AsyncStorage.setItem('biblely_last_uid', uid); } catch {}
   await migrateIfNeeded(uid);
 };
 

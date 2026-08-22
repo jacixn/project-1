@@ -10,6 +10,7 @@
 // events map, keyed by namespaced stableKeys, so they reconcile independently
 // without clobbering each other.
 import * as Calendar from 'expo-calendar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import userStorage from '../utils/userStorage';
 
 const ENABLED_KEY = 'biblely_calendar_sync_enabled';
@@ -40,7 +41,15 @@ const alarmsFromNotify = (nb) => {
 const DAY_INDEX = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const isEnabled = async () => (await userStorage.getRaw(ENABLED_KEY)) === 'true';
+const ENABLED_MIRROR_KEY = 'biblely_calendar_sync_enabled_global';
+// Scoped flag first; if the scoped store isn't ready yet (cold start before
+// the uid lands) fall back to the device-global mirror written on enable/
+// disable, so the Settings toggle never shows Off for an enabled sync.
+export const isEnabled = async () => {
+  const scoped = await userStorage.getRaw(ENABLED_KEY);
+  if (scoped === 'true' || scoped === 'false') return scoped === 'true';
+  try { return (await AsyncStorage.getItem(ENABLED_MIRROR_KEY)) === 'true'; } catch { return false; }
+};
 
 export const getDefaultAlarmMinutes = async () => {
   const n = Number(await userStorage.getRaw(ALARM_KEY));
@@ -444,9 +453,10 @@ export const enable = async () => {
   console.log('[calSync] enable: granted =', granted);
   if (!granted) return false;
   await userStorage.setRaw(ENABLED_KEY, 'true');
+  try { await AsyncStorage.setItem(ENABLED_MIRROR_KEY, 'true'); } catch {}
   const calId = await ensureCalendar();
   console.log('[calSync] enable: calId =', calId);
-  if (!calId) { await userStorage.setRaw(ENABLED_KEY, 'false'); return false; }
+  if (!calId) { await userStorage.setRaw(ENABLED_KEY, 'false'); try { await AsyncStorage.setItem(ENABLED_MIRROR_KEY, 'false'); } catch {} return false; }
   await syncAll();
   console.log('[calSync] enable: success');
   return true;
@@ -455,6 +465,7 @@ export const enable = async () => {
 // Turn it off: delete every event we created (and the calendar itself).
 export const disable = async () => {
   await userStorage.setRaw(ENABLED_KEY, 'false');
+  try { await AsyncStorage.setItem(ENABLED_MIRROR_KEY, 'false'); } catch {}
   const map = (await userStorage.get(EVENTS_KEY)) || {};
   for (const key of Object.keys(map)) {
     const entry = map[key];
