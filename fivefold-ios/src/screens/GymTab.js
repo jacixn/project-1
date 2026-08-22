@@ -821,9 +821,10 @@ const GymTab = () => {
             </View>
 
           {/* My Week: everything scheduled, every source, one place to move things */}
+          <View style={{ width: 0, height: 0 }}>
           <TouchableOpacity
             onPress={() => { hapticFeedback.light(); navigation.navigate('MyWeek'); }}
-            style={{ position: 'absolute', right: 20, top: -16, width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)' }}
+            style={{ position: 'absolute', right: 0, top: -16, width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)' }}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
@@ -831,6 +832,7 @@ const GymTab = () => {
           >
             <MaterialIcons name="calendar-month" size={20} color={textColor} />
           </TouchableOpacity>
+          </View>
           </View>
         </GlassHeader>
 
