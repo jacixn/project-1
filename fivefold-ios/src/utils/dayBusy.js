@@ -8,6 +8,7 @@ import WorkoutService from '../services/workoutService';
 import { getPrayers } from '../services/simplePrayersService';
 import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
+import { getStoredData } from './localStorage';
 
 const BIBLELY_CAL = 'Biblely';
 const DAY_MIN = 24 * 60;
@@ -32,7 +33,7 @@ const push = (out, title, startMin, minutes, source) => {
   out.push({ title: title || 'Busy', startMin, endMin: clamp(startMin + dur, startMin + 1, DAY_MIN), source });
 };
 
-export const loadBusyForDate = async (date, { excludeGymId = null, excludeReminderId = null, excludePrayerId = null } = {}) => {
+export const loadBusyForDate = async (date, { excludeGymId = null, excludeReminderId = null, excludePrayerId = null, excludeTaskId = null } = {}) => {
   const out = [];
   const key = dateKeyOf(date);
   const dow = date.getDay();
@@ -51,6 +52,14 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
     for (const r of getRemindersForDay(await loadReminders(), dow, key)) {
       if (excludeReminderId != null && String(r.id) === String(excludeReminderId)) continue;
       push(out, r.title || 'Reminder', minutesOf(r.time), Number(r.duration) > 0 ? r.duration : 30, 'reminder');
+    }
+  } catch {}
+
+  try {
+    for (const t of (await getStoredData('todos')) || []) {
+      if (!t || t.completed || t.scheduledDate !== key || !t.scheduledTime) continue;
+      if (excludeTaskId != null && String(t.id) === String(excludeTaskId)) continue;
+      push(out, t.text || 'Task', minutesOf(t.scheduledTime), 30, 'task');
     }
   } catch {}
 

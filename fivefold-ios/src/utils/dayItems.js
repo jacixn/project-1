@@ -1,5 +1,5 @@
 // Everything on one day, from every source, as one list:
-//   prayers, reminders, scheduled workouts (Biblely's own data),
+//   prayers, reminders, tasks, scheduled workouts (Biblely's own data),
 //   EyeCandy's calendars and any other iPhone calendar (read through
 //   expo-calendar; Biblely's own mirror calendar is skipped so nothing
 //   shows twice). Each item: { id, kind, title, startMin, endMin, color,
@@ -10,6 +10,7 @@ import { getPrayers } from '../services/simplePrayersService';
 import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { minutesOf, dateKeyOf } from './dayBusy';
+import { getStoredData } from './localStorage';
 
 // Colour = where it comes from, matching how the iPhone Calendar shows the
 // same items: Biblely green (three close shades so the legend still tells
@@ -18,12 +19,15 @@ import { minutesOf, dateKeyOf } from './dayBusy';
 export const KINDS = {
   prayer: { label: 'Prayer', color: '#34C759', icon: 'favorite' },
   reminder: { label: 'Reminder', color: '#30D158', icon: 'notifications' },
+  task: { label: 'Task', color: '#2DC46B', icon: 'check-circle' },
   gym: { label: 'Workout', color: '#4CD964', icon: 'fitness-center' },
   eyecandy: { label: 'EyeCandy', color: '#7C5CFF', icon: 'movie' },
   eyecandySports: { label: 'EyeCandy Sports', color: '#FF9500', icon: 'sports-soccer' },
   calendar: { label: 'Calendar', color: '#D946EF', icon: 'event' },
 };
-export const KIND_ORDER = ['prayer', 'reminder', 'gym', 'eyecandy', 'eyecandySports', 'calendar'];
+export const KIND_ORDER = ['prayer', 'reminder', 'task', 'gym', 'eyecandy', 'eyecandySports', 'calendar'];
+// Tasks have no length of their own; 30 min matches the Calendar mirror.
+export const TASK_MINUTES = 30;
 
 const BIBLELY_CAL = 'Biblely';
 const DAY_MIN = 24 * 60;
@@ -68,7 +72,7 @@ const mk = (kind, id, title, startMin, minutes, raw, extra = {}) => {
     endMin: clamp(startMin + dur, startMin + 1, DAY_MIN),
     color: extra.color || KINDS[kind].color,
     icon: extra.icon || KINDS[kind].icon,
-    movable: kind === 'prayer' || kind === 'reminder' || kind === 'gym',
+    movable: kind === 'prayer' || kind === 'reminder' || kind === 'task' || kind === 'gym',
     subtitle: extra.subtitle || '',
     raw,
   };
@@ -100,6 +104,14 @@ export const loadDayItems = async (date) => {
       const on = s.type === 'one-time' ? s.date === key : (s.days || []).includes(dow);
       if (!on) continue;
       out.push(mk('gym', s.id, s.templateName || 'Workout', minutesOf(s.time), Number(s.duration) > 0 ? s.duration : 60, s, { subtitle: patternOf(s) }));
+    }
+  } catch {}
+
+  // To-do tasks with a date and time (To Do tab). Done ones drop off.
+  try {
+    for (const t of (await getStoredData('todos')) || []) {
+      if (!t || t.completed || t.scheduledDate !== key || !t.scheduledTime) continue;
+      out.push(mk('task', t.id, t.text || 'Task', minutesOf(t.scheduledTime), TASK_MINUTES, { ...t, type: 'one-time', date: t.scheduledDate, time: t.scheduledTime }, { subtitle: 'Task' }));
     }
   } catch {}
 

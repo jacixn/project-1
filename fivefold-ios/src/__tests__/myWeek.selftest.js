@@ -86,5 +86,14 @@ check(/const keepY = scrollYRef\.current;\s*await loadWeek\(\);\s*requestAnimati
 check(/item\.kind === 'eyecandySports'\) \{\s*Alert\.alert\(/.test(screen) && /Kick-off is \$\{fmtClock\(item\.startMin\)\}/.test(screen) && /Match times come from the fixture list/.test(screen), 'tapping a fixture explains the kick-off is fixed');
 check(/const panelAccent = \(moving && moving\.color\) \|\| accent;/.test(screen) && /styles\.saveBtn, \{ backgroundColor: panelAccent/.test(screen) && /borderColor: panelAccent, backgroundColor: showWheel \? panelAccent/.test(screen) && /styles\.freeChip, \{ backgroundColor: on \? panelAccent/.test(screen), 'move panel wears the item colour (EyeCandy purple stays purple)');
 
+// ---- tasks (To Do) are a source too ---------------------------------------
+check(K.task && /^#2DC46B$/.test(K.task.color) && mod.KIND_ORDER.join() === 'prayer,reminder,task,gym,eyecandy,eyecandySports,calendar' && mod.TASK_MINUTES === 30, 'task kind: Biblely green, ordered with the other Biblely kinds, 30-minute block');
+check(/getStoredData\('todos'\)/.test(src) && /t\.completed \|\| t\.scheduledDate !== key \|\| !t\.scheduledTime\) continue;/.test(src) && /mk\('task', t\.id, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), TASK_MINUTES, \{ \.\.\.t, type: 'one-time'/.test(src) && /kind === 'task' \|\| kind === 'gym'/.test(src), 'dated, undone tasks load for their day as movable one-time items');
+check(/if \(item\.kind === 'task'\) \{/.test(resrc) && /await saveData\('todos', updated\);/.test(resrc) && /syncTodos\(updated\)/.test(resrc) && /DeviceEventEmitter\.emit\('todosChanged'\)/.test(resrc) && /scheduledDateTime: when\.toISOString\(\)/.test(resrc), 'moving a task rewrites scheduledDate/Time/DateTime through the To Do write path (cloud, Calendar mirror, widget, event)');
+const busy = read('utils/dayBusy.js');
+check(/excludeTaskId = null/.test(busy) && /getStoredData\('todos'\)/.test(busy) && /push\(out, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), 30, 'task'\)/.test(busy), 'tasks count as busy time for free-gap picking');
+check(/k === 'task' \|\| k === 'gym' \? 's'/.test(screen), 'legend chip says Tasks');
+
+
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

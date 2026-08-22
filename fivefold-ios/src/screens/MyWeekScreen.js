@@ -472,7 +472,7 @@ const MyWeekScreen = ({ navigation }) => {
             return (
               <TouchableOpacity key={k} onPress={() => toggleKind(k)} style={[styles.chip, { backgroundColor: tile, opacity: off ? 0.45 : 1 }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: !off }}>
                 <View style={[styles.dotBig, { backgroundColor: KINDS[k].color }]} />
-                <Text style={[styles.chipText, { color: theme.text }]}>{KINDS[k].label}{k === 'prayer' || k === 'reminder' || k === 'gym' ? 's' : ''} {n}</Text>
+                <Text style={[styles.chipText, { color: theme.text }]}>{KINDS[k].label}{k === 'prayer' || k === 'reminder' || k === 'task' || k === 'gym' ? 's' : ''} {n}</Text>
               </TouchableOpacity>
             );
           })}

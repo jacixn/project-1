@@ -1,4 +1,4 @@
-// Move a prayer, reminder or scheduled workout to a new time (and, for
+// Move a prayer, reminder, task or scheduled workout to a new time (and, for
 // one-time items, a new date) through the service that owns it, so storage,
 // notifications, cloud and the iPhone Calendar mirror all follow.
 import { DeviceEventEmitter } from 'react-native';
@@ -7,6 +7,8 @@ import { updatePrayer } from './simplePrayersService';
 import { updateReminder } from './reminderService';
 import WorkoutService from './workoutService';
 import { scheduleWorkoutNotifications } from './workoutSchedule';
+import { getStoredData, saveData } from '../utils/localStorage';
+import { pushToCloud } from './userSyncService';
 
 // Calendar-sourced items (EyeCandy, other writable iPhone calendars) are
 // moved in the iPhone Calendar itself. EyeCandy reads its own events back on
@@ -91,6 +93,28 @@ export const moveItem = async (item, to) => {
   }
   if (item.kind === 'reminder') {
     await updateReminder(raw.id, { time: to.time, ...(oneTime && to.date ? { date: to.date } : {}) });
+    return true;
+  }
+  if (item.kind === 'task') {
+    // Same write path as the To Do editors: storage, cloud, Calendar mirror,
+    // widget, and the 'todosChanged' event the tabs listen for.
+    const todos = (await getStoredData('todos')) || [];
+    const date = to.date || raw.scheduledDate;
+    const [y, m, d] = String(date).split('-').map(Number);
+    const [hh, mm] = String(to.time).split(':').map(Number);
+    const when = new Date(y, m - 1, d, hh, mm, 0, 0);
+    let found = false;
+    const updated = todos.map((t) => {
+      if (String(t.id) !== String(raw.id)) return t;
+      found = true;
+      return { ...t, scheduledDate: date, scheduledTime: to.time, scheduledDateTime: when.toISOString() };
+    });
+    if (!found) return false;
+    await saveData('todos', updated);
+    try { pushToCloud('todos', updated); } catch {}
+    try { require('./calendarSync').syncTodos(updated); } catch {}
+    try { require('../utils/widgetBridge').updateTodoWidget().catch(() => {}); } catch {}
+    try { DeviceEventEmitter.emit('todosChanged'); } catch {}
     return true;
   }
   if (item.kind === 'gym') {
