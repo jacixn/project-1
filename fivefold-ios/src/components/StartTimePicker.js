@@ -74,7 +74,8 @@ const BusyRow = ({ row, theme, tile }) => (
 );
 
 const StartTimePicker = ({
-  date, selected, durationMinutes = 60, label, accentColor, onPick, excludeGymId = null, excludeEvent = null,
+  date, selected, durationMinutes = 60, label, accentColor, onPick,
+  excludeGymId = null, excludeReminderId = null, excludePrayerId = null, excludeEvent = null,
 }) => {
   const { theme, isDark } = useTheme();
   const accent = accentColor || theme.primary;
@@ -89,11 +90,11 @@ const StartTimePicker = ({
   useEffect(() => {
     let alive = true;
     setLoaded(false);
-    loadBusyForDate(date, { excludeGymId })
+    loadBusyForDate(date, { excludeGymId, excludeReminderId, excludePrayerId })
       .then((b) => { if (alive) { setBusy(b); setLoaded(true); } })
       .catch(() => { if (alive) { setBusy([]); setLoaded(true); } });
     return () => { alive = false; };
-  }, [dayKey, excludeGymId]);
+  }, [dayKey, excludeGymId, excludeReminderId, excludePrayerId]);
 
   const isToday = dayKey === new Date().toDateString();
   const nowD = new Date();

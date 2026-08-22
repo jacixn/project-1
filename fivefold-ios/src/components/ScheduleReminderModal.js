@@ -25,12 +25,17 @@ import {
 } from '../services/reminderService';
 import { DEFAULT_DURATION, formatDuration } from '../utils/duration';
 import ReminderDetailsEditor from './ReminderDetailsEditor';
-import DayTimeline from './DayTimeline';
+import StartTimePicker from './StartTimePicker';
 import SheetHeader from './SheetHeader';
 
 const pad = (n) => String(n).padStart(2, '0');
 const fmtDateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+const fmtClock = (h, m) => {
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${pad(m)} ${ap}`;
+};
 // Next date (today or later) that lands on weekday dayIdx (0=Sun), midnight local.
 const nextDateForWeekday = (dayIdx) => {
   const d = new Date();
@@ -42,7 +47,7 @@ const nextDateForWeekday = (dayIdx) => {
 const blankItem = () => ({ title: '', duration: DEFAULT_DURATION, icon: 'notifications', color: '#3B82F6' });
 
 // The scheduling wizard, presented as a native pull-to-dismiss modal SCREEN
-// (presentation:'modal' on the root native-stack — parent scales back, drag down
+// (presentation:'modal' on the root native-stack, parent scales back, drag down
 // to dismiss, à la Gibbon). Pick a reminder from the library (or build one),
 // choose how it repeats, then DRAG it onto the timeline to set the time. Persists
 // straight to reminderService; RemindersScreen refreshes on focus. Editing target
@@ -71,7 +76,7 @@ const ScheduleReminderModal = ({ navigation, route }) => {
   const cardBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
-  // Runs once on mount — the screen is presented fresh each time.
+  // Runs once on mount, the screen is presented fresh each time.
   useEffect(() => {
     loadReminderPresets().then(setUserItems).catch(() => setUserItems([]));
     loadHiddenBuiltins().then(setHiddenBuiltins).catch(() => setHiddenBuiltins([]));
@@ -260,6 +265,11 @@ const ScheduleReminderModal = ({ navigation, route }) => {
     ? (oneTimeDates[0] || new Date())
     : nextDateForWeekday((days.slice().sort((a, b) => a - b)[0]) ?? new Date().getDay());
 
+  const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
+  const editingStartMin = (() => {
+    const [h, mm] = String(editingReminder?.time || '').split(':').map(Number);
+    return Number.isFinite(h) && Number.isFinite(mm) ? h * 60 + mm : -1;
+  })();
   const timelineSubtitle = type === 'one-time'
     ? (oneTimeDates.length > 1
         ? `${oneTimeDates.length} dates · same time`
@@ -392,33 +402,35 @@ const ScheduleReminderModal = ({ navigation, route }) => {
           {step === 'pick' && (
             <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
               <Text style={[styles.hint, { color: theme.textSecondary }]}>
-                Pick one to schedule, or build a new reminder.
+                Tap Pick on a reminder to put it on your day, or build a new one.
               </Text>
               {pickEntries.map((entry) => {
                 const c = entry.color || '#3B82F6';
                 return (
                   <TouchableOpacity
                     key={entry.id}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                     onPress={() => pickEntry(entry)}
-                    style={[styles.tile, { backgroundColor: cardBg, borderColor: cardBorder }]}
+                    style={[styles.tile, { backgroundColor: tileColor }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${entry.title}, ${formatDuration(entry.duration ?? DEFAULT_DURATION)}`}
                   >
-                    <View style={[styles.tileIcon, { backgroundColor: c + '20' }]}>
+                    <View style={[styles.tileIcon, { backgroundColor: c + '22' }]}>
                       <MaterialIcons name={entry.icon || 'notifications'} size={22} color={c} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.tileTitle, { color: theme.text }]} numberOfLines={1}>{entry.title}</Text>
-                      <Text style={[styles.tileMeta, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {formatDuration(entry.duration ?? DEFAULT_DURATION)}
-                      </Text>
+                      <Text style={[styles.tileTitle, { color: theme.text }]}>{entry.title}</Text>
+                      <Text style={[styles.tileMeta, { color: theme.textSecondary }]}>{formatDuration(entry.duration ?? DEFAULT_DURATION)}</Text>
                     </View>
-                    <MaterialIcons name="chevron-right" size={24} color={theme.textTertiary} />
+                    <View style={[styles.pill, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.pillText}>Pick</Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
-              <TouchableOpacity onPress={startNew} style={[styles.newTile, { borderColor: theme.primary + '66' }]} activeOpacity={0.8}>
+              <TouchableOpacity onPress={startNew} style={[styles.newTile, { borderColor: theme.primary, backgroundColor: tileColor }]} activeOpacity={0.7} accessibilityRole="button">
                 <MaterialIcons name="add" size={20} color={theme.primary} />
-                <Text style={[styles.newTileText, { color: theme.primary }]}>New reminder</Text>
+                <Text style={[styles.newTileText, { color: theme.primary }]}>Build a new reminder</Text>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
@@ -452,7 +464,10 @@ const ScheduleReminderModal = ({ navigation, route }) => {
                   <TouchableOpacity
                     key={t}
                     onPress={() => { hapticFeedback.light(); setType(t); }}
-                    style={[styles.typeBtn, { backgroundColor: type === t ? (item.color || theme.primary) : inputBg, borderColor: type === t ? (item.color || theme.primary) : theme.border }]}
+                    style={[styles.typeBtn, { backgroundColor: type === t ? (item.color || theme.primary) : tileColor }]}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: type === t }}
                   >
                     <MaterialIcons name={t === 'recurring' ? 'repeat' : 'event'} size={18} color={type === t ? '#fff' : theme.textSecondary} />
                     <Text style={[styles.typeBtnText, { color: type === t ? '#fff' : theme.text }]}>
@@ -478,9 +493,11 @@ const ScheduleReminderModal = ({ navigation, route }) => {
                         <TouchableOpacity
                           key={p.key}
                           onPress={() => quickDays(p.key)}
-                          style={[styles.quickChip, { backgroundColor: active ? (item.color || theme.primary) + '20' : inputBg, borderColor: active ? (item.color || theme.primary) : theme.border }]}
+                          style={[styles.quickChip, { backgroundColor: tileColor, borderColor: active ? (item.color || theme.primary) : 'transparent' }]}
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
                         >
-                          <Text style={[styles.quickChipText, { color: active ? (item.color || theme.primary) : theme.textSecondary }]}>{p.label}</Text>
+                          <Text style={[styles.quickChipText, { color: active ? (item.color || theme.primary) : theme.text }]}>{p.label}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -492,7 +509,11 @@ const ScheduleReminderModal = ({ navigation, route }) => {
                         <TouchableOpacity
                           key={idx}
                           onPress={() => toggleDay(idx)}
-                          style={[styles.dayCircle, { backgroundColor: sel ? (item.color || theme.primary) : inputBg, borderColor: sel ? (item.color || theme.primary) : theme.border }]}
+                          style={[styles.dayTile, { backgroundColor: sel ? (item.color || theme.primary) : tileColor }]}
+                          activeOpacity={0.7}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: sel }}
+                          accessibilityLabel={name}
                         >
                           <Text style={[styles.dayText, { color: sel ? '#fff' : theme.textSecondary }]}>{name.charAt(0)}</Text>
                         </TouchableOpacity>
@@ -521,17 +542,19 @@ const ScheduleReminderModal = ({ navigation, route }) => {
               and long-press drag never fight an outer same-axis scroll. */}
           {step === 'time' && (
             <View style={styles.bodyTime}>
-              <View style={styles.timeSubtitleRow}>
-                <MaterialIcons name={type === 'recurring' ? 'repeat' : 'event'} size={16} color={theme.textSecondary} />
-                <Text style={[styles.timeSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>{timelineSubtitle}</Text>
-              </View>
-              <DayTimeline
+              <Text style={[styles.bigValue, { color: theme.text }]}>{fmtClock(time.hour, time.minute)}</Text>
+              <Text style={[styles.timeSubtitle, { color: theme.textSecondary }]}>
+                {`until ${fmtClock(Math.floor(((time.hour * 60 + time.minute + (item.duration || 0)) % 1440) / 60), (time.hour * 60 + time.minute + (item.duration || 0)) % 60)}  ·  ${timelineSubtitle}  ·  ${formatDuration(item.duration ?? DEFAULT_DURATION)}`}
+              </Text>
+              <StartTimePicker
                 date={timelineDate}
                 selected={time}
                 durationMinutes={item.duration}
                 label={item.title}
-                accentColor={item.color}
+                accentColor={item.color || theme.primary}
                 onPick={(hour, minute) => setTime({ hour, minute })}
+                excludeReminderId={editingReminder?.id ?? null}
+                excludeEvent={editingReminder ? { title: editingReminder.title, startMin: editingStartMin } : null}
               />
             </View>
           )}
@@ -556,33 +579,35 @@ const styles = StyleSheet.create({
   progress: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingTop: 12 },
   progressDot: { height: 7, borderRadius: 3.5 },
   body: { padding: 20 },
-  bodyTime: { paddingHorizontal: 20, paddingTop: 8, flex: 1 },
+  bodyTime: { paddingHorizontal: 20, paddingTop: 14, flex: 1 },
   hint: { fontSize: 14, marginBottom: 16, lineHeight: 20 },
-  label: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 10 },
   tile: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     marginBottom: 10,
   },
   tileIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  tileTitle: { fontSize: 16, fontWeight: '600' },
-  tileMeta: { fontSize: 13, marginTop: 2 },
+  tileTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, lineHeight: 22 },
+  tileMeta: { fontSize: 14, fontWeight: '500', marginTop: 2 },
+  pill: { height: 36, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  pillText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   newTile: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
+    height: 52,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderStyle: 'dashed',
     marginTop: 4,
   },
-  newTileText: { fontSize: 15, fontWeight: '700' },
+  newTileText: { fontSize: 16, fontWeight: '800' },
+  bigValue: { fontSize: 34, fontWeight: '800', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   itemChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -611,24 +636,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    height: 48,
+    borderRadius: 14,
   },
-  typeBtnText: { fontSize: 15, fontWeight: '600' },
-  quickRow: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 14 },
-  quickChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  quickChipText: { fontSize: 13, fontWeight: '600' },
-  daysRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  dayCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  typeBtnText: { fontSize: 16, fontWeight: '800' },
+  quickRow: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 12 },
+  quickChip: { height: 36, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, justifyContent: 'center' },
+  quickChipText: { fontSize: 14, fontWeight: '700' },
+  daysRow: { flexDirection: 'row', gap: 6 },
+  dayTile: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
-  dayText: { fontSize: 15, fontWeight: '700' },
+  dayText: { fontSize: 16, fontWeight: '800' },
   dateChipRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -663,8 +686,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
   },
-  timeSubtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, paddingHorizontal: 2 },
-  timeSubtitle: { fontSize: 14, fontWeight: '600', flex: 1 },
+  timeSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 16 },
   // Multi-select calendar
   calCard: { borderRadius: 16, borderWidth: 1, padding: 12 },
   calHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 4 },

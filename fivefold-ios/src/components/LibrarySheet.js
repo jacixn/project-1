@@ -30,6 +30,7 @@ const blankDraft = () => ({ title: '', duration: DEFAULT_DURATION, icon: 'notifi
 // the Reminders screen. Persists straight to storage; callers refresh on focus.
 const LibrarySheet = ({ navigation }) => {
   const { theme, isDark } = useTheme();
+  const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
   const close = () => navigation.goBack();
   const [userItems, setUserItems] = useState([]);
   const [hiddenBuiltins, setHiddenBuiltins] = useState([]);
@@ -111,7 +112,7 @@ const LibrarySheet = ({ navigation }) => {
     ]);
   };
 
-  // A user entry with the same title as a built-in is a customized copy of it —
+  // A user entry with the same title as a built-in is a customized copy of it -
   // show only the user version so editing a built-in replaces its tile rather
   // than leaving two identically-named tiles.
   const userTitles = new Set(userItems.map((u) => (u.title || '').trim().toLowerCase()));
@@ -127,22 +128,25 @@ const LibrarySheet = ({ navigation }) => {
     return (
       <TouchableOpacity
         key={entry.id}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
         onPress={() => openEntry(entry)}
         onLongPress={() => confirmDelete(entry)}
         delayLongPress={400}
-        style={[styles.tile, { backgroundColor: cardBg, borderColor: cardBorder }]}
+        style={[styles.tile, { backgroundColor: tileColor }]}
+        accessibilityRole="button"
+        accessibilityLabel={`${entry.title}, ${formatDuration(entry.duration ?? DEFAULT_DURATION)}${entry.builtin ? ', built in' : ''}`}
+        accessibilityHint="Opens it for editing. Long press to delete."
       >
-        <View style={[styles.tileIcon, { backgroundColor: c + '20' }]}>
+        <View style={[styles.tileIcon, { backgroundColor: c + '22' }]}>
           <MaterialIcons name={entry.icon || 'notifications'} size={22} color={c} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.tileTitle, { color: theme.text }]} numberOfLines={1}>{entry.title}</Text>
-          <Text style={[styles.tileMeta, { color: theme.textSecondary }]} numberOfLines={1}>
-            {formatDuration(entry.duration ?? DEFAULT_DURATION)}{entry.builtin ? ' · Built-in' : ''}
+          <Text style={[styles.tileTitle, { color: theme.text }]}>{entry.title}</Text>
+          <Text style={[styles.tileMeta, { color: theme.textSecondary }]}>
+            {formatDuration(entry.duration ?? DEFAULT_DURATION)}{entry.builtin ? '  ·  Built in' : ''}
           </Text>
         </View>
-        {!entry.builtin && <MaterialIcons name="edit" size={18} color={theme.textTertiary} />}
+        <Text style={[styles.editLink, { color: theme.primary }]}>Edit</Text>
       </TouchableOpacity>
     );
   };
@@ -163,14 +167,15 @@ const LibrarySheet = ({ navigation }) => {
           />
           <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
             <Text style={[styles.intro, { color: theme.textSecondary }]}>
-              Build reminders here, then drag them onto a day to set the time.
+              These are your reusable reminders. Tap one to change its name, length, icon or colour. Long press to delete it.
             </Text>
             {entries.map(renderTile)}
 
             <TouchableOpacity
               onPress={openNew}
-              style={[styles.newTile, { borderColor: theme.primary + '66' }]}
-              activeOpacity={0.8}
+              style={[styles.newTile, { borderColor: theme.primary, backgroundColor: tileColor }]}
+              activeOpacity={0.7}
+              accessibilityRole="button"
             >
               <MaterialIcons name="add" size={20} color={theme.primary} />
               <Text style={[styles.newTileText, { color: theme.primary }]}>New reminder</Text>
@@ -217,14 +222,14 @@ const styles = StyleSheet.create({
   headerBtn: { minWidth: 60 },
   headerTitle: { fontSize: 17, fontWeight: '600' },
   body: { padding: 20 },
-  intro: { fontSize: 14, marginBottom: 16, lineHeight: 20 },
+  intro: { fontSize: 14.5, marginBottom: 16, lineHeight: 21 },
   tile: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     marginBottom: 10,
   },
   tileIcon: {
@@ -234,20 +239,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tileTitle: { fontSize: 16, fontWeight: '600' },
-  tileMeta: { fontSize: 13, marginTop: 2 },
+  tileTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, lineHeight: 22 },
+  tileMeta: { fontSize: 14, fontWeight: '500', marginTop: 2 },
+  editLink: { fontSize: 15, fontWeight: '800', marginLeft: 8 },
   newTile: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
+    height: 52,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderStyle: 'dashed',
     marginTop: 4,
   },
-  newTileText: { fontSize: 15, fontWeight: '700' },
+  newTileText: { fontSize: 16, fontWeight: '800' },
   deleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',

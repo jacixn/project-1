@@ -1,0 +1,20 @@
+// Reminder screens after the tile/pill pass.
+const fs = require('fs');
+const path = require('path');
+const c = (f) => fs.readFileSync(path.join(__dirname, '..', 'components', f), 'utf8');
+const all = c('AllRemindersScreen.js'), lib = c('LibrarySheet.js'), wiz = c('ScheduleReminderModal.js');
+const busy = fs.readFileSync(path.join(__dirname, '..', 'utils', 'dayBusy.js'), 'utf8');
+let failures = 0;
+const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
+check(/sortByNext\(reminders, now\)/.test(all) && /weekLoad\(active, now\)/.test(all) && /WEEK_LETTERS\[i\]/.test(all), 'All Reminders is a week agenda');
+check(!/numberOfLines/.test(all) && /patternLabel\(r\)/.test(all) && /durationLabel\(r\.duration\)/.test(all), 'nothing truncates; days and length in words');
+check(!/name="edit"/.test(all) && /openEdit\(r\)/.test(all) && /deleteReminder\(r\.id\)/.test(all), 'tap row to edit, bin to delete, no pencil');
+check(/enabled === false/.test(all) && /'Off'/.test(all), 'disabled reminders shown as Off');
+check(/styles\.pill/.test(wiz) && !/chevron-right" size=\{24\}/.test(wiz) && /Build a new reminder/.test(wiz), 'picker rows have a Pick pill, no chevron');
+check(!/dayCircle/.test(wiz) && /styles\.dayTile/.test(wiz) && !/textTransform: 'uppercase'/.test(wiz), 'repeat step: day tiles, sentence-case labels');
+check(/<StartTimePicker/.test(wiz) && !/<DayTimeline/.test(wiz) && /excludeReminderId=\{editingReminder\?\.id/.test(wiz), 'time step uses the free-time picker with the edited reminder excluded');
+check(/excludeReminderId/.test(busy) && /excludePrayerId/.test(busy), 'busy loader can exclude the item being edited');
+check(!/numberOfLines/.test(lib) && /styles\.editLink/.test(lib) && /Long press to delete/.test(lib), 'library rows: Edit link, hint, no truncation');
+check(![all, lib, wiz].some((s) => /[—]/.test(s)), 'no em dashes');
+console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
+process.exit(failures ? 1 : 0);

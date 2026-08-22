@@ -32,7 +32,7 @@ const push = (out, title, startMin, minutes, source) => {
   out.push({ title: title || 'Busy', startMin, endMin: clamp(startMin + dur, startMin + 1, DAY_MIN), source });
 };
 
-export const loadBusyForDate = async (date, { excludeGymId = null } = {}) => {
+export const loadBusyForDate = async (date, { excludeGymId = null, excludeReminderId = null, excludePrayerId = null } = {}) => {
   const out = [];
   const key = dateKeyOf(date);
   const dow = date.getDay();
@@ -40,6 +40,7 @@ export const loadBusyForDate = async (date, { excludeGymId = null } = {}) => {
   try {
     for (const p of await getPrayers()) {
       if (!p || !p.time) continue;
+      if (excludePrayerId != null && String(p.id) === String(excludePrayerId)) continue;
       const on = p.type === 'one-time' ? p.date === key : isPrayerDayEnabled(p, date);
       if (!on) continue;
       push(out, p.name || 'Prayer', minutesOf(p.time), Number(p.duration) > 0 ? p.duration : 5, 'prayer');
@@ -48,6 +49,7 @@ export const loadBusyForDate = async (date, { excludeGymId = null } = {}) => {
 
   try {
     for (const r of getRemindersForDay(await loadReminders(), dow, key)) {
+      if (excludeReminderId != null && String(r.id) === String(excludeReminderId)) continue;
       push(out, r.title || 'Reminder', minutesOf(r.time), Number(r.duration) > 0 ? r.duration : 30, 'reminder');
     }
   } catch {}
