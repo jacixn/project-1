@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  SectionList,
   TextInput,
   Platform,
   Animated,
@@ -22,6 +23,24 @@ import CustomLoadingIndicator from './CustomLoadingIndicator';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const ITEM_H = 64;   // exercise row (fixed so letter jumps are exact)
+const HEADER_H = 44; // section letter
+
+// One exercise row. Memoized: the list virtualizes ~1000 rows, and a
+// re-render of the picker must not re-render every visible row.
+const ExerciseRow = memo(({ exercise, theme, onSelect }) => (
+  <TouchableOpacity
+    style={[styles.exerciseItem, { borderBottomColor: theme.border }]}
+    onPress={() => onSelect(exercise)}
+    activeOpacity={0.7}
+  >
+    <View style={styles.exerciseInfo}>
+      <Text style={[styles.exerciseName, { color: theme.text }]}>{exercise.name}</Text>
+      <Text style={[styles.exerciseCategory, { color: theme.textSecondary }]}>{exercise.bodyPart}</Text>
+    </View>
+    <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
+  </TouchableOpacity>
+));
 
 const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
   const { theme, isDark } = useTheme();
@@ -33,9 +52,8 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const panY = useRef(new Animated.Value(0)).current;
-  const [isAtTop, setIsAtTop] = useState(true);
+  const isAtTopRef = useRef(true); // ref: scroll ticks must not re-render the list
   const scrollViewRef = useRef(null);
-  const sectionRefs = useRef({});
   const exercisesCache = useRef(null);
 
   // Load exercises only once when modal first opens
@@ -85,7 +103,7 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return isAtTop && gestureState.dy > 0;
+        return isAtTopRef.current && gestureState.dy > 0;
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
@@ -161,35 +179,12 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
 
   const scrollToLetter = (letter) => {
     hapticFeedback.light();
-    const sectionView = sectionRefs.current[letter];
-    if (sectionView && scrollViewRef.current) {
-      sectionView.measureLayout(
-        scrollViewRef.current,
-        (x, y) => {
-          scrollViewRef.current.scrollTo({ y: y - 10, animated: true });
-        },
-        () => {}
-      );
-    }
+    const sectionIndex = sections.findIndex((sec) => sec.title === letter);
+    if (sectionIndex < 0 || !scrollViewRef.current) return;
+    try {
+      scrollViewRef.current.scrollToLocation({ sectionIndex, itemIndex: 0, viewOffset: 0, animated: true });
+    } catch {}
   };
-
-  // Filter exercises based on search and filters
-  const filteredExercises = exercises.filter(exercise => {
-    const matchesSearch = exercise.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesBodyPart = selectedBodyPart === 'Any Body Part' || exercise.bodyPart === selectedBodyPart;
-    const matchesCategory = selectedCategory === 'Any Category' || exercise.category === selectedCategory;
-    return matchesSearch && matchesBodyPart && matchesCategory;
-  });
-
-  // Group exercises by first letter
-  const groupedExercises = filteredExercises.reduce((acc, exercise) => {
-    const firstLetter = exercise.name[0].toUpperCase();
-    if (!acc[firstLetter]) {
-      acc[firstLetter] = [];
-    }
-    acc[firstLetter].push(exercise);
-    return acc;
-  }, {});
 
   return (
     <Modal
@@ -242,48 +237,26 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
               <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading exercises...</Text>
             </View>
           ) : (
-            <ScrollView
+            <SectionList
               ref={scrollViewRef}
               style={styles.content}
+              sections={sections}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
+              getItemLayout={getItemLayout}
+              stickySectionHeadersEnabled={false}
               showsVerticalScrollIndicator={false}
-              onScroll={(event) => {
-                const offsetY = event.nativeEvent.contentOffset.y;
-                setIsAtTop(offsetY <= 0);
-              }}
-              scrollEventThrottle={16}
-            >
-            {Object.keys(groupedExercises).sort().map(letter => (
-              <View 
-                key={letter}
-                ref={(ref) => {
-                  if (ref) {
-                    sectionRefs.current[letter] = ref;
-                  }
-                }}
-                collapsable={false}
-              >
-                <Text style={[styles.sectionLetter, { color: theme.textSecondary }]}>{letter}</Text>
-                {groupedExercises[letter].map(exercise => (
-                  <TouchableOpacity
-                    key={exercise.id}
-                    style={[styles.exerciseItem, { borderBottomColor: theme.border }]}
-                    onPress={() => {
-                      hapticFeedback.medium();
-                      onSelectExercise(exercise);
-                      handleClose();
-                    }}
-                  >
-                    <View style={styles.exerciseInfo}>
-                      <Text style={[styles.exerciseName, { color: theme.text }]}>{exercise.name}</Text>
-                      <Text style={[styles.exerciseCategory, { color: theme.textSecondary }]}>{exercise.bodyPart}</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ))}
-            <View style={{ height: 50 }} />
-          </ScrollView>
+              onScroll={(event) => { isAtTopRef.current = event.nativeEvent.contentOffset.y <= 0; }}
+              scrollEventThrottle={32}
+              initialNumToRender={16}
+              maxToRenderPerBatch={24}
+              windowSize={7}
+              removeClippedSubviews
+              keyboardShouldPersistTaps="handled"
+              ListFooterComponent={<View style={{ height: 50 }} />}
+              onScrollToIndexFailed={() => {}}
+            />
           )}
         </Animated.View>
       </View>
@@ -388,6 +361,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingHorizontal: 16,
     paddingVertical: 8,
+    height: HEADER_H,
+    textAlignVertical: 'center',
   },
   exerciseItem: {
     flexDirection: 'row',
@@ -395,6 +370,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
+    height: ITEM_H,
   },
   exerciseIconContainer: {
     width: 50,
