@@ -234,6 +234,7 @@ const MyWeekScreen = ({ navigation }) => {
               {layout.blocks.map((b) => {
                 const it = b.item;
                 const tiny = b.h < 44;
+                const narrow = b.cols > 1;
                 const isMoving = moving && moving.id === it.id;
                 return (
                   <TouchableOpacity
@@ -246,11 +247,12 @@ const MyWeekScreen = ({ navigation }) => {
                       {
                         top: b.y,
                         height: b.h,
-                        left: b.container ? 0 : `${b.left * 100}%`,
-                        width: b.container ? '100%' : `${b.width * 100}%`,
-                        backgroundColor: b.container ? it.color + '26' : it.color + (isDark ? '33' : '2A'),
+                        left: b.container ? b.depth * 10 : `${b.left * 100}%`,
+                        ...(b.container ? { right: b.depth * 10 } : { width: `${b.width * 100}%` }),
+                        backgroundColor: b.container ? it.color + '22' : it.color + (isDark ? '3A' : '2E'),
                         borderColor: isMoving ? accent : it.color + (b.container ? '66' : 'AA'),
                         paddingLeft: b.container ? 10 : (b.col === 0 ? 10 : 8),
+                        paddingTop: b.container ? 0 : 5,
                       },
                     ]}
                     accessibilityRole="button"
@@ -258,20 +260,26 @@ const MyWeekScreen = ({ navigation }) => {
                     accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
                   >
                     <View style={[styles.blockBar, { backgroundColor: it.color }]} />
-                    {tiny ? (
+                    {b.container ? (
+                      <View style={[styles.containerLabel, { top: b.labelY }]}>
+                        <Text style={[styles.blockTitle, { color: theme.text }]}>{it.title}</Text>
+                        <Text style={[styles.blockMeta, { color: theme.textSecondary }]}>
+                          <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{` to ${fmtClock(it.endMin)}  ·  ${KINDS[it.kind].label}  ·  ${fmtDur(it.endMin - it.startMin)}`}
+                        </Text>
+                      </View>
+                    ) : tiny ? (
                       <Text style={[styles.blockTiny, { color: theme.text }]}>
-                        <Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}
+                        {narrow ? it.title : <><Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}</>}
                       </Text>
                     ) : (
                       <>
                         <Text style={[styles.blockTitle, { color: theme.text }]}>{it.title}</Text>
                         <Text style={[styles.blockMeta, { color: theme.textSecondary }]}>
-                          <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{` to ${fmtClock(it.endMin)}  ·  ${KINDS[it.kind].label}`}
+                          <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{narrow ? '' : ` to ${fmtClock(it.endMin)}  ·  ${KINDS[it.kind].label}`}
                         </Text>
-                        {b.container && b.h > 120 ? <Text style={[styles.blockHint, { color: theme.textSecondary }]}>{fmtDur(it.endMin - it.startMin)}{it.movable ? '' : '  ·  managed elsewhere'}</Text> : null}
                       </>
                     )}
-                    {!it.movable && !tiny ? <MaterialIcons name="lock-outline" size={14} color={theme.textSecondary} style={styles.blockLock} /> : null}
+                    {!it.movable && !tiny ? <MaterialIcons name="lock-outline" size={14} color={theme.textSecondary} style={[styles.blockLock, b.container && { top: b.labelY + 6 }]} /> : null}
                   </TouchableOpacity>
                 );
               })}
@@ -445,13 +453,13 @@ const styles = StyleSheet.create({
   hourLabel: { width: 52, fontSize: 11.5, fontWeight: '700', fontVariant: ['tabular-nums'], marginTop: -7 },
   hourLine: { flex: 1, height: StyleSheet.hairlineWidth },
   laneArea: { position: 'absolute', left: 56, right: 0, top: 0, bottom: 0 },
-  block: { position: 'absolute', borderRadius: 12, borderWidth: 1.5, paddingTop: 6, paddingRight: 8, overflow: 'hidden', marginRight: 3 },
+  block: { position: 'absolute', borderRadius: 12, borderWidth: 1.5, paddingRight: 8, overflow: 'hidden', marginRight: 3 },
+  containerLabel: { position: 'absolute', left: 10, right: 28 },
   blockContainer: { borderStyle: 'dashed' },
   blockBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
-  blockTiny: { fontSize: 12.5, fontWeight: '800', lineHeight: 16 },
+  blockTiny: { fontSize: 12.5, fontWeight: '800', lineHeight: 15 },
   blockTitle: { fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2, lineHeight: 18 },
   blockMeta: { fontSize: 12, fontWeight: '600', marginTop: 2 },
-  blockHint: { fontSize: 12, fontWeight: '600', marginTop: 6 },
   blockLock: { position: 'absolute', right: 8, top: 8 },
   nowRow: { position: 'absolute', left: 50, right: 0, flexDirection: 'row', alignItems: 'center' },
   nowDot: { width: 8, height: 8, borderRadius: 4 },

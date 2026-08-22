@@ -15,11 +15,18 @@ const b = (id) => L.blocks.find((x) => x.item.id === id);
 check(b('work').container && b('work').width === 1 && b('work').left === 0, 'Work (9 to 5:30) is a full-width container');
 check(b('work').h === ((1050 - 540) / 60) * PX_PER_HOUR, 'container stretches over its whole duration');
 check(!b('p2').container && b('p2').y === ((660 - L.axisStart) / 60) * PX_PER_HOUR && b('p2').y > b('work').y && b('p2').y < b('work').y + b('work').h, '2nd Prayer sits inside Work at 11 AM');
-check(b('p2').h === 30 && b('lunch').h === 30, 'tiny items keep a readable minimum height');
+check(b('p2').h === 36 && b('lunch').h === 36, 'tiny items keep a readable minimum height');
 check(b('shower').cols === 3 && b('push').cols === 3 && new Set([b('p4').left, b('shower').left, b('push').left]).size === 3, '4th Prayer (5:30), shower and Push (5:35) sit side by side in three lanes');
 check(Math.abs(b('shower').width - 1 / 3) < 1e-9, 'three lanes share the width equally');
 check(b('dinner').cols === 1 && b('dinner').width === 1, 'dinner alone gets the full lane width');
 check(L.blocks[0].container === true, 'containers are drawn first (behind)');
+// 8 PM clash from the screenshot: a 2-hour match with a 1-hour item starting at the same minute
+const clash = layoutDay([it('match', 1200, 1320), it('social', 1200, 1260), it('p5', 1320, 1325)]);
+const match = clash.blocks.find((x) => x.item.id === 'match');
+check(match.container && match.labelY >= ((1260 - 1200) / 60) * PX_PER_HOUR, `container label moves below the item covering its top (labelY ${match.labelY})`);
+check(match.depth === 0, 'top-level container has no inset');
+const nested = layoutDay([it('work', 540, 1050), it('meeting', 780, 960), it('p', 800, 805)]);
+check(nested.blocks.find((x) => x.item.id === 'meeting').depth === 1 && nested.blocks.find((x) => x.item.id === 'work').depth === 0, 'a container inside a container is inset one level');
 check(L.axisStart === 6 * 60 && L.axisEnd === 22 * 60 && L.hours[0].label === '6 AM' && L.hours[L.hours.length - 1].label === '10 PM', `axis 6 AM to 10 PM by default (${L.axisStart}-${L.axisEnd})`);
 check(L.nowY === ((700 - L.axisStart) / 60) * PX_PER_HOUR, 'now line placed at the current minute');
 const early = layoutDay([it('a', 300, 330), it('b', 23 * 60 + 30, 23 * 60 + 50)]);
@@ -29,6 +36,6 @@ check(!solo.blocks[0].container, 'a long item with nothing inside is a normal bl
 check(layoutDay([]).blocks.length === 0 && layoutDay(null).height > 0, 'empty and null safe');
 const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
 check(/useState\('timeline'\)/.test(screen) && /layoutDay\(visible, \{ nowMin \}\)/.test(screen) && /layout\.blocks\.map/.test(screen), 'screen defaults to the timeline and lays blocks out from the engine');
-check(/left: b\.container \? 0 : `\$\{b\.left \* 100\}%`/.test(screen) && /styles\.nowRow/.test(screen), 'lanes use percentage widths; now line rendered');
+check(/left: b\.container \? b\.depth \* 10 : `\$\{b\.left \* 100\}%`/.test(screen) && /styles\.containerLabel, \{ top: b\.labelY \}/.test(screen) && /narrow \? it\.title/.test(screen), 'container labels placed by the engine; narrow tiny blocks show title only');
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

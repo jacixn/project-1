@@ -10,7 +10,8 @@
 // Unit-tested in src/__tests__/timelineLayout.selftest.js.
 
 export const PX_PER_HOUR = 64;
-export const MIN_BLOCK_PX = 30;
+export const MIN_BLOCK_PX = 36;
+export const LABEL_PX = 44; // room a container needs to show its label
 const CONTAINER_MIN = 120; // minutes
 const fmtHour = (min) => {
   const h = Math.floor(min / 60) % 24;
@@ -21,7 +22,11 @@ const fmtHour = (min) => {
 export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, minBlockPx = MIN_BLOCK_PX, nowMin = null } = {}) => {
   const list = (items || []).filter((i) => i && Number.isFinite(i.startMin) && Number.isFinite(i.endMin) && i.endMin > i.startMin)
     .slice().sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
-  const minVisualMin = (minBlockPx / pxPerHour) * 60;
+  // Lanes are decided on a slightly smaller extent than the drawn block so a
+  // 20-min dinner that ends 10 min before the next thing still gets the full
+  // width (the two blocks overlap by a few pixels, which is fine), while two
+  // things that really overlap go side by side.
+  const minVisualMin = (Math.max(20, minBlockPx - 8) / pxPerHour) * 60;
   const visualEnd = (i) => Math.max(i.endMin, i.startMin + minVisualMin);
 
   // Containers: long, and something shorter starts inside them.
@@ -73,8 +78,19 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, minBlockPx = MIN_BLO
   }
   flush();
 
+  const laneBlocks = blocks.slice();
   for (const c of containers) {
-    blocks.push({ item: c, container: true, y: y(c.startMin), h: Math.max(minBlockPx, y(c.endMin) - y(c.startMin)), col: 0, cols: 1, left: 0, width: 1 });
+    const top = y(c.startMin);
+    const h = Math.max(minBlockPx, y(c.endMin) - y(c.startMin));
+    // Nested inside other containers? Inset so every edge stays visible.
+    const depth = containers.filter((o) => o !== c && o.startMin <= c.startMin && o.endMin >= c.endMin && (o.endMin - o.startMin) > (c.endMin - c.startMin)).length;
+    // Label goes in the first stretch of the container nothing else covers,
+    // so "Fulham vs Chelsea" is readable even when "Social Media time" starts
+    // at the same minute on top of it.
+    let labelY = 0;
+    const covers = (ly) => laneBlocks.some((b) => b.y < top + ly + LABEL_PX && b.y + b.h > top + ly);
+    for (let ly = 0; ly + LABEL_PX <= h; ly += 12) { if (!covers(ly)) { labelY = ly; break; } }
+    blocks.push({ item: c, container: true, y: top, h, col: 0, cols: 1, left: 0, width: 1, depth, labelY });
   }
 
   const hours = [];
