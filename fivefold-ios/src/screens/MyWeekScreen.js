@@ -221,65 +221,61 @@ const MyWeekScreen = ({ navigation }) => {
           })}
         </View>
 
-        {/* Timeline: long things stretch over their hours, short things sit inside at their time */}
+        {/* Timeline: rails on the left show true spans and overlaps, cards on the right stay readable */}
         {view === 'timeline' && !loading && visible.length > 0 ? (
-          <View style={[styles.timeline, { height: layout.height + 16 }]}>
+          <View style={[styles.timeline, { height: layout.height }]}>
             {layout.hours.map((h) => (
               <View key={h.min} style={[styles.hourRow, { top: h.y }]} pointerEvents="none">
                 <Text style={[styles.hourLabel, { color: theme.textSecondary }]}>{h.label}</Text>
                 <View style={[styles.hourLine, { backgroundColor: hairline }]} />
               </View>
             ))}
-            <View style={styles.laneArea}>
-              {layout.blocks.map((b) => {
-                const it = b.item;
-                const tiny = b.h < 44;
-                const narrow = b.cols > 1;
+            {/* Rails */}
+            <View style={[styles.railArea, { width: layout.railsWidth }]} pointerEvents="none">
+              {layout.rails.map((r) => (
+                r.dot ? (
+                  <View key={r.item.id} style={[styles.railDot, { left: r.lane * 10, top: r.y - 1, backgroundColor: r.item.color }]} />
+                ) : (
+                  <View key={r.item.id} style={[styles.rail, { left: r.lane * 10 + 1, top: r.y, height: r.h, backgroundColor: r.item.color, borderBottomLeftRadius: r.clipped ? 0 : 3, borderBottomRightRadius: r.clipped ? 0 : 3 }]} />
+                )
+              ))}
+            </View>
+            {/* Cards */}
+            <View style={[styles.cardArea, { left: 56 + layout.railsWidth + 6 }]}>
+              {layout.cards.map((c) => {
+                const it = c.item;
                 const isMoving = moving && moving.id === it.id;
+                const tinyCard = c.h === 40;
                 return (
                   <TouchableOpacity
                     key={it.id}
                     onPress={() => (it.movable ? startMove(it) : explainExternal(it))}
                     activeOpacity={0.7}
-                    style={[
-                      styles.block,
-                      b.container ? styles.blockContainer : null,
-                      {
-                        top: b.y,
-                        height: b.h,
-                        left: b.container ? b.depth * 10 : `${b.left * 100}%`,
-                        ...(b.container ? { right: b.depth * 10 } : { width: `${b.width * 100}%` }),
-                        backgroundColor: b.container ? it.color + '22' : it.color + (isDark ? '3A' : '2E'),
-                        borderColor: isMoving ? accent : it.color + (b.container ? '66' : 'AA'),
-                        paddingLeft: b.container ? 10 : (b.col === 0 ? 10 : 8),
-                        paddingTop: b.container ? 0 : 5,
-                      },
-                    ]}
+                    style={[styles.card, { top: c.y, height: c.h, backgroundColor: tile, borderColor: isMoving ? accent : 'transparent' }]}
                     accessibilityRole="button"
                     accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
                     accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
                   >
-                    <View style={[styles.blockBar, { backgroundColor: it.color }]} />
-                    {b.container ? (
-                      <View style={[styles.containerLabel, { top: b.labelY }]}>
-                        <Text style={[styles.blockTitle, { color: theme.text }]}>{it.title}</Text>
-                        <Text style={[styles.blockMeta, { color: theme.textSecondary }]}>
-                          <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{` to ${fmtClock(it.endMin)}  ·  ${KINDS[it.kind].label}  ·  ${fmtDur(it.endMin - it.startMin)}`}
+                    <View style={[styles.cardBar, { backgroundColor: it.color }]} />
+                    <View style={{ flex: 1 }}>
+                      {tinyCard ? (
+                        <Text style={[styles.cardTitle, { color: theme.text }]}>
+                          <Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}
                         </Text>
-                      </View>
-                    ) : tiny ? (
-                      <Text style={[styles.blockTiny, { color: theme.text }]}>
-                        {narrow ? it.title : <><Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}</>}
-                      </Text>
+                      ) : (
+                        <>
+                          <Text style={[styles.cardTitle, { color: theme.text }]}>{it.title}</Text>
+                          <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
+                            <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{` to ${fmtClock(it.endMin)}  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                    {it.movable ? (
+                      <Text style={[styles.cardMove, { color: accent }]}>Move</Text>
                     ) : (
-                      <>
-                        <Text style={[styles.blockTitle, { color: theme.text }]}>{it.title}</Text>
-                        <Text style={[styles.blockMeta, { color: theme.textSecondary }]}>
-                          <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{narrow ? '' : ` to ${fmtClock(it.endMin)}  ·  ${KINDS[it.kind].label}`}
-                        </Text>
-                      </>
+                      <MaterialIcons name="lock-outline" size={16} color={theme.textSecondary} />
                     )}
-                    {!it.movable && !tiny ? <MaterialIcons name="lock-outline" size={14} color={theme.textSecondary} style={[styles.blockLock, b.container && { top: b.labelY + 6 }]} /> : null}
                   </TouchableOpacity>
                 );
               })}
@@ -452,15 +448,15 @@ const styles = StyleSheet.create({
   hourRow: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center' },
   hourLabel: { width: 52, fontSize: 11.5, fontWeight: '700', fontVariant: ['tabular-nums'], marginTop: -7 },
   hourLine: { flex: 1, height: StyleSheet.hairlineWidth },
-  laneArea: { position: 'absolute', left: 56, right: 0, top: 0, bottom: 0 },
-  block: { position: 'absolute', borderRadius: 12, borderWidth: 1.5, paddingRight: 8, overflow: 'hidden', marginRight: 3 },
-  containerLabel: { position: 'absolute', left: 10, right: 28 },
-  blockContainer: { borderStyle: 'dashed' },
-  blockBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
-  blockTiny: { fontSize: 12.5, fontWeight: '800', lineHeight: 15 },
-  blockTitle: { fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2, lineHeight: 18 },
-  blockMeta: { fontSize: 12, fontWeight: '600', marginTop: 2 },
-  blockLock: { position: 'absolute', right: 8, top: 8 },
+  railArea: { position: 'absolute', left: 56, top: 0, bottom: 0 },
+  rail: { position: 'absolute', width: 4, borderRadius: 3 },
+  railDot: { position: 'absolute', width: 8, height: 8, borderRadius: 4, marginLeft: -1 },
+  cardArea: { position: 'absolute', right: 0, top: 0, bottom: 0 },
+  card: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, paddingLeft: 12, paddingRight: 12, overflow: 'hidden' },
+  cardBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
+  cardTitle: { fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2, lineHeight: 18 },
+  cardMeta: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+  cardMove: { fontSize: 13, fontWeight: '800', marginLeft: 8 },
   nowRow: { position: 'absolute', left: 50, right: 0, flexDirection: 'row', alignItems: 'center' },
   nowDot: { width: 8, height: 8, borderRadius: 4 },
   nowLine: { flex: 1, height: 1.5 },
