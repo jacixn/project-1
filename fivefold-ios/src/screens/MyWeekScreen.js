@@ -17,7 +17,7 @@ import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, r
 import { moveItem, applyPlanRow } from '../services/rescheduleItem';
 import { rowText } from '../services/fitOffer';
 import { planDay } from '../services/schedulePlanner';
-import { toModel, fixableOverlaps } from '../utils/fitPlan';
+import { toModel, fixableOverlaps, pickAnchor } from '../utils/fitPlan';
 
 // My Week: everything scheduled, from every source, on one screen. Prayers,
 // reminders, workouts, EyeCandy events and your own calendar events can all
@@ -65,6 +65,8 @@ const MyWeekScreen = ({ navigation }) => {
   const [fitPlan, setFitPlan] = useState(null);
   const [fitSkipped, setFitSkipped] = useState(() => new Set()); // moves the user unticked
   const lastMovedRef = useRef(null); // the thing just added/moved stays put when planning
+  const autoOfferedRef = useRef(new Set()); // anchors already offered a plan this visit
+  const RECENT_MS = 30 * 60 * 1000; // something added in the last half hour counts as "just added"
   const [view, setView] = useState('timeline'); // timeline | list
   const [pxPerHour, setPxPerHour] = useState(PX_PER_HOUR);
   const [timelineW, setTimelineW] = useState(0);
@@ -97,8 +99,24 @@ const MyWeekScreen = ({ navigation }) => {
     return null;
   }, [weekKey]);
 
-  useEffect(() => { loadWeek(); }, [loadWeek]);
-  useEffect(() => navigation.addListener('focus', loadWeek), [navigation, loadWeek]);
+  // Opened after adding something that lands on other things? Plan it now,
+  // once, without waiting for a tap.
+  const offerRecent = useCallback((map) => {
+    try {
+      const items = map && map[dateKeyOf(anchor)];
+      if (!items || !items.length) return;
+      const model = toModel(items);
+      const a = pickAnchor(model, lastMovedRef.current);
+      if (!a || autoOfferedRef.current.has(a)) return;
+      const m = model.find((x) => x.id === a);
+      const recent = lastMovedRef.current === a || (m && m.createdAt != null && Date.now() - m.createdAt <= RECENT_MS);
+      if (!recent || !fixableOverlaps(model, a).length) return;
+      autoOfferedRef.current.add(a);
+      autoPlan(items, a);
+    } catch {}
+  }, [anchor]);
+  useEffect(() => { loadWeek().then(offerRecent); }, [loadWeek]);
+  useEffect(() => navigation.addListener('focus', () => loadWeek().then(offerRecent)), [navigation, loadWeek, offerRecent]);
 
   const dayItems = itemsByDay[dateKeyOf(anchor)] || [];
   const counts = useMemo(() => countByKind(dayItems), [dayItems]);

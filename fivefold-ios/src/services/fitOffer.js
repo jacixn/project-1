@@ -2,7 +2,7 @@
 // lands on other things, offer the plan on the spot (AI proposes, the rules
 // in utils/fitPlan verify). One alert, plain words, nothing moves without a
 // tap. My Week has its own richer panel; this is for every other editor.
-import { Alert } from 'react-native';
+import { Alert, InteractionManager } from 'react-native';
 import { loadDayItems, fmtClock } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
 import { planDay } from './schedulePlanner';
@@ -44,7 +44,14 @@ export const offerText = (plan, anchorId) => {
 
 // anchorId: dayItems id of the thing just saved ('reminder:<id>', 'task:<id>',
 // 'gym:<id>'); date: 'YYYY-MM-DD' or Date. Resolves to how many things moved.
+const MIN_WAIT_MS = 900; // an alert fired while the editor sheet is still closing gets lost
+const settle = (startedAt) => new Promise((resolve) => {
+  const rest = Math.max(0, MIN_WAIT_MS - (Date.now() - startedAt));
+  setTimeout(() => InteractionManager.runAfterInteractions(() => resolve()), rest);
+});
+
 export const offerFit = async ({ anchorId, date, onDone }) => {
+  const startedAt = Date.now();
   try {
     const day = date instanceof Date ? date : parseKey(date);
     const items = await loadDayItems(day);
@@ -54,6 +61,7 @@ export const offerFit = async ({ anchorId, date, onDone }) => {
     const plan = await planDay(items, { anchorId, dayLabel: today ? 'today' : day.toLocaleDateString('en', { weekday: 'long' }) });
     if (!plan || !plan.lines.length) return 0;
     const key = dateKeyOf(day);
+    await settle(startedAt);
     return await new Promise((resolve) => {
       Alert.alert(
         `${anchor.title} lands on other things`,

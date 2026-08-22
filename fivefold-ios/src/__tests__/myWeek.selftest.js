@@ -108,6 +108,11 @@ for (const [f, pat] of [['components/ScheduleReminderModal.js', /if \(offer\) of
   check(pat.test(read(f)), `${f} offers the plan right after saving`);
 }
 
+// ---- the plan shows up without a tap ---------------------------------------
+check(/const MIN_WAIT_MS = 900;/.test(offer) && /InteractionManager\.runAfterInteractions/.test(offer) && /await settle\(startedAt\);/.test(offer), 'fitOffer waits out the closing editor sheet before showing the alert');
+check(/const offerRecent = useCallback/.test(screen) && /loadWeek\(\)\.then\(offerRecent\)/.test(screen) && /Date\.now\(\) - m\.createdAt <= RECENT_MS/.test(screen) && /autoOfferedRef\.current\.add\(a\)/.test(screen), 'My Week opens the plan by itself for something added in the last half hour, once');
+
+
 
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
