@@ -15,7 +15,7 @@ export const ZOOM_MAX = 720;  // px per hour, 5-minute marks, 1 min = 12 px
 export const CARD_H = 52;
 export const CARD_H_TINY = 40;
 export const CARD_GAP = 6;
-export const COL_MIN_W = 110; // narrowest readable column; two columns always fit a phone, three or more scroll sideways
+export const COL_MIN_W = 90; // narrowest readable column; three columns fit a phone, four or more scroll sideways in that band
 export const NEST_INSET = 28;  // px a later overlapping block is inset when drawn on top of an earlier one
 export const STRIP_H = 20;     // px height of a tiny item drawn as a full-width strip
 export const STRIP_MAX_MIN = 15; // items this short (minutes) become strips
