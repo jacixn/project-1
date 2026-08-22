@@ -252,7 +252,7 @@ const MyWeekScreen = ({ navigation }) => {
 
   const explainExternal = (item) => {
     hapticFeedback.light();
-    const fromEyeCandy = item.kind === 'eyecandy';
+    const fromEyeCandy = item.kind === 'eyecandy' || item.kind === 'eyecandySports';
     Alert.alert(
       item.title,
       fromEyeCandy

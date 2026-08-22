@@ -11,14 +11,18 @@ import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { minutesOf, dateKeyOf } from './dayBusy';
 
+// Colour = where it comes from: Biblely is green (three close shades so the
+// legend still tells them apart), EyeCandy blue, EyeCandy sports orange,
+// anything else from the iPhone Calendar purple.
 export const KINDS = {
-  prayer: { label: 'Prayer', color: '#A78BFA', icon: 'favorite' },
-  reminder: { label: 'Reminder', color: '#60A5FA', icon: 'notifications' },
-  gym: { label: 'Workout', color: '#FB923C', icon: 'fitness-center' },
-  eyecandy: { label: 'EyeCandy', color: '#F472B6', icon: 'movie' },
-  calendar: { label: 'Calendar', color: '#9CA3AF', icon: 'event' },
+  prayer: { label: 'Prayer', color: '#4ADE80', icon: 'favorite' },
+  reminder: { label: 'Reminder', color: '#22C55E', icon: 'notifications' },
+  gym: { label: 'Workout', color: '#86EFAC', icon: 'fitness-center' },
+  eyecandy: { label: 'EyeCandy', color: '#3B82F6', icon: 'movie' },
+  eyecandySports: { label: 'EyeCandy Sports', color: '#F97316', icon: 'sports-soccer' },
+  calendar: { label: 'Calendar', color: '#A855F7', icon: 'event' },
 };
-export const KIND_ORDER = ['prayer', 'reminder', 'gym', 'eyecandy', 'calendar'];
+export const KIND_ORDER = ['prayer', 'reminder', 'gym', 'eyecandy', 'eyecandySports', 'calendar'];
 
 const BIBLELY_CAL = 'Biblely';
 const DAY_MIN = 24 * 60;
@@ -85,7 +89,7 @@ export const loadDayItems = async (date) => {
 
   try {
     for (const r of getRemindersForDay(await loadReminders(), dow, key)) {
-      out.push(mk('reminder', r.id, r.title || 'Reminder', minutesOf(r.time), Number(r.duration) > 0 ? r.duration : 30, r, { color: r.color || KINDS.reminder.color, icon: r.icon || KINDS.reminder.icon, subtitle: patternOf(r) }));
+      out.push(mk('reminder', r.id, r.title || 'Reminder', minutesOf(r.time), Number(r.duration) > 0 ? r.duration : 30, r, { icon: r.icon || KINDS.reminder.icon, subtitle: patternOf(r) }));
     }
   } catch {}
 
@@ -114,18 +118,20 @@ export const loadDayItems = async (date) => {
           if (!e || e.allDay) continue;
           const cal = byId[e.calendarId] || {};
           const isEyeCandy = /^eyecandy/i.test(cal.title || '');
+          const isSports = isEyeCandy && /sport/i.test(cal.title || '');
+          const kind = isSports ? 'eyecandySports' : isEyeCandy ? 'eyecandy' : 'calendar';
           const s = new Date(e.startDate);
           const en = new Date(e.endDate);
           const startMin = clamp(s < dayStart ? 0 : s.getHours() * 60 + s.getMinutes(), 0, DAY_MIN);
           const endMin = clamp(en > dayEnd ? DAY_MIN : en.getHours() * 60 + en.getMinutes(), startMin + 1, DAY_MIN);
           out.push({
             id: `cal:${e.id}`,
-            kind: isEyeCandy ? 'eyecandy' : 'calendar',
+            kind,
             title: e.title || 'Busy',
             startMin,
             endMin,
-            color: isEyeCandy ? KINDS.eyecandy.color : (cal.color || KINDS.calendar.color),
-            icon: isEyeCandy ? KINDS.eyecandy.icon : KINDS.calendar.icon,
+            color: KINDS[kind].color,
+            icon: KINDS[kind].icon,
             movable: false,
             subtitle: isEyeCandy ? (cal.title || 'EyeCandy') : (cal.title || 'Calendar'),
             raw: { eventId: e.id, calendarTitle: cal.title },
