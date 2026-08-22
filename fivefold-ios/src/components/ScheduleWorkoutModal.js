@@ -18,7 +18,7 @@ import { hapticFeedback } from '../utils/haptics';
 import * as Notifications from 'expo-notifications';
 import notificationService from '../services/notificationService';
 import { getStoredData } from '../utils/localStorage';
-import DayTimeline from './DayTimeline';
+import StartTimePicker from './StartTimePicker';
 import MultiDateCalendar from './MultiDateCalendar';
 import DurationField from './DurationField';
 import { formatDuration } from '../utils/duration';
@@ -325,6 +325,10 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
 
   if (!tmpl) return null;
 
+  const editingStartMin = (() => {
+    const [h, m] = String(editingSchedule?.time || '').split(':').map(Number);
+    return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : -1;
+  })();
   const onNext = () => { hapticFeedback.light(); setStep('time'); };
   const rightLabel = step === 'setup' ? 'Next' : 'Save';
   const rightOn = step === 'setup' ? repeatValid : true;
@@ -401,15 +405,17 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
         <View style={styles.timeBody}>
           <Text style={[styles.bigValue, { color: theme.text }]}>{fmtHM(time.hour, time.minute)}</Text>
           <Text style={[styles.timeSubtitle, { color: theme.textSecondary }]}>
-            {timelineSubtitle}{duration ? `  ·  ${formatDuration(duration)}` : ''}
+            {`until ${fmtHM(Math.floor(((time.hour * 60 + time.minute + duration) % 1440) / 60), (time.hour * 60 + time.minute + duration) % 60)}  ·  ${timelineSubtitle}  ·  ${formatDuration(duration)}`}
           </Text>
-          <DayTimeline
+          <StartTimePicker
             date={timelineDate}
             selected={time}
             durationMinutes={duration}
             label={tmpl.name}
             accentColor={theme.primary}
             onPick={(hour, minute) => setTime({ hour, minute })}
+            excludeGymId={editingSchedule?.id ?? null}
+            excludeEvent={editingSchedule ? { title: editingSchedule.templateName || tmpl.name, startMin: editingStartMin } : null}
           />
         </View>
       ) : (
@@ -538,7 +544,7 @@ const styles = StyleSheet.create({
   hint: { fontSize: 13, lineHeight: 18, marginTop: 10 },
   timeBody: { flex: 1, paddingHorizontal: 20, paddingTop: 14 },
   bigValue: { fontSize: 34, fontWeight: '800', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  timeSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 12 },
+  timeSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 16 },
 });
 
 export default ScheduleWorkoutModal;

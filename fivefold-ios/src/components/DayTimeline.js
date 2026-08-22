@@ -142,7 +142,11 @@ const layoutColumns = (items) => {
   return out;
 };
 
-const DayTimeline = ({ date, selected, durationMinutes = 60, episodeMinutes = 0, label, accentColor, onPick }) => {
+// extraEvents: [{ title, startMin, endMin }] from app data (prayers, reminders,
+// workouts) shown alongside the phone calendar, deduped by title + start.
+// exclude: { title, startMin } of the item being edited so it does not show
+// up as a conflict with itself.
+const DayTimeline = ({ date, selected, durationMinutes = 60, episodeMinutes = 0, label, accentColor, onPick, extraEvents = null, exclude = null }) => {
   // episodeMinutes > 0 marks EPISODIC content (multi-episode TV/anime): the
   // block then live-trims whole episodes to fit the gap before the next event
   // as you drag, and onPick reports the trimmed duration as a 3rd arg. 0 (the
@@ -175,6 +179,19 @@ const DayTimeline = ({ date, selected, durationMinutes = 60, episodeMinutes = 0,
   const dragP = useSharedValue(0);  // 0 idle, 1 dragging -> lifts the hero block
 
   const dayKey = date ? date.toDateString() : '';
+  const extraKey = JSON.stringify((extraEvents || []).map((e) => [e.title, e.startMin, e.endMin]));
+  const excludeKey = exclude ? `${exclude.title}@${exclude.startMin}` : '';
+  const isExcluded = (ev) => !!exclude && ev.title === exclude.title && Math.abs(ev.startMin - exclude.startMin) <= 1;
+  // Calendar events + app extras, minus the edited item, deduped by title + start.
+  const withExtras = (timed) => {
+    const base = (timed || []).filter((ev) => !isExcluded(ev));
+    for (const x of extraEvents || []) {
+      if (!x || !Number.isFinite(x.startMin) || !Number.isFinite(x.endMin) || isExcluded(x)) continue;
+      if (base.some((b) => b.title === x.title && Math.abs(b.startMin - x.startMin) <= 1)) continue;
+      base.push({ id: `x-${x.title}-${x.startMin}`, title: x.title, startMin: x.startMin, endMin: x.endMin });
+    }
+    return base.sort((a, b) => a.startMin - b.startMin);
+  };
 
   const accent = accentColor || theme.primary || '#667eea';
   const heroColors = [shade(accent, 0.18), accent, shade(accent, -0.28)];
@@ -222,7 +239,7 @@ const DayTimeline = ({ date, selected, durationMinutes = 60, episodeMinutes = 0,
           perm = await Calendar.requestCalendarPermissionsAsync();
         }
         if (!perm.granted) {
-          if (!cancelled) { setEvents([]); setAllDay([]); setState('ready'); }
+          if (!cancelled) { setEvents(withExtras([])); setAllDay([]); setState('ready'); }
           return;
         }
         const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
@@ -245,15 +262,15 @@ const DayTimeline = ({ date, selected, durationMinutes = 60, episodeMinutes = 0,
           timed.push({ id: e.id, title: e.title || 'Busy', startMin, endMin });
         }
         timed.sort((a, b) => a.startMin - b.startMin);
-        setEvents(timed);
+        setEvents(withExtras(timed));
         setAllDay(whole);
         setState('ready');
       } catch {
-        if (!cancelled) { setEvents([]); setAllDay([]); setState('ready'); }
+        if (!cancelled) { setEvents(withExtras([])); setAllDay([]); setState('ready'); }
       }
     })();
     return () => { cancelled = true; };
-  }, [dayKey]);
+  }, [dayKey, extraKey, excludeKey]);
 
   // Today's now-line, refreshed every 30s.
   useEffect(() => {

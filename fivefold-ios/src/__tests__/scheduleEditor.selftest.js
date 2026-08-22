@@ -14,8 +14,8 @@ check(/Every day/.test(modal) && /Weekdays/.test(modal) && /Weekends/.test(modal
 check(/daysSentence/.test(modal) && /Repeats \$\{daysSorted/.test(modal), 'selected days read as a sentence');
 check(!/numberOfLines/.test(modal), 'nothing truncates');
 check(/Step 1 of 2/.test(modal) && /progressFill/.test(modal), 'step label + thin progress line');
-check(/fmtHM\(time\.hour, time\.minute\)/.test(modal) && /bigValue/.test(modal), 'step 2 shows the chosen time large');
-check(/<DayTimeline/.test(modal) && /<MultiDateCalendar/.test(modal) && /handleSave/.test(modal) && /repeatValid/.test(modal), 'timeline, calendar, save and validation wiring kept');
+check(/fmtHM\(time\.hour, time\.minute\)/.test(modal) && /bigValue/.test(modal) && /until \$\{fmtHM/.test(modal), 'step 2 shows the chosen time large with its end time');
+check(/<StartTimePicker/.test(modal) && /<MultiDateCalendar/.test(modal) && /handleSave/.test(modal) && /repeatValid/.test(modal), 'start-time picker, calendar, save and validation wiring kept');
 check(/Tap to set exactly/.test(field) && /chipLabel\(m\)/.test(field) && /\$\{m\} min/.test(field), 'duration: sentence-case hint, quick picks spelled out');
 check(!/[—]/.test(modal) && !/[—]/.test(field), 'no em dashes');
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
