@@ -580,7 +580,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
           </View>
 
           {/* Body part chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow} keyboardShouldPersistTaps="handled">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsRow} keyboardShouldPersistTaps="handled">
             {bodyParts.map((bp) => {
               const active = selectedBodyPart === bp;
               return (
@@ -1185,7 +1185,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   addPill: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
-  chipsRow: { flexDirection: 'row', gap: 8, paddingTop: 12, paddingRight: 8 },
+  chipsScroll: { marginHorizontal: -20 },
+  chipsRow: { flexDirection: 'row', gap: 8, paddingTop: 12, paddingHorizontal: 20 },
   chip: { height: 36, paddingHorizontal: 14, borderRadius: 12, justifyContent: 'center' },
   chipText: { fontSize: 14, fontWeight: '700' },
   countText: { fontSize: 13, fontWeight: '600', marginTop: 10 },
