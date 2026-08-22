@@ -61,6 +61,7 @@ const MyWeekScreen = ({ navigation }) => {
   // Make it fit: plan (AI proposes, rules verify) shown before anything moves
   const [fitting, setFitting] = useState(false);
   const [fitPlan, setFitPlan] = useState(null);
+  const [fitSkipped, setFitSkipped] = useState(() => new Set()); // moves the user unticked
   const lastMovedRef = useRef(null); // the thing just added/moved stays put when planning
   const [view, setView] = useState('timeline'); // timeline | list
   const [pxPerHour, setPxPerHour] = useState(PX_PER_HOUR);
@@ -325,7 +326,7 @@ const MyWeekScreen = ({ navigation }) => {
       const dayLabel = isTodaySelected ? 'today' : anchor.toLocaleDateString('en', { weekday: 'long' });
       const plan = await planDay(dayItems, { anchorId: lastMovedRef.current, dayLabel });
       if (!plan) setStatus('Nothing overlaps today.');
-      else { hapticFeedback.selection(); setFitPlan(plan); }
+      else { hapticFeedback.selection(); setFitSkipped(new Set()); setFitPlan(plan); }
     } catch (e) {
       hapticFeedback.error();
       Alert.alert('Could not plan the day', e?.message || 'Please try again.');
@@ -333,19 +334,25 @@ const MyWeekScreen = ({ navigation }) => {
     setFitting(false);
   };
   const cancelFit = () => { hapticFeedback.light(); setFitPlan(null); };
+  const toggleFitRow = (id) => {
+    hapticFeedback.selection();
+    setFitSkipped((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  };
+  const fitCount = fitPlan ? fitPlan.lines.filter((l) => !fitSkipped.has(l.id)).length : 0;
   const applyFit = async () => {
-    if (!fitPlan || saving) return;
+    if (!fitPlan || saving || !fitCount) return;
     setSaving(true);
     let n = 0;
-    for (const mv of fitPlan.moves) {
+    const chosen = fitPlan.moves.filter((mv) => !fitSkipped.has(mv.id));
+    for (const mv of chosen) {
       const it = dayItems.find((i) => i.id === mv.id);
       if (!it) continue;
       try { if (await moveItem(it, { time: minToTime(mv.startMin) })) n++; } catch {}
     }
     hapticFeedback.success();
-    setStatus(n === fitPlan.moves.length
-      ? `Day fits now. ${n === 1 ? '1 thing' : `${n} things`} moved.`
-      : `${n} of ${fitPlan.moves.length} moved. Check the rest.`);
+    setStatus(n === chosen.length
+      ? `${n === 1 ? '1 thing' : `${n} things`} moved.`
+      : `${n} of ${chosen.length} moved. Check the rest.`);
     setFitPlan(null);
     const keepY = scrollYRef.current;
     await loadWeek();
@@ -614,14 +621,18 @@ const MyWeekScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {fitPlan.lines.length ? <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Moves</Text> : null}
-          {fitPlan.lines.map((l) => (
-            <View key={l.id} style={styles.fitRow}>
-              <View style={[styles.fitBar, { backgroundColor: l.color }]} />
-              <Text style={[styles.fitRowTitle, { color: theme.text }]}>{l.title}</Text>
-              <Text style={[styles.fitRowTime, { color: l.color }]}>{fmtClock(l.from)} to {fmtClock(l.to)}</Text>
-            </View>
-          ))}
+          {fitPlan.lines.length ? <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Moves, tap one to leave it where it is</Text> : null}
+          {fitPlan.lines.map((l) => {
+            const off = fitSkipped.has(l.id);
+            return (
+              <TouchableOpacity key={l.id} onPress={() => toggleFitRow(l.id)} style={[styles.fitRow, { opacity: off ? 0.45 : 1 }]} activeOpacity={0.7} accessibilityRole="checkbox" accessibilityState={{ checked: !off }} accessibilityLabel={`${l.title}, ${fmtClock(l.from)} to ${fmtClock(l.to)}`}>
+                <View style={[styles.fitBar, { backgroundColor: l.color }]} />
+                <Text style={[styles.fitRowTitle, { color: theme.text }]}>{l.title}</Text>
+                <Text style={[styles.fitRowTime, { color: l.color }]}>{fmtClock(l.from)} to {fmtClock(l.to)}</Text>
+                <MaterialIcons name={off ? 'check-box-outline-blank' : 'check-box'} size={22} color={off ? theme.textSecondary : accent} />
+              </TouchableOpacity>
+            );
+          })}
           {fitPlan.stays.length ? (
             <>
               <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Stays put</Text>
@@ -634,9 +645,9 @@ const MyWeekScreen = ({ navigation }) => {
             <Text style={[styles.fitStay, { color: theme.warning || '#F59E0B' }]}>Could not fit before midnight: {fitPlan.overflow.join(', ')}</Text>
           ) : null}
 
-          <TouchableOpacity onPress={applyFit} disabled={saving || !fitPlan.lines.length} style={[styles.saveBtn, { backgroundColor: accent, opacity: saving || !fitPlan.lines.length ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
+          <TouchableOpacity onPress={applyFit} disabled={saving || !fitCount} style={[styles.saveBtn, { backgroundColor: accent, opacity: saving || !fitCount ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
             <MaterialIcons name="check" size={20} color="#fff" />
-            <Text style={styles.saveBtnText}>{saving ? 'Moving' : fitPlan.lines.length === 1 ? 'Apply 1 move' : `Apply ${fitPlan.lines.length} moves`}</Text>
+            <Text style={styles.saveBtnText}>{saving ? 'Moving' : fitCount === 1 ? 'Apply 1 move' : `Apply ${fitCount} moves`}</Text>
           </TouchableOpacity>
         </View>
       ) : null}

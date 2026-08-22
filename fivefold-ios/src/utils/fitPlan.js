@@ -6,11 +6,16 @@
 // Import-free so the selftest can evaluate it under plain node.
 
 export const SOFT_MAX_MIN = 15;   // things this short sit inside longer ones (a 5-min prayer in a show)
+export const OVERLAP_MIN = 10;    // overlaps shorter than this are life, not conflicts (a game ending 5 min late)
 export const WAKE_START = 5 * 60; // never plan anything before 5 AM
+export const EARLY_FLOOR = 8 * 60; // when the evening is full, slide earlier, but not before 8 AM
 export const DAY_LIMIT = 24 * 60;
 
 const roundUp5 = (m) => Math.ceil(m / 5) * 5;
-const overlap = (a, b) => a.startMin < b.endMin && b.startMin < a.endMin;
+const roundDown5 = (m) => Math.floor(m / 5) * 5;
+const overlapMin = (a, b) => Math.min(a.endMin, b.endMin) - Math.max(a.startMin, b.startMin);
+const overlap = (a, b) => overlapMin(a, b) > 0;              // strict: used when placing
+const conflicts = (a, b) => overlapMin(a, b) >= OVERLAP_MIN; // tolerant: used when judging
 export const hm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 const fromHm = (s) => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '').trim());
@@ -28,9 +33,11 @@ export const toModel = (items) => (items || []).map((it, i) => {
   const oneTime = raw.type === 'one-time';
   const sports = it.kind === 'eyecandySports';
   const durationMin = Math.max(5, (it.endMin || 0) - (it.startMin || 0));
+  const days = Array.isArray(raw.days) ? raw.days : [];
+  const daily = !days.length || days.length === 7;
   const why = sports ? 'kick-off is fixed'
     : !it.movable ? 'read-only'
-    : !oneTime ? (it.kind === 'prayer' ? 'daily prayer' : 'repeats every week')
+    : !oneTime ? (it.kind === 'prayer' ? 'daily prayer' : daily && (it.kind === 'reminder' || it.kind === 'gym') ? 'repeats every day' : 'repeats every week')
     : null;
   return {
     id: it.id,
@@ -56,7 +63,7 @@ export const fixableOverlaps = (model, anchorId = null) => {
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
       const a = list[i]; const b = list[j];
-      if (!overlap(a, b)) continue;
+      if (!conflicts(a, b)) continue;
       const aCan = a.movable && a.id !== anchorId;
       const bCan = b.movable && b.id !== anchorId;
       if (aCan || bCan) out.push([a, b]);
@@ -76,7 +83,7 @@ export const allowedIds = (model, anchorId = null) => {
   const inConflict = new Set();
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
-      if (overlap(list[i], list[j])) { union(list[i].id, list[j].id); inConflict.add(list[i].id); inConflict.add(list[j].id); }
+      if (conflicts(list[i], list[j])) { union(list[i].id, list[j].id); inConflict.add(list[i].id); inConflict.add(list[j].id); }
     }
   }
   const roots = new Set([...inConflict].map(find));
@@ -99,9 +106,25 @@ const clearOf = (obstacles, start, dur) => {
   return s;
 };
 
+// Latest clear start at or before `start` (5-min grid), or null when the
+// only room is before 8 AM.
+const clearBefore = (obstacles, start, dur) => {
+  let s = roundDown5(start);
+  let moved = true;
+  while (moved) {
+    if (s < EARLY_FLOOR) return null;
+    moved = false;
+    for (const o of obstacles) {
+      if (s < o.endMin && s + dur > o.startMin) { s = roundDown5(o.startMin - dur); moved = true; }
+    }
+  }
+  return s >= EARLY_FLOOR ? s : null;
+};
+
 // Deterministic plan: walk the day in start order; anything that collides
-// slides forward to the first clear gap, flowing around fixed items. Only
-// items in an overlap cluster are touched.
+// slides forward to the first clear gap, flowing around fixed items. When
+// the rest of the day is full it slides earlier instead (not before 8 AM).
+// Only items in an overlap cluster are touched.
 export const cascadePlan = (model, anchorId = null) => {
   const allowed = allowedIds(model, anchorId);
   const list = blockingOf(model, anchorId);
@@ -110,8 +133,9 @@ export const cascadePlan = (model, anchorId = null) => {
   const moves = [];
   const overflow = [];
   for (const m of movers) {
-    const placed = clearOf(obstacles, m.startMin, m.durationMin);
-    if (placed + m.durationMin > DAY_LIMIT) { overflow.push(m.title); continue; }
+    let placed = clearOf(obstacles, m.startMin, m.durationMin);
+    if (placed + m.durationMin > DAY_LIMIT) placed = clearBefore(obstacles, m.startMin, m.durationMin);
+    if (placed == null) { overflow.push(m.title); continue; }
     if (placed !== m.startMin) moves.push({ id: m.id, startMin: placed });
     obstacles.push({ startMin: placed, endMin: placed + m.durationMin });
   }
@@ -160,7 +184,7 @@ export const validatePlan = (model, plan, anchorId = null) => {
   for (let i = 0; i < after.length; i++) {
     for (let j = i + 1; j < after.length; j++) {
       const a = after[i]; const b = after[j];
-      if (!overlap(a, b)) continue;
+      if (!conflicts(a, b)) continue;
       if ((a.movable && a.id !== anchorId) || (b.movable && b.id !== anchorId)) return { ok: false, reason: `${a.title} still overlaps ${b.title}` };
     }
   }
@@ -189,9 +213,9 @@ export const buildMessages = (model, anchorId = null, dayLabel = 'today') => {
   const baseline = base.moves.map((mv) => `${byId.get(mv.id).key} -> ${hm(mv.startMin)}`);
   const system = [
     'You plan one day of a person\'s schedule inside the Biblely app.',
-    'Some items overlap. Move ONLY the items marked "movable" so that, afterwards, no two items longer than 15 minutes overlap. Every listed overlap must be solved.',
+    'Some items overlap. Move ONLY the items marked "movable" so that, afterwards, no two items longer than 15 minutes overlap by 10 minutes or more. Every listed overlap must be solved; overlaps under 10 minutes are fine.',
     'Rules: keep every item\'s length; never move FIXED or "must stay" items; every moved item must sit entirely inside ONE of the free gaps given, and moved items must not overlap each other;',
-    'times in 5-minute steps, between 05:00 and 23:30; prefer the smallest change, and an earlier free gap is fine when the whole item fits in it.',
+    'times in 5-minute steps, between 05:00 and 23:30; prefer the smallest change, and an earlier free gap is fine when the whole item fits in it (when the rest of the day is full, earlier beats dropping it, but not before 08:00).',
     'You are given a plan that already works. Return it unchanged, or a better one that obeys every rule.',
     'Reply with ONE JSON object and nothing else: {"moves":[{"id":"k3","start":"18:30"}],"note":"one short plain sentence for the user, no jargon"}.',
   ].join(' ');
