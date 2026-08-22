@@ -13,6 +13,7 @@ import {
 import { dateKeyOf } from '../utils/dayBusy';
 import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS, Easing } from 'react-native-reanimated';
 import { moveItem } from '../services/rescheduleItem';
 
 // My Week: everything scheduled, from every source, on one screen. Prayers,
@@ -220,6 +221,47 @@ const MyWeekScreen = ({ navigation }) => {
     const d = new Date(anchor); d.setDate(d.getDate() + dir * 7); setAnchor(d);
   };
 
+  // Swipe the week strip: it follows the finger, then the old week slides out
+  // and the new one springs in from the other side.
+  const stripX = useSharedValue(0);
+  const stripO = useSharedValue(1);
+  const [stripW, setStripW] = useState(360);
+  const goWeek = (dir) => {
+    const w = stripW || 360;
+    stripX.value = withTiming(-dir * w * 0.6, { duration: 140, easing: Easing.in(Easing.cubic) }, (done) => {
+      if (!done) return;
+      runOnJS(shiftWeek)(dir);
+      stripX.value = dir * w * 0.5;
+      stripO.value = 0.2;
+      stripX.value = withSpring(0, { damping: 18, stiffness: 180 });
+      stripO.value = withTiming(1, { duration: 220 });
+    });
+    stripO.value = withTiming(0.3, { duration: 140 });
+  };
+  const weekSwipe = useMemo(() => Gesture.Pan()
+    .activeOffsetX([-14, 14])
+    .failOffsetY([-12, 12])
+    .runOnJS(true)
+    .onUpdate((e) => { stripX.value = e.translationX * 0.55; })
+    .onEnd((e) => {
+      if (e.translationX < -50 || e.velocityX < -500) goWeek(1);
+      else if (e.translationX > 50 || e.velocityX > 500) goWeek(-1);
+      else stripX.value = withSpring(0, { damping: 18, stiffness: 200 });
+    }), [stripW, anchor]);
+  const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: stripX.value }], opacity: stripO.value }));
+  const weekLabel = (() => {
+    const a = week[0], b = week[6];
+    const same = a.getMonth() === b.getMonth();
+    const range = same
+      ? `${a.getDate()} – ${b.getDate()} ${b.toLocaleDateString('en', { month: 'short' })}`
+      : `${a.getDate()} ${a.toLocaleDateString('en', { month: 'short' })} – ${b.getDate()} ${b.toLocaleDateString('en', { month: 'short' })}`;
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const thisMon = weekOf(t)[0];
+    const diff = Math.round((week[0] - thisMon) / (7 * 86400000));
+    const rel = diff === 0 ? 'This week' : diff === 1 ? 'Next week' : diff === -1 ? 'Last week' : diff > 0 ? `${diff} weeks ahead` : `${-diff} weeks ago`;
+    return `${range}  ·  ${rel}`;
+  })();
+
   const startMove = (item) => {
     hapticFeedback.medium();
     setMoving(item);
@@ -311,42 +353,39 @@ const MyWeekScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Week strip */}
-      <View style={styles.weekRow}>
-        <TouchableOpacity onPress={() => shiftWeek(-1)} style={[styles.weekNav, { backgroundColor: tile }]} accessibilityRole="button" accessibilityLabel="Previous week">
-          <MaterialIcons name="chevron-left" size={22} color={theme.text} />
-        </TouchableOpacity>
-        <View style={styles.weekStrip}>
-          {week.map((d, i) => {
-            const key = dateKeyOf(d);
-            const sel = sameDay(d, anchor);
-            const isToday = sameDay(d, today);
-            const kinds = KIND_ORDER.filter((k) => (itemsByDay[key] || []).some((it) => it.kind === k));
-            return (
-              <TouchableOpacity
-                key={key}
-                onPress={() => { hapticFeedback.light(); setAnchor(d); }}
-                style={[styles.dayTile, { backgroundColor: sel ? accent : tile, borderColor: isToday && !sel ? accent : 'transparent' }]}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityState={{ selected: sel }}
-                accessibilityLabel={`${d.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' })}, ${(itemsByDay[key] || []).length} scheduled`}
-              >
-                <Text style={[styles.dayLetter, { color: sel ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>{WEEK_LETTERS[i]}</Text>
-                <Text style={[styles.dayNum, { color: sel ? '#fff' : theme.text }]}>{d.getDate()}</Text>
-                <View style={styles.dots}>
-                  {kinds.length ? kinds.map((k) => (
-                    <View key={k} style={[styles.dot, { backgroundColor: sel ? '#fff' : KINDS[k].color }]} />
-                  )) : <View style={[styles.dot, { backgroundColor: 'transparent' }]} />}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <TouchableOpacity onPress={() => shiftWeek(1)} style={[styles.weekNav, { backgroundColor: tile }]} accessibilityRole="button" accessibilityLabel="Next week">
-          <MaterialIcons name="chevron-right" size={22} color={theme.text} />
-        </TouchableOpacity>
-      </View>
+      {/* Week strip: swipe left / right for the next / previous week */}
+      <Text style={[styles.weekLabel, { color: theme.textSecondary }]}>{weekLabel}</Text>
+      <GestureHandlerRootView>
+        <GestureDetector gesture={weekSwipe}>
+          <Reanimated.View style={[styles.weekStrip, stripStyle]} onLayout={(e) => setStripW(e.nativeEvent.layout.width)}>
+            {week.map((d, i) => {
+              const key = dateKeyOf(d);
+              const sel = sameDay(d, anchor);
+              const isToday = sameDay(d, today);
+              const kinds = KIND_ORDER.filter((k) => (itemsByDay[key] || []).some((it) => it.kind === k)).slice(0, 4);
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => { hapticFeedback.light(); setAnchor(d); }}
+                  style={[styles.dayTile, { backgroundColor: sel ? accent : tile, borderColor: isToday && !sel ? accent : 'transparent' }]}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: sel }}
+                  accessibilityLabel={`${d.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' })}, ${(itemsByDay[key] || []).length} scheduled`}
+                >
+                  <Text style={[styles.dayLetter, { color: sel ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>{WEEK_LETTERS[i]}</Text>
+                  <Text style={[styles.dayNum, { color: sel ? '#fff' : theme.text }]}>{d.getDate()}</Text>
+                  <View style={styles.dots}>
+                    {kinds.length ? kinds.map((k) => (
+                      <View key={k} style={[styles.dot, { backgroundColor: sel ? '#fff' : KINDS[k].color }]} />
+                    )) : <View style={[styles.dot, { backgroundColor: 'transparent' }]} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </Reanimated.View>
+        </GestureDetector>
+      </GestureHandlerRootView>
 
       <ScrollView ref={scrollRef} onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16} contentContainerStyle={[styles.body, moving && { paddingBottom: showWheel ? 560 : 380 }]} showsVerticalScrollIndicator={false}>
         <Text style={[styles.kicker, { color: theme.textSecondary }]}>{relDay(anchor)}</Text>
@@ -583,13 +622,12 @@ const styles = StyleSheet.create({
   headerBtn: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   headerBtnText: { fontSize: 15, fontWeight: '800' },
   headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: 0.3 },
-  weekRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 12, gap: 6 },
-  weekNav: { width: 34, height: 58, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  weekStrip: { flex: 1, flexDirection: 'row', gap: 5 },
-  dayTile: { flex: 1, height: 58, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  weekLabel: { fontSize: 13, fontWeight: '600', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
+  weekStrip: { flexDirection: 'row', gap: 6, paddingHorizontal: 20 },
+  dayTile: { flex: 1, height: 62, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   dayLetter: { fontSize: 11, fontWeight: '700' },
-  dayNum: { fontSize: 16, fontWeight: '800', marginTop: 1, fontVariant: ['tabular-nums'] },
-  dots: { flexDirection: 'row', gap: 3, marginTop: 4, height: 5 },
+  dayNum: { fontSize: 17, fontWeight: '800', marginTop: 1, fontVariant: ['tabular-nums'] },
+  dots: { flexDirection: 'row', gap: 3, marginTop: 5, height: 5 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
   dotBig: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
   body: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 60 },
