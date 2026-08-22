@@ -332,6 +332,9 @@ const MyWeekScreen = ({ navigation }) => {
     );
   };
 
+  // The panel wears the item's own colour (EyeCandy purple, Biblely green),
+  // so what you tapped is what you are editing.
+  const panelAccent = (moving && moving.color) || accent;
   const nextDays = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(anchor); d.setDate(anchor.getDate() + i); return d; }), [anchor]);
   const draftEnd = moving ? draftMin + (moving.endMin - moving.startMin) : 0;
   // The next few free gaps on the draft day that fit the item (the item
@@ -545,7 +548,7 @@ const MyWeekScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={cancelMove} accessibilityRole="button" accessibilityLabel="Cancel move" />
       ) : null}
       {moving ? (
-        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: accent + '55' }]}>
+        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: panelAccent + '55' }]}>
           <View style={[styles.panelSurface, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} pointerEvents="none" />
           <View style={styles.panelHead}>
             <View style={{ flex: 1, paddingRight: 12 }}>
@@ -561,7 +564,7 @@ const MyWeekScreen = ({ navigation }) => {
             <Text style={[styles.panelTime, { color: theme.text }]}>
               {fmtClock(draftMin)}<Text style={{ color: theme.textSecondary, fontSize: 15, fontWeight: '600' }}>{`  to ${fmtClock(draftEnd)}`}</Text>
             </Text>
-            <Text style={[styles.panelWas, { color: showWheel ? accent : theme.textSecondary }]}>
+            <Text style={[styles.panelWas, { color: showWheel ? panelAccent : theme.textSecondary }]}>
               {showWheel ? 'Done setting the exact time' : draftMin !== moving.startMin || (draftDate && draftDate !== dateKeyOf(anchor))
                 ? `was ${fmtClock(moving.startMin)}${draftDate && draftDate !== dateKeyOf(anchor) ? `  ·  now on ${pickDate.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}` : ''}`
                 : 'Nudge it, pick a free time, or set an exact time.'}
@@ -577,9 +580,9 @@ const MyWeekScreen = ({ navigation }) => {
             ))}
           </View>
 
-          <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} style={[styles.exactBtn, { borderColor: accent, backgroundColor: showWheel ? accent : 'transparent' }]} activeOpacity={0.7} accessibilityRole="button">
-            <MaterialIcons name="schedule" size={18} color={showWheel ? '#fff' : accent} />
-            <Text style={[styles.exactBtnText, { color: showWheel ? '#fff' : accent }]}>{showWheel ? 'Done' : 'Set an exact time'}</Text>
+          <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} style={[styles.exactBtn, { borderColor: panelAccent, backgroundColor: showWheel ? panelAccent : 'transparent' }]} activeOpacity={0.7} accessibilityRole="button">
+            <MaterialIcons name="schedule" size={18} color={showWheel ? '#fff' : panelAccent} />
+            <Text style={[styles.exactBtnText, { color: showWheel ? '#fff' : panelAccent }]}>{showWheel ? 'Done' : 'Set an exact time'}</Text>
           </TouchableOpacity>
           {showWheel && Platform.OS === 'ios' ? (
             <View style={[styles.wheel, { borderColor: hairline }]}>
@@ -603,7 +606,7 @@ const MyWeekScreen = ({ navigation }) => {
               {freeSlots.map((r) => {
                 const on = draftMin === r.pickMin;
                 return (
-                  <TouchableOpacity key={r.pickMin} onPress={() => { hapticFeedback.selection(); setDraftMin(r.pickMin); }} style={[styles.freeChip, { backgroundColor: on ? accent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                  <TouchableOpacity key={r.pickMin} onPress={() => { hapticFeedback.selection(); setDraftMin(r.pickMin); }} style={[styles.freeChip, { backgroundColor: on ? panelAccent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
                     <Text style={[styles.freeChipTime, { color: on ? '#fff' : theme.text }]}>{fmtClock(r.pickMin)}</Text>
                     <Text style={[styles.freeChipSub, { color: on ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>{fmtDur(r.endMin - r.startMin)} free</Text>
                   </TouchableOpacity>
@@ -620,7 +623,7 @@ const MyWeekScreen = ({ navigation }) => {
                   const key = dateKeyOf(d);
                   const on = key === draftDate;
                   return (
-                    <TouchableOpacity key={key} onPress={() => { hapticFeedback.light(); setDraftDate(key); }} style={[styles.chip, { backgroundColor: on ? accent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                    <TouchableOpacity key={key} onPress={() => { hapticFeedback.light(); setDraftDate(key); }} style={[styles.chip, { backgroundColor: on ? panelAccent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
                       <Text style={[styles.chipText, { color: on ? '#fff' : theme.text }]}>{relDay(d) === 'Today' || relDay(d) === 'Tomorrow' ? relDay(d) : d.toLocaleDateString('en', { weekday: 'short', day: 'numeric' })}</Text>
                     </TouchableOpacity>
                   );
@@ -629,7 +632,7 @@ const MyWeekScreen = ({ navigation }) => {
             </>
           ) : null}
 
-          <TouchableOpacity onPress={saveMove} disabled={saving} style={[styles.saveBtn, { backgroundColor: accent, opacity: saving ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
+          <TouchableOpacity onPress={saveMove} disabled={saving} style={[styles.saveBtn, { backgroundColor: panelAccent, opacity: saving ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
             <MaterialIcons name="check" size={20} color="#fff" />
             <Text style={styles.saveBtnText}>{saving ? 'Saving' : `Save ${fmtClock(draftMin)}`}</Text>
           </TouchableOpacity>

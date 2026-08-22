@@ -84,6 +84,7 @@ check(/movable: !!cal\.allowsModifications && !isSports/.test(src) && /CALENDAR_
 check(/const fresh = !loadedWeeksRef\.current\.has\(weekKey\);\s*if \(fresh\) setLoading\(true\);/.test(screen) && !/^\s*setLoading\(true\);/m.test(screen) && /setItemsByDay\(\(prev\) => \(\{ \.\.\.prev, \.\.\.map \}\)\)/.test(screen), 'refreshes after the first look keep the timeline mounted (no loading flash, no jump to top)');
 check(/const keepY = scrollYRef\.current;\s*await loadWeek\(\);\s*requestAnimationFrame\(\(\) => scrollRef\.current\?\.scrollTo\(\{ y: keepY, animated: false \}\)\)/.test(screen), 'saving a move restores the scroll offset');
 check(/item\.kind === 'eyecandySports'\) \{\s*Alert\.alert\(/.test(screen) && /Kick-off is \$\{fmtClock\(item\.startMin\)\}/.test(screen) && /Match times come from the fixture list/.test(screen), 'tapping a fixture explains the kick-off is fixed');
+check(/const panelAccent = \(moving && moving\.color\) \|\| accent;/.test(screen) && /styles\.saveBtn, \{ backgroundColor: panelAccent/.test(screen) && /borderColor: panelAccent, backgroundColor: showWheel \? panelAccent/.test(screen) && /styles\.freeChip, \{ backgroundColor: on \? panelAccent/.test(screen), 'move panel wears the item colour (EyeCandy purple stays purple)');
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);
