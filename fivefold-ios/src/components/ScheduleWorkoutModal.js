@@ -369,7 +369,7 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
     });
     if (scroll) {
       return (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll} keyboardShouldPersistTaps="handled">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={styles.tabsScroll} keyboardShouldPersistTaps="handled">
           {items}
         </ScrollView>
       );
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 6 },
   sectionTitle: { fontSize: 14, fontWeight: '600', marginTop: 26, marginBottom: 10 },
   tabs: { flexDirection: 'row', gap: 8 },
-  tabsScroll: { flexDirection: 'row', gap: 8, paddingRight: 8 },
+  tabsScroll: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   tab: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, marginRight: 0 },
   tabText: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
   tabSub: { fontSize: 12.5, fontWeight: '500', marginTop: 2 },

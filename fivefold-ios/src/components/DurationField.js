@@ -14,7 +14,9 @@ import {
 // A duration control: big value with - / + adaptive steppers, tap the value
 // for an exact hours+minutes wheel, and a row of quick picks underneath.
 // Shared by reminders + workouts.
-const DurationField = ({ value = 30, onChange, accent }) => {
+// bleed = the parent's horizontal padding; the quick-pick row cancels it so
+// chips scroll right off the screen edge instead of clipping at the inset.
+const DurationField = ({ value = 30, onChange, accent, bleed = 20 }) => {
   const { theme, isDark } = useTheme();
   const acc = accent || theme.primary;
   const hairline = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
@@ -67,7 +69,8 @@ const DurationField = ({ value = 30, onChange, accent }) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
+        style={{ marginHorizontal: -bleed }}
+        contentContainerStyle={[styles.chipsRow, { paddingHorizontal: bleed }]}
         keyboardShouldPersistTaps="handled"
       >
         {DURATION_PRESETS.map((m) => {
@@ -100,7 +103,7 @@ const styles = StyleSheet.create({
   steppers: { flexDirection: 'row', gap: 8 },
   stepBtn: { width: 46, height: 46, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   wheel: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, marginTop: 12, paddingVertical: 4 },
-  chipsRow: { flexDirection: 'row', gap: 8, marginTop: 12, paddingRight: 8 },
+  chipsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   chip: { paddingHorizontal: 14, height: 38, borderRadius: 12, justifyContent: 'center' },
   chipText: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
 
