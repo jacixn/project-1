@@ -331,298 +331,214 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
   const onRight = step === 'setup' ? onNext : handleSave;
   const onLeft = step === 'setup' ? onClose : () => setStep('setup');
 
+  const hairline = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
+  const dim = isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.28)';
+  const daysSorted = selectedDays.slice().sort((a, b) => a - b);
+  const daysSentence = daysSorted.length === 7 ? 'Repeats every day'
+    : daysSorted.length === 5 && daysSorted.join() === '1,2,3,4,5' ? 'Repeats on weekdays'
+    : daysSorted.length === 2 && daysSorted.join() === '0,6' ? 'Repeats at the weekend'
+    : daysSorted.length === 0 ? 'Pick at least one day'
+    : daysSorted.length === 1 ? `Repeats every ${DAY_NAMES[daysSorted[0]]}`
+    : `Repeats ${daysSorted.slice(0, -1).map((d) => DAY_NAMES[d]).join(', ')} and ${DAY_NAMES[daysSorted[daysSorted.length - 1]]}`;
+  const setDays = (days) => { hapticFeedback.light(); setSelectedDays(days); };
+  const sameDays = (days) => daysSorted.join() === days.join();
+
+  // Text options with an accent underline under the active one. Replaces the
+  // tinted pill buttons for schedule type and reminder.
+  const TextTabs = ({ options, value, onChange, scroll = false }) => {
+    const items = options.map((o) => {
+      const active = o.value === value;
+      return (
+        <TouchableOpacity
+          key={String(o.value)}
+          onPress={() => { hapticFeedback.light(); onChange(o.value); }}
+          style={styles.tab}
+          accessibilityRole="button"
+          accessibilityState={{ selected: active }}
+        >
+          <Text style={[styles.tabText, { color: active ? theme.text : theme.textSecondary, fontWeight: active ? '800' : '600' }]}>{o.label}</Text>
+          {o.sub ? <Text style={[styles.tabSub, { color: active ? theme.primary : theme.textTertiary || theme.textSecondary }]}>{o.sub}</Text> : null}
+          <View style={[styles.tabBar, { backgroundColor: active ? theme.primary : 'transparent' }]} />
+        </TouchableOpacity>
+      );
+    });
+    if (scroll) {
+      return (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll} keyboardShouldPersistTaps="handled">
+          {items}
+        </ScrollView>
+      );
+    }
+    return <View style={[styles.tabs, { borderBottomColor: hairline }]}>{items}</View>;
+  };
+
+  const reminderHint = notifyBefore === 0
+    ? 'Notified when this workout starts.'
+    : `Notified ${notifyBefore === 60 ? '1 hour' : notifyBefore === 120 ? '2 hours' : `${notifyBefore} minutes`} before, unless it is already done.`;
+
   return (
     <GestureHandlerRootView style={[styles.container, { backgroundColor: theme.background }]}>
-      <>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onLeft} style={styles.closeButton}>
-              {step === 'setup'
-                ? <MaterialIcons name="close" size={24} color={theme.text} />
-                : <Text style={{ color: theme.textSecondary, fontSize: 16 }}>Back</Text>}
-            </TouchableOpacity>
-            <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{tmpl.name}</Text>
-            <TouchableOpacity onPress={onRight} disabled={!rightOn} style={styles.saveButton}>
-              <Text style={[styles.saveText, { color: theme.primary, opacity: rightOn ? 1 : 0.4 }]}>{rightLabel}</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity onPress={onLeft} style={styles.closeButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={step === 'setup' ? 'Close' : 'Back'}>
+          {step === 'setup'
+            ? <MaterialIcons name="close" size={22} color={theme.text} />
+            : <Text style={[styles.headerSide, { color: theme.textSecondary }]}>Back</Text>}
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={[styles.title, { color: theme.text }]}>{tmpl.name}</Text>
+          <Text style={[styles.stepLabel, { color: theme.textSecondary }]}>{step === 'setup' ? 'Step 1 of 2  ·  When' : 'Step 2 of 2  ·  Start time'}</Text>
+        </View>
+        <TouchableOpacity onPress={onRight} disabled={!rightOn} style={styles.saveButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button">
+          <Text style={[styles.saveText, { color: theme.primary, opacity: rightOn ? 1 : 0.35 }]}>{rightLabel}</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={[styles.progressTrack, { backgroundColor: hairline }]}>
+        <View style={[styles.progressFill, { backgroundColor: theme.primary, width: step === 'setup' ? '50%' : '100%' }]} />
+      </View>
 
-          <View style={styles.progress}>
-            {['setup', 'time'].map((s, i) => (
-              <View
-                key={s}
-                style={[styles.progressDot, {
-                  width: step === s ? 22 : 7,
-                  backgroundColor: (step === 'time' && i === 0) || step === s ? theme.primary : theme.border,
-                }]}
-              />
-            ))}
-          </View>
+      {step === 'time' ? (
+        <View style={styles.timeBody}>
+          <Text style={[styles.bigValue, { color: theme.text }]}>{fmtHM(time.hour, time.minute)}</Text>
+          <Text style={[styles.timeSubtitle, { color: theme.textSecondary }]}>
+            {timelineSubtitle}{duration ? `  ·  ${formatDuration(duration)}` : ''}
+          </Text>
+          <DayTimeline
+            date={timelineDate}
+            selected={time}
+            durationMinutes={duration}
+            label={tmpl.name}
+            accentColor={theme.primary}
+            onPick={(hour, minute) => setTime({ hour, minute })}
+          />
+        </View>
+      ) : (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+          {/* Schedule type */}
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Schedule</Text>
+          <TextTabs
+            value={scheduleType}
+            onChange={setScheduleType}
+            options={[
+              { value: 'recurring', label: 'Repeats weekly', sub: 'Same days every week' },
+              { value: 'one-time', label: 'One date', sub: 'Pick specific days' },
+            ]}
+          />
 
-          {step === 'time' ? (
-            <View style={styles.timeBody}>
-              <View style={styles.timeSubtitleRow}>
-                <MaterialIcons name={scheduleType === 'recurring' ? 'repeat' : 'event'} size={16} color={theme.textSecondary} />
-                <Text style={[styles.timeSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>{timelineSubtitle}</Text>
-              </View>
-              <DayTimeline
-                date={timelineDate}
-                selected={time}
-                durationMinutes={duration}
-                label={tmpl.name}
-                accentColor={theme.primary}
-                onPick={(hour, minute) => setTime({ hour, minute })}
-              />
-            </View>
-          ) : (
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
-              {/* Schedule Type (workout name is in the header) */}
-              <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 8 }]}>Schedule Type</Text>
-              <View style={styles.typeButtons}>
-                <TouchableOpacity
-                  style={[styles.typeButton, { backgroundColor: scheduleType === 'recurring' ? theme.primary : theme.card, borderColor: scheduleType === 'recurring' ? theme.primary : theme.border }]}
-                  onPress={() => { hapticFeedback.light(); setScheduleType('recurring'); }}
-                >
-                  <MaterialIcons name="repeat" size={20} color={scheduleType === 'recurring' ? '#FFF' : theme.textSecondary} />
-                  <Text style={[styles.typeButtonText, { color: scheduleType === 'recurring' ? '#FFF' : theme.text }]}>Recurring</Text>
-                  <Text style={[styles.typeButtonSubtext, { color: scheduleType === 'recurring' ? 'rgba(255,255,255,0.8)' : theme.textTertiary }]}>Every week</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.typeButton, { backgroundColor: scheduleType === 'one-time' ? theme.primary : theme.card, borderColor: scheduleType === 'one-time' ? theme.primary : theme.border }]}
-                  onPress={() => { hapticFeedback.light(); setScheduleType('one-time'); }}
-                >
-                  <MaterialIcons name="event" size={20} color={scheduleType === 'one-time' ? '#FFF' : theme.textSecondary} />
-                  <Text style={[styles.typeButtonText, { color: scheduleType === 'one-time' ? '#FFF' : theme.text }]}>One-Time</Text>
-                  <Text style={[styles.typeButtonSubtext, { color: scheduleType === 'one-time' ? 'rgba(255,255,255,0.8)' : theme.textTertiary }]}>Specific date</Text>
-                </TouchableOpacity>
-              </View>
-
-              {scheduleType === 'recurring' ? (
-                <>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Repeat On</Text>
-                  <View style={styles.daysContainer}>
-                    {DAYS_OF_WEEK.map((day) => (
-                      <TouchableOpacity
-                        key={day.id}
-                        style={[styles.dayButton, { backgroundColor: selectedDays.includes(day.id) ? theme.primary : theme.card, borderColor: selectedDays.includes(day.id) ? theme.primary : theme.border }]}
-                        onPress={() => toggleDay(day.id)}
-                      >
-                        <Text style={[styles.dayButtonText, { color: selectedDays.includes(day.id) ? '#FFF' : theme.text }]}>{day.short}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  {selectedDays.length > 0 && (
-                    <Text style={[styles.selectedDaysText, { color: theme.textSecondary }]}>
-                      {selectedDays.map((d) => DAY_NAMES[d]).join(', ')}
-                    </Text>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                    {oneTimeDates.length > 1 ? `Dates · ${oneTimeDates.length} selected` : 'Pick one or more dates'}
-                  </Text>
-                  <MultiDateCalendar
-                    selectedDates={oneTimeDates}
-                    onToggle={toggleOneTimeDate}
-                    accent={theme.primary}
-                    singleSelect={!!editingSchedule}
-                  />
-                </>
-              )}
-
-              {/* Duration */}
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>How long it takes</Text>
-              <DurationField value={duration} onChange={setDuration} accent={theme.primary} />
-
-              {/* Reminder */}
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Reminder</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.reminderOptions}
-                keyboardShouldPersistTaps="handled"
-              >
-                {[0, 30, 60, 120].map((mins) => {
-                  const active = notifyBefore === mins;
-                  const label = mins === 0 ? 'At start' : mins === 60 ? '1 hour' : mins === 120 ? '2 hours' : `${mins} min`;
+          {scheduleType === 'recurring' ? (
+            <>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Repeat on</Text>
+              <View style={styles.days}>
+                {DAYS_OF_WEEK.map((day) => {
+                  const on = selectedDays.includes(day.id);
                   return (
                     <TouchableOpacity
-                      key={mins}
-                      style={[styles.reminderButton, { backgroundColor: active ? theme.primary : theme.card, borderColor: active ? theme.primary : theme.border }]}
-                      onPress={() => { hapticFeedback.light(); setNotifyBefore(mins); }}
+                      key={day.id}
+                      style={styles.day}
+                      onPress={() => toggleDay(day.id)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: on }}
+                      accessibilityLabel={day.name}
                     >
-                      <Text style={[styles.reminderButtonText, { color: active ? '#FFF' : theme.text }]}>{label}</Text>
+                      <Text style={[styles.dayText, { color: on ? theme.primary : dim, fontWeight: on ? '800' : '600' }]}>{day.short}</Text>
+                      <View style={[styles.dayBar, { backgroundColor: on ? theme.primary : hairline }]} />
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
-              <Text style={[styles.reminderHint, { color: theme.textSecondary }]}>
-                {notifyBefore === 0
-                  ? "You'll be notified when this workout starts"
-                  : `You'll be notified ${notifyBefore === 60 ? '1 hour' : notifyBefore === 120 ? '2 hours' : `${notifyBefore} minutes`} before your workout (only if not completed)`}
+              </View>
+              <Text style={[styles.daysSentence, { color: selectedDays.length ? theme.text : theme.textSecondary }]}>{daysSentence}</Text>
+              <View style={styles.quickRow}>
+                {[
+                  { label: 'Every day', days: [0, 1, 2, 3, 4, 5, 6] },
+                  { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
+                  { label: 'Weekends', days: [0, 6] },
+                ].map((q) => {
+                  const active = sameDays(q.days);
+                  return (
+                    <TouchableOpacity key={q.label} onPress={() => setDays(active ? [] : q.days)} hitSlop={{ top: 8, bottom: 8 }} accessibilityRole="button">
+                      <Text style={[styles.quickText, { color: active ? theme.primary : theme.textSecondary }]}>{q.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                {oneTimeDates.length > 1 ? `${oneTimeDates.length} dates picked` : 'Pick one or more dates'}
               </Text>
-            </ScrollView>
+              <MultiDateCalendar
+                selectedDates={oneTimeDates}
+                onToggle={toggleOneTimeDate}
+                accent={theme.primary}
+                singleSelect={!!editingSchedule}
+              />
+            </>
           )}
-      </>
+
+          {/* Duration */}
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>How long it takes</Text>
+          <DurationField value={duration} onChange={setDuration} accent={theme.primary} />
+
+          {/* Reminder */}
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Reminder</Text>
+          <TextTabs
+            value={notifyBefore}
+            onChange={setNotifyBefore}
+            options={[
+              { value: 0, label: 'At start' },
+              { value: 30, label: '30 min before' },
+              { value: 60, label: '1 hour before' },
+              { value: 120, label: '2 hours before' },
+            ]}
+            scroll
+          />
+          <Text style={[styles.hint, { color: theme.textSecondary }]}>{reminderHint}</Text>
+        </ScrollView>
+      )}
     </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  progress: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 12 },
-  progressDot: { height: 7, borderRadius: 3.5 },
-  timeBody: { flex: 1, paddingHorizontal: 20, paddingTop: 4 },
-  timeSubtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, paddingHorizontal: 2 },
-  timeSubtitle: { fontSize: 14, fontWeight: '600', flex: 1 },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 14,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.25)',
   },
-  closeButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  saveButton: {
-    padding: 8,
-  },
-  saveText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  templateCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-  },
-  templateIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  templateInfo: {
-    marginLeft: 14,
-    flex: 1,
-  },
-  templateName: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  templateDetails: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 12,
-    marginTop: 26,
-  },
-  typeButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 1.5,
-  },
-  typeButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  typeButtonSubtext: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  daysContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  dayButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  dayButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  selectedDaysText: {
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  pickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 20,
-  },
-  pickerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-    marginLeft: 12,
-  },
-  reminderOptions: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingRight: 4,
-    marginBottom: 8,
-  },
-  reminderButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  reminderButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  reminderHint: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
+  closeButton: { minWidth: 56, paddingVertical: 4 },
+  headerSide: { fontSize: 16, fontWeight: '500' },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  title: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  stepLabel: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+  saveButton: { minWidth: 56, alignItems: 'flex-end', paddingVertical: 4 },
+  saveText: { fontSize: 16, fontWeight: '700' },
+  progressTrack: { height: 2, marginHorizontal: 20, marginTop: 12, borderRadius: 1, overflow: 'hidden' },
+  progressFill: { height: 2, borderRadius: 1 },
+  content: { flex: 1, paddingHorizontal: 20, paddingTop: 6 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', marginTop: 26, marginBottom: 10 },
+  tabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
+  tabsScroll: { flexDirection: 'row', paddingRight: 8 },
+  tab: { paddingTop: 6, paddingRight: 22 },
+  tabText: { fontSize: 16, letterSpacing: -0.2 },
+  tabSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  tabBar: { height: 2.5, borderRadius: 1.5, marginTop: 8 },
+  days: { flexDirection: 'row', marginTop: 2 },
+  day: { flex: 1, alignItems: 'center', paddingTop: 8, paddingBottom: 2 },
+  dayText: { fontSize: 16, letterSpacing: -0.2 },
+  dayBar: { height: 3, borderRadius: 1.5, alignSelf: 'stretch', marginTop: 8, marginHorizontal: 5 },
+  daysSentence: { fontSize: 15, fontWeight: '600', marginTop: 12, lineHeight: 21 },
+  quickRow: { flexDirection: 'row', gap: 18, marginTop: 8 },
+  quickText: { fontSize: 13.5, fontWeight: '700' },
+  hint: { fontSize: 13, lineHeight: 18, marginTop: 10 },
+  timeBody: { flex: 1, paddingHorizontal: 20, paddingTop: 14 },
+  bigValue: { fontSize: 34, fontWeight: '800', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  timeSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 12 },
 });
 
 export default ScheduleWorkoutModal;

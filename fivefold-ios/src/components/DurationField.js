@@ -7,45 +7,50 @@ import { hapticFeedback } from '../utils/haptics';
 import {
   formatDuration,
   stepDuration,
-  adaptiveStep,
   clampDuration,
   DURATION_PRESETS,
 } from '../utils/duration';
 
-const stepLabel = (m) => {
-  const s = adaptiveStep(m);
-  return s >= 60 ? `${s / 60} hr steps` : `${s} min steps`;
-};
-
-// A duration control: - / value / + adaptive stepper, quick chips, and a tap-to-
-// open hours+minutes wheel for exact values. Shared by reminders + workouts.
+// A duration control: big value with - / + adaptive steppers, tap the value
+// for an exact hours+minutes wheel, and a row of quick picks underneath.
+// Shared by reminders + workouts.
 const DurationField = ({ value = 30, onChange, accent }) => {
   const { theme, isDark } = useTheme();
   const acc = accent || theme.primary;
-  const inputBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)';
+  const hairline = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
   const [showWheel, setShowWheel] = useState(false);
   const durationAsDate = new Date(2000, 0, 1, Math.floor(value / 60), value % 60, 0);
 
   const set = (m) => onChange?.(clampDuration(m));
   const bump = (dir) => { hapticFeedback.selection(); set(stepDuration(value, dir)); };
+  const chipLabel = (m) => (m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} hr` : `${Math.floor(m / 60)} hr ${m % 60}`);
 
   return (
     <View>
-      <View style={[styles.stepperRow, { backgroundColor: inputBg, borderColor: theme.border }]}>
-        <TouchableOpacity onPress={() => bump(-1)} style={[styles.stepBtn, { borderColor: theme.border }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <MaterialIcons name="remove" size={22} color={acc} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.valueWrap} onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} activeOpacity={0.7}>
+      <View style={styles.row}>
+        <TouchableOpacity
+          style={styles.valueWrap}
+          onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Duration ${formatDuration(value)}`}
+          accessibilityHint="Opens an exact hours and minutes picker"
+        >
           <Text style={[styles.value, { color: theme.text }]}>{formatDuration(value)}</Text>
-          <Text style={[styles.hint, { color: acc }]}>{showWheel ? 'done' : 'tap to set exact'}</Text>
+          <Text style={[styles.hint, { color: showWheel ? acc : theme.textSecondary }]}>{showWheel ? 'Done' : 'Tap to set exactly'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => bump(1)} style={[styles.stepBtn, { borderColor: theme.border }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <MaterialIcons name="add" size={22} color={acc} />
-        </TouchableOpacity>
+        <View style={styles.steppers}>
+          <TouchableOpacity onPress={() => bump(-1)} style={[styles.stepBtn, { borderColor: hairline }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Shorter">
+            <MaterialIcons name="remove" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => bump(1)} style={[styles.stepBtn, { borderColor: hairline }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Longer">
+            <MaterialIcons name="add" size={20} color={theme.text} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {showWheel && Platform.OS === 'ios' && (
-        <View style={[styles.wheelCard, { backgroundColor: inputBg, borderColor: theme.border }]}>
+        <View style={[styles.wheel, { borderColor: hairline }]}>
           <DateTimePicker
             value={durationAsDate}
             mode="countdown"
@@ -70,11 +75,14 @@ const DurationField = ({ value = 30, onChange, accent }) => {
             <TouchableOpacity
               key={m}
               onPress={() => { hapticFeedback.light(); set(m); }}
-              style={[styles.chip, { backgroundColor: active ? acc + '20' : inputBg, borderColor: active ? acc : theme.border }]}
+              style={styles.chip}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
             >
-              <Text style={[styles.chipText, { color: active ? acc : theme.textSecondary }]}>
-                {m < 60 ? `${m}m` : m % 60 === 0 ? `${m / 60}h` : `${Math.floor(m / 60)}h${m % 60}`}
+              <Text style={[styles.chipText, { color: active ? theme.text : theme.textSecondary, fontWeight: active ? '800' : '600' }]}>
+                {chipLabel(m)}
               </Text>
+              <View style={[styles.chipBar, { backgroundColor: active ? acc : 'transparent' }]} />
             </TouchableOpacity>
           );
         })}
@@ -84,15 +92,17 @@ const DurationField = ({ value = 30, onChange, accent }) => {
 };
 
 const styles = StyleSheet.create({
-  stepperRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, padding: 8 },
-  stepBtn: { width: 48, height: 48, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  valueWrap: { flex: 1, alignItems: 'center' },
-  value: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
-  hint: { fontSize: 11, fontWeight: '600', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  wheelCard: { borderRadius: 14, borderWidth: 1, marginTop: 10, paddingVertical: 4 },
-  chipsRow: { flexDirection: 'row', gap: 8, marginTop: 12, paddingRight: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, borderWidth: 1 },
-  chipText: { fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  valueWrap: { flex: 1, paddingRight: 12 },
+  value: { fontSize: 30, fontWeight: '800', letterSpacing: -0.7, fontVariant: ['tabular-nums'] },
+  hint: { fontSize: 12.5, fontWeight: '600', marginTop: 2 },
+  steppers: { flexDirection: 'row', gap: 8 },
+  stepBtn: { width: 42, height: 42, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  wheel: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, marginTop: 12, paddingVertical: 4 },
+  chipsRow: { flexDirection: 'row', marginTop: 12, paddingRight: 8 },
+  chip: { paddingTop: 4, marginRight: 18 },
+  chipText: { fontSize: 14, fontVariant: ['tabular-nums'] },
+  chipBar: { height: 2.5, borderRadius: 1.5, marginTop: 6 },
 });
 
 export default DurationField;
