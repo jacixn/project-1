@@ -451,7 +451,7 @@ const MyWeekScreen = ({ navigation }) => {
 
       {/* Move panel */}
       {moving ? (
-        <View style={[styles.panel, { backgroundColor: theme.card || theme.background, borderColor: hairline }]}>
+        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: hairline }]}>
           <View style={styles.panelHead}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={[styles.panelTitle, { color: theme.text }]}>Move {moving.title}</Text>
@@ -490,6 +490,7 @@ const MyWeekScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
+          {!pickOpen ? <View style={{ height: 12 }} /> : null}
           {moving.raw?.type === 'one-time' ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={[styles.chipsRow, { paddingTop: 10 }]}>
               {nextDays.map((d) => {
@@ -586,7 +587,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 17, fontWeight: '800' },
   emptySub: { fontSize: 14, lineHeight: 20, marginTop: 6 },
   footnote: { fontSize: 13, lineHeight: 18, marginTop: 16 },
-  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 34, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: StyleSheet.hairlineWidth, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: -6 } },
+  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: StyleSheet.hairlineWidth, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: -6 } },
   panelHead: { flexDirection: 'row', alignItems: 'flex-start' },
   panelTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
   panelSub: { fontSize: 13, fontWeight: '600', marginTop: 2 },
