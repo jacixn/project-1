@@ -17,6 +17,7 @@ import {
   loadReminderPresets,
   saveReminderPreset,
   deleteReminderPreset,
+  loadHiddenBuiltins,
 } from '../services/reminderService';
 import { DEFAULT_DURATION, formatDuration } from '../utils/duration';
 import ReminderDetailsEditor from './ReminderDetailsEditor';
@@ -31,15 +32,21 @@ const LibrarySheet = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const close = () => navigation.goBack();
   const [userItems, setUserItems] = useState([]);
+  const [hiddenBuiltins, setHiddenBuiltins] = useState([]);
   const [mode, setMode] = useState('grid'); // grid | edit
   const [draft, setDraft] = useState(blankDraft());
   const [editingId, setEditingId] = useState(null); // user-entry id being edited, else null
+  const [editingEntryId, setEditingEntryId] = useState(null); // id of the opened tile (built-in OR user), for delete
 
   const cardBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
   const refresh = useCallback(async () => {
-    try { setUserItems(await loadReminderPresets()); } catch { setUserItems([]); }
+    try {
+      const [items, hidden] = await Promise.all([loadReminderPresets(), loadHiddenBuiltins()]);
+      setUserItems(items);
+      setHiddenBuiltins(hidden);
+    } catch { setUserItems([]); }
   }, []);
 
   useEffect(() => {
@@ -50,6 +57,7 @@ const LibrarySheet = ({ navigation }) => {
     hapticFeedback.light();
     setDraft(blankDraft());
     setEditingId(null);
+    setEditingEntryId(null);
     setMode('edit');
   };
 
@@ -63,6 +71,7 @@ const LibrarySheet = ({ navigation }) => {
       color: entry.color || '#3B82F6',
     });
     setEditingId(entry.builtin ? null : entry.id);
+    setEditingEntryId(entry.id);
     setMode('edit');
   };
 
@@ -75,7 +84,6 @@ const LibrarySheet = ({ navigation }) => {
   };
 
   const confirmDelete = (entry) => {
-    if (entry.builtin) return;
     hapticFeedback.medium();
     Alert.alert('Delete reminder', `Remove "${entry.title}" from your library?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -89,13 +97,13 @@ const LibrarySheet = ({ navigation }) => {
   };
 
   const deleteFromEditor = async () => {
-    if (!editingId) return;
+    if (!editingEntryId) return;
     hapticFeedback.medium();
     Alert.alert('Delete reminder', `Remove "${draft.title}" from your library?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
-          await deleteReminderPreset(editingId);
+          await deleteReminderPreset(editingEntryId);
           await refresh();
           setMode('grid');
         },
@@ -108,7 +116,9 @@ const LibrarySheet = ({ navigation }) => {
   // than leaving two identically-named tiles.
   const userTitles = new Set(userItems.map((u) => (u.title || '').trim().toLowerCase()));
   const entries = [
-    ...BUILTIN_REMINDER_PRESETS.filter((b) => !userTitles.has((b.title || '').trim().toLowerCase())),
+    ...BUILTIN_REMINDER_PRESETS.filter(
+      (b) => !userTitles.has((b.title || '').trim().toLowerCase()) && !hiddenBuiltins.includes(b.id)
+    ),
     ...userItems,
   ];
 
@@ -132,7 +142,7 @@ const LibrarySheet = ({ navigation }) => {
             {formatDuration(entry.duration ?? DEFAULT_DURATION)}{entry.builtin ? ' · Built-in' : ''}
           </Text>
         </View>
-        <MaterialIcons name="edit" size={18} color={theme.textTertiary} />
+        {!entry.builtin && <MaterialIcons name="edit" size={18} color={theme.textTertiary} />}
       </TouchableOpacity>
     );
   };
@@ -171,7 +181,7 @@ const LibrarySheet = ({ navigation }) => {
       ) : (
         <>
           <SheetHeader
-            title={editingId ? 'Edit reminder' : 'New reminder'}
+            title={editingEntryId ? 'Edit reminder' : 'New reminder'}
             leftLabel="Back"
             onLeft={() => setMode('grid')}
             rightLabel="Save"
@@ -180,7 +190,7 @@ const LibrarySheet = ({ navigation }) => {
           />
           <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <ReminderDetailsEditor value={draft} onChange={setDraft} autoFocus={!editingId} />
-            {editingId ? (
+            {editingEntryId ? (
               <TouchableOpacity onPress={deleteFromEditor} style={styles.deleteBtn}>
                 <MaterialIcons name="delete-outline" size={18} color={theme.error || '#EF4444'} />
                 <Text style={[styles.deleteText, { color: theme.error || '#EF4444' }]}>Delete from library</Text>

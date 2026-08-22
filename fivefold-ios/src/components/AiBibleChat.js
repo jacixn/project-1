@@ -18,7 +18,7 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -233,6 +233,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const [userName, setUserName] = useState('Friend');
   const [nameLoaded, setNameLoaded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
@@ -1485,7 +1486,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
   const content = (
     <>
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}>
+        <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: theme.background || (isDark ? '#000000' : '#FFFFFF') }]}>
           
           <View style={styles.chatContainer}>
           {/* Messages */}
@@ -1530,11 +1531,12 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
           </ScrollView>
         </View>
 
-        {/* Input Area - Fixed at bottom with keyboard avoidance */}
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
+        {/* Input Area — lifted by the measured keyboard height. The old
+            KeyboardAvoidingView mis-measured inside the native-stack modal
+            (asScreen) and left the input hidden behind the keyboard; using the
+            keyboardWillShow height directly is exact. Bottom safe-area inset is
+            dropped above (edges) and handled here so there's no double gap. */}
+        <View style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom }}>
           <View style={[
             styles.inputContainer, 
             { 
@@ -1673,7 +1675,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
               </View>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
 
       {/* Image Picker Modal for Android */}

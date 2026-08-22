@@ -17,6 +17,7 @@ import { hapticFeedback } from '../utils/haptics';
 import {
   BUILTIN_REMINDER_PRESETS,
   loadReminderPresets,
+  loadHiddenBuiltins,
   saveReminderPreset,
   addReminder,
   updateReminder,
@@ -64,6 +65,7 @@ const ScheduleReminderModal = ({ navigation, route }) => {
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [time, setTime] = useState({ hour: 8, minute: 0 });
   const [userItems, setUserItems] = useState([]);
+  const [hiddenBuiltins, setHiddenBuiltins] = useState([]);
 
   const inputBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)';
   const cardBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
@@ -72,6 +74,7 @@ const ScheduleReminderModal = ({ navigation, route }) => {
   // Runs once on mount — the screen is presented fresh each time.
   useEffect(() => {
     loadReminderPresets().then(setUserItems).catch(() => setUserItems([]));
+    loadHiddenBuiltins().then(setHiddenBuiltins).catch(() => setHiddenBuiltins([]));
 
     if (editingReminder) {
       const r = editingReminder;
@@ -325,7 +328,9 @@ const ScheduleReminderModal = ({ navigation, route }) => {
   // Hide a built-in when the user saved a same-titled customized copy of it.
   const userTitleSet = new Set(userItems.map((u) => (u.title || '').trim().toLowerCase()));
   const pickEntries = [
-    ...BUILTIN_REMINDER_PRESETS.filter((b) => !userTitleSet.has((b.title || '').trim().toLowerCase())),
+    ...BUILTIN_REMINDER_PRESETS.filter(
+      (b) => !userTitleSet.has((b.title || '').trim().toLowerCase()) && !hiddenBuiltins.includes(b.id)
+    ),
     ...userItems,
   ];
 

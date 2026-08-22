@@ -134,7 +134,7 @@ const HabitsCard = ({
             Start a Habit
           </Text>
           <Text style={[styles.subtitle, { color: textSecondaryColor }]}>
-            Track your progress daily — build streaks and stay consistent
+            Track your progress daily. Build streaks and stay consistent
           </Text>
         </View>
         <MaterialIcons name="chevron-right" size={24} color={textSecondaryColor} />

@@ -93,6 +93,7 @@ import { getDailyVerse, refetchDailyVerseInNewVersion } from '../utils/dailyVers
 import AchievementService from '../services/achievementService';
 import { addSeasonalPoints } from '../services/seasonService';
 import { pushToCloud } from '../services/userSyncService';
+import OverlayModal from '../components/OverlayModal';
 
 // Prayer times are now user-configurable - no hardcoded defaults
 
@@ -1565,7 +1566,7 @@ const BiblePrayerTab = () => {
       )}
 
       {/* Verse of the Day Modal */}
-      <Modal
+      <OverlayModal
         visible={showVerseModal}
         transparent={true}
         animationType="none"
@@ -2001,7 +2002,7 @@ const BiblePrayerTab = () => {
             </BlurView>
           </Animated.View>
         </View>
-      </Modal>
+      </OverlayModal>
 
       {/* Share Card Modal */}
       {showShareCard && (

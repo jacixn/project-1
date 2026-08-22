@@ -15,6 +15,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { FullWindowOverlay } from 'react-native-screens';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 
@@ -200,8 +201,7 @@ const AchievementToast = forwardRef((props, ref) => {
   const totalPoints = achievements.reduce((sum, a) => sum + (a.points || 0), 0);
   const isSingle = achievements.length === 1;
 
-  return (
-    <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
+  const inner = (
       <Animated.View style={[st.backdrop, { opacity: backdropOpacity }]}>
         {/* Full-screen dismiss target */}
         <TouchableWithoutFeedback onPress={dismiss}>
@@ -385,13 +385,31 @@ const AchievementToast = forwardRef((props, ref) => {
           </View>
         </TouchableWithoutFeedback>
       </Animated.View>
+  );
+
+  // iOS: render via FullWindowOverlay (react-native-screens) instead of RN <Modal>.
+  // RN <Modal> presents a UIViewController on top of whatever is frontmost; when
+  // that frontmost thing is a native-stack modal mid pull-down dismissal, UIKit
+  // ends up with two conflicting in-flight transitions and the app freezes
+  // (orphaned presentation swallows all touches). FullWindowOverlay attaches its
+  // container as a topmost subview of the key window (RNSFullWindowOverlay.mm) —
+  // it never calls presentViewController, so it cannot conflict with native
+  // modal transitions. Caveat: a native modal presented AFTER this overlay is
+  // visible will cover it (subview z-order), so show-then-navigate flows should
+  // dismiss the toast first.
+  if (Platform.OS === 'ios') {
+    return <FullWindowOverlay>{inner}</FullWindowOverlay>;
+  }
+  return (
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
+      {inner}
     </Modal>
   );
 });
 
 const st = StyleSheet.create({
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',

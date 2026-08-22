@@ -60,11 +60,48 @@ export const saveReminderPreset = async ({ id, title, icon, color, duration }) =
   return newPreset;
 };
 
+// Built-ins live in a constant, so "deleting" one can't just drop a stored row —
+// it would re-appear from the constant next load. Instead we tombstone its id in
+// a synced hidden list. Custom entries are still removed from storage.
+const HIDDEN_BUILTINS_KEY = 'reminder_hidden_builtins';
+
+export const loadHiddenBuiltins = async () => {
+  try {
+    const data = await getStoredData(HIDDEN_BUILTINS_KEY);
+    return Array.isArray(data?.ids) ? data.ids : [];
+  } catch { return []; }
+};
+
+const saveHiddenBuiltins = async (ids) => {
+  await saveData(HIDDEN_BUILTINS_KEY, { ids });
+  pushToCloud(HIDDEN_BUILTINS_KEY, { ids });
+};
+
+export const hideBuiltin = async (id) => {
+  const ids = await loadHiddenBuiltins();
+  if (!ids.includes(id)) await saveHiddenBuiltins([...ids, id]);
+};
+
+// Bring every built-in back (for a "Restore built-ins" affordance).
+export const restoreBuiltins = async () => { await saveHiddenBuiltins([]); };
+
 export const deleteReminderPreset = async (id) => {
   const presets = await loadReminderPresets();
+  const target = presets.find(p => p.id === id);
+  const title = (target?.title || '').trim().toLowerCase();
+  // Tombstone the built-in this tile represents: either the id IS a built-in, or
+  // it's a user copy sharing a built-in's title (editing a built-in forks such a
+  // copy) — hide the built-in so deleting the tile removes it for good.
+  const builtinMatch = BUILTIN_REMINDER_PRESETS.find(
+    b => b.id === id || (title && (b.title || '').trim().toLowerCase() === title)
+  );
+  if (builtinMatch) await hideBuiltin(builtinMatch.id);
+  // Drop any stored user entry with this id.
   const updated = presets.filter(p => p.id !== id);
-  await saveData(PRESETS_KEY, { presets: updated });
-  pushToCloud(PRESETS_KEY, { presets: updated });
+  if (updated.length !== presets.length) {
+    await saveData(PRESETS_KEY, { presets: updated });
+    pushToCloud(PRESETS_KEY, { presets: updated });
+  }
 };
 
 // Friendly aliases — the "library" vocabulary the new UI speaks.

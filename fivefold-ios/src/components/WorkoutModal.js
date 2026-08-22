@@ -33,6 +33,7 @@ import ExercisesModal from './ExercisesModal';
 import WorkoutExercisePicker from './WorkoutExercisePicker';
 import WorkoutService from '../services/workoutService';
 import WorkoutCompletionModal from './WorkoutCompletionModal';
+import OverlayModal from './OverlayModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -2303,7 +2304,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null, asScreen = false,
         </Modal>
 
         {/* Rest Complete Modal */}
-        <Modal
+        <OverlayModal
           visible={showRestComplete}
           transparent
           animationType="fade"
@@ -2341,7 +2342,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null, asScreen = false,
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </OverlayModal>
 
         {/* Finish Confirmation Modal */}
         <Modal

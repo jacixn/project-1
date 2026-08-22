@@ -94,6 +94,7 @@ import VoicePickerModal from '../components/VoicePickerModal';
 import AchievementService from '../services/achievementService';
 import JournalCalendar from '../components/JournalCalendar';
 import WorkoutService from '../services/workoutService';
+import OverlayModal from '../components/OverlayModal';
 
 
 // Animated Profile Card Components (follows Rules of Hooks)
@@ -8545,7 +8546,7 @@ const ProfileTab = () => {
       )}
 
       {/* Streak Screen Overlay */}
-      <Modal
+      <OverlayModal
         visible={showStreakMilestone}
         transparent={true}
         animationType="fade"
@@ -8764,7 +8765,7 @@ const ProfileTab = () => {
             </Animated.View>
           </View>
         </BlurView>
-      </Modal>
+      </OverlayModal>
 
     </View>
     </AnimatedWallpaper>

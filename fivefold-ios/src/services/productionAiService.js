@@ -5,24 +5,130 @@ import { Alert } from 'react-native';
 import { DEEPSEEK_CONFIG } from '../../deepseek.config';
 import aiRateLimiter from '../utils/aiRateLimiter';
 
-// Helper to perform a Deepseek request with primary key, then fallback on 401
+// Chat request with provider chain: Gemini free tier first (working key in
+// gemini.config.js), then Deepseek/OpenRouter keys as fallback.
+// All callers expect an OpenAI-shaped response ({ choices[0].message.content })
+// with .ok/.status/.json()/.text() — the Gemini path adapts to that shape so
+// no call site has to change.
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const isOpenRouterKey = (key) => typeof key === 'string' && key.startsWith('sk-or-');
+
+let GEMINI_KEY = null;
+try {
+  const gc = require('../../gemini.config').GEMINI_CONFIG;
+  if (gc && gc.apiKey && gc.apiKey !== 'YOUR_GEMINI_API_KEY_HERE') GEMINI_KEY = gc.apiKey;
+} catch (e) {
+  // gemini.config.js not present — chain falls through to Deepseek keys
+}
+
+// Convert an OpenAI-style chat body to a Gemini generateContent call and wrap
+// the result back into OpenAI shape. Returns null on any failure so the chain
+// can continue to the next provider.
+async function geminiChatAttempt(parsedBody, model) {
+  try {
+    const systemParts = [];
+    const contents = [];
+    for (const m of parsedBody.messages || []) {
+      if (!m || !m.content) continue;
+      if (m.role === 'system') {
+        systemParts.push({ text: m.content });
+      } else {
+        contents.push({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] });
+      }
+    }
+    if (contents.length === 0) return null;
+
+    const body = {
+      contents,
+      generationConfig: {
+        temperature: typeof parsedBody.temperature === 'number' ? parsedBody.temperature : 0.7,
+        maxOutputTokens: parsedBody.max_tokens || 2048,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    };
+    if (systemParts.length) body.systemInstruction = { parts: systemParts };
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        timeout: 20000,
+      }
+    );
+    if (!res.ok) {
+      console.warn(`[AI] Gemini ${model} error: ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    let text = '';
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (parts[i].text && !parts[i].thought) { text = parts[i].text; break; }
+    }
+    if (!text) return null;
+
+    const openAiShape = { choices: [{ message: { role: 'assistant', content: text } }] };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => openAiShape,
+      text: async () => JSON.stringify(openAiShape),
+    };
+  } catch (e) {
+    console.warn(`[AI] Gemini ${model} attempt failed:`, e.message);
+    return null;
+  }
+}
+
 async function deepseekFetchWithFallback(body) {
+  // ── 1) Gemini free tier (primary) ──
+  if (GEMINI_KEY) {
+    let parsed = null;
+    try { parsed = JSON.parse(body); } catch (e) {}
+    if (parsed) {
+      let geminiRes = await geminiChatAttempt(parsed, 'gemini-2.5-flash');
+      if (!geminiRes) {
+        // Rate limited or failed — try the lighter model before giving up
+        geminiRes = await geminiChatAttempt(parsed, 'gemini-2.5-flash-lite');
+      }
+      if (geminiRes) return geminiRes;
+      console.warn('[AI] Gemini chain exhausted, falling back to Deepseek keys...');
+    }
+  }
+
+  // ── 2) Deepseek / OpenRouter keys (fallback) ──
   const makeRequest = async (key) => {
-    return fetch(DEEPSEEK_CONFIG.apiUrl, {
+    const useOpenRouter = isOpenRouterKey(key);
+    let requestBody = body;
+    if (useOpenRouter) {
+      // OpenRouter namespaces models: 'deepseek-chat' -> 'deepseek/deepseek-chat'
+      try {
+        const parsed = JSON.parse(body);
+        if (parsed.model && !parsed.model.includes('/')) {
+          parsed.model = `deepseek/${parsed.model}`;
+        }
+        requestBody = JSON.stringify(parsed);
+      } catch (e) {
+        // Body not JSON — send as-is
+      }
+    }
+    return fetch(useOpenRouter ? OPENROUTER_URL : DEEPSEEK_CONFIG.apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${key}`,
         'Content-Type': 'application/json',
       },
-      body,
+      body: requestBody,
       timeout: 15000, // 15s timeout
     });
   };
 
-  // Try primary
   let response = await makeRequest(DEEPSEEK_CONFIG.apiKey);
-  if (response.status === 401 && DEEPSEEK_CONFIG.fallbackApiKey) {
-    console.warn('Deepseek 401 with primary key, retrying with fallback key...');
+  const shouldFallback = [401, 402, 403].includes(response.status);
+  if (shouldFallback && DEEPSEEK_CONFIG.fallbackApiKey) {
+    console.warn(`AI chat ${response.status} with primary key, retrying with fallback key...`);
     response = await makeRequest(DEEPSEEK_CONFIG.fallbackApiKey);
   }
   return response;

@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { calculateVisionPoints } from '../services/visionService';
+import OverlayModal from './OverlayModal';
 
 const { width, height } = Dimensions.get('window');
 const CONFETTI_COUNT = 18;
@@ -221,7 +222,7 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
   const dividerColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
+    <OverlayModal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={phase !== 'ask' ? handleDismiss : undefined} />
 
@@ -369,7 +370,7 @@ const VisionCompletionModal = ({ visible, vision, onAchieved, onNotAchieved, onC
           </BlurView>
         </Animated.View>
       </Animated.View>
-    </Modal>
+    </OverlayModal>
   );
 };
 
