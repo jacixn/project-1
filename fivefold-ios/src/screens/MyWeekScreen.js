@@ -83,7 +83,9 @@ const MyWeekScreen = ({ navigation }) => {
   const today = new Date();
   const isTodaySelected = sameDay(anchor, today);
   const nowMin = isTodaySelected ? new Date(nowTick).getHours() * 60 + new Date(nowTick).getMinutes() : null;
-  const layout = useMemo(() => layoutDay(visible, { nowMin, pxPerHour }), [visible, nowMin, pxPerHour]);
+  const cardAreaLeftEst = 56 + 6 + 10 * 2; // refined below once rails are known; only affects maxCols
+  const maxCols = Math.max(1, Math.floor(Math.max(0, timelineW - cardAreaLeftEst - 20) / COL_MIN_W));
+  const layout = useMemo(() => layoutDay(visible, { nowMin, pxPerHour, maxCols }), [visible, nowMin, pxPerHour, maxCols]);
   // Card area. Each overlap group sizes itself: a lone item takes the whole
   // width, two things share it, and only a band with more columns than fit
   // at a readable width scrolls sideways, just that band, everything else
@@ -92,14 +94,10 @@ const MyWeekScreen = ({ navigation }) => {
   const cardAreaW = Math.max(0, timelineW - cardAreaLeft);
   const groupWidths = useMemo(() => {
     const out = {};
-    for (const g of layout.groups || []) {
-      const scroll = g.cols * COL_MIN_W > cardAreaW;
-      out[g.index] = { scroll, colW: scroll ? COL_MIN_W : cardAreaW / g.cols, contentW: scroll ? g.cols * COL_MIN_W : cardAreaW };
-    }
+    for (const g of layout.groups || []) out[g.index] = { colW: cardAreaW / Math.max(1, g.cols) };
     return out;
   }, [layout.groups, cardAreaW]);
-  const scrollGroups = (layout.groups || []).filter((g) => groupWidths[g.index]?.scroll);
-  const sideScroll = scrollGroups.length > 0;
+  const sideScroll = false;
   const renderCard = (c, originY) => {
     const it = c.item;
     const isMoving = moving && moving.id === it.id;
@@ -117,7 +115,7 @@ const MyWeekScreen = ({ navigation }) => {
           height: c.h,
           left: Math.round(c.col * colW),
           width: Math.max(0, Math.round(colW) - (c.cols > 1 ? 6 : 0)),
-          backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile,
+          backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : (c.stacked ? it.color + (isDark ? '24' : '1C') : tile),
           borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'),
           alignItems: c.proportional ? 'flex-start' : 'center',
           paddingTop: c.proportional ? 8 : 0,
@@ -356,21 +354,9 @@ const MyWeekScreen = ({ navigation }) => {
                 )
               ))}
             </View>
-            {/* Cards: fixed ones directly, crowded bands in their own sideways scroller */}
+            {/* Cards: columns when they fit, a stacked band when a slot is too crowded */}
             <View style={[styles.cardArea, { left: cardAreaLeft }]}>
-              {layout.cards.filter((c) => c.group == null || !groupWidths[c.group]?.scroll).map((c) => renderCard(c, 0))}
-              {scrollGroups.map((g) => (
-                <ScrollView
-                  key={`g${g.index}`}
-                  horizontal
-                  showsHorizontalScrollIndicator
-                  nestedScrollEnabled
-                  style={{ position: 'absolute', left: 0, right: 0, top: g.y, height: g.h }}
-                  contentContainerStyle={{ width: groupWidths[g.index].contentW, height: g.h }}
-                >
-                  {layout.cards.filter((c) => c.group === g.index).map((c) => renderCard(c, g.y))}
-                </ScrollView>
-              ))}
+              {layout.cards.map((c) => renderCard(c, 0))}
             </View>
             {layout.nowY != null ? (
               <View style={[styles.nowRow, { top: layout.nowY }]} pointerEvents="none">
@@ -383,7 +369,7 @@ const MyWeekScreen = ({ navigation }) => {
           </GestureHandlerRootView>
         ) : null}
         {view === 'timeline' && !loading && visible.length > 0 ? (
-          <Text style={[styles.zoomHint, { color: theme.textSecondary }]}>{sideScroll ? 'Swipe sideways where several things happen at once. ' : ''}Pinch to zoom in to the minutes, or use the − and + buttons. Double tap to reset.</Text>
+          <Text style={[styles.zoomHint, { color: theme.textSecondary }]}>Pinch to zoom in to the minutes, or use the − and + buttons. Double tap to reset. When several things happen at once they stack in time order.</Text>
         ) : null}
 
         {/* List */}
