@@ -5,7 +5,7 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'components', 'TemplateSe
 const home = src.slice(src.indexOf('const content = ('), src.indexOf('{/* Create Template Modal */}'));
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
-check(!/borderRadius: 14,\s*backgroundColor: isDark \? 'rgba\(255,255,255,0\.08\)'/.test(home), 'back button has no tinted backing');
+check(/width: 44,\s*height: 44,\s*borderRadius: 14,[\s\S]{0,160}backgroundColor: isDark \? 'rgba\(255,255,255,0\.08\)' : 'rgba\(0,0,0,0\.04\)'/.test(home), 'back button is the 44pt tile used by the Fuel header');
 check(/heroButton/.test(home) && /Start an empty workout/.test(home), 'hero start button');
 check(/scheduledOn\(await WorkoutService\.getScheduledWorkouts\(\)/.test(src) && /Nothing scheduled today/.test(home) && /todayPlan\.map/.test(home), 'Today block from the real schedule');
 check(!/chevron-right/.test(home), 'no chevrons on rows');

@@ -854,16 +854,26 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
 
   const content = (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Static back glyph (no backing) */}
+        {/* Back button, same tile as the Fuel header */}
         <TouchableOpacity
-          style={{ position: 'absolute', top: insets.top + 14, left: 18, zIndex: 10, padding: 4 }}
+          style={{
+            position: 'absolute',
+            top: insets.top + 8,
+            left: 20,
+            zIndex: 10,
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+          }}
           onPress={() => { hapticFeedback.light(); onClose(); }}
-          activeOpacity={0.6}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+          <MaterialIcons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
 
         <ScrollView
