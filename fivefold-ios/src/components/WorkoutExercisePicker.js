@@ -177,6 +177,52 @@ const WorkoutExercisePicker = ({ visible, onClose, onSelectExercise }) => {
 
   const combinedTranslateY = Animated.add(modalTranslateY, panY);
 
+  // Filter + group ONCE per input change (was recomputed on every render,
+  // including every scroll tick), shaped as SectionList sections.
+  const sections = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const groups = {};
+    for (const exercise of exercises) {
+      if (q && !exercise.name.toLowerCase().includes(q)) continue;
+      if (selectedBodyPart !== 'Any Body Part' && exercise.bodyPart !== selectedBodyPart) continue;
+      if (selectedCategory !== 'Any Category' && exercise.category !== selectedCategory) continue;
+      const letter = (exercise.name[0] || '#').toUpperCase();
+      (groups[letter] = groups[letter] || []).push(exercise);
+    }
+    return Object.keys(groups).sort().map((title) => ({ title, data: groups[title] }));
+  }, [exercises, searchQuery, selectedBodyPart, selectedCategory]);
+
+  const handleSelect = useCallback((exercise) => {
+    hapticFeedback.medium();
+    onSelectExercise(exercise);
+    handleClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onSelectExercise]);
+
+  const renderItem = useCallback(({ item }) => (
+    <ExerciseRow exercise={item} theme={theme} onSelect={handleSelect} />
+  ), [theme, handleSelect]);
+  const renderSectionHeader = useCallback(({ section }) => (
+    <Text style={[styles.sectionLetter, { color: theme.textSecondary, backgroundColor: theme.background }]}>{section.title}</Text>
+  ), [theme]);
+  const keyExtractor = useCallback((item) => String(item.id), []);
+  // Fixed row/header heights so jumps to a letter are exact without measuring.
+  const getItemLayout = useCallback((data, index) => {
+    let offset = 0;
+    let i = 0;
+    for (const sec of data || []) {
+      if (i === index) return { length: HEADER_H, offset, index };
+      i += 1; offset += HEADER_H;
+      for (let k = 0; k < sec.data.length; k++) {
+        if (i === index) return { length: ITEM_H, offset, index };
+        i += 1; offset += ITEM_H;
+      }
+      if (i === index) return { length: 0, offset, index }; // section footer
+      i += 1;
+    }
+    return { length: ITEM_H, offset, index };
+  }, []);
+
   const scrollToLetter = (letter) => {
     hapticFeedback.light();
     const sectionIndex = sections.findIndex((sec) => sec.title === letter);
