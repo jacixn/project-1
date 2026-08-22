@@ -51,7 +51,7 @@ check(/c\.title !== BIBLELY_CAL/.test(busySrc) && /getPrayers\(\)/.test(busySrc)
 check(/String\(s\.id\) === String\(excludeGymId\)/.test(busySrc), 'the workout being edited is excluded');
 
 // picker + timeline + modal
-check(/TIME_PRESETS/.test(picker) && /Set an exact time/.test(picker) && /Back to free times/.test(picker), 'quick picks, exact wheel, timeline behind a link');
+check(!/TIME_PRESETS|Quick pick/.test(picker) && /Set an exact time/.test(picker) && /Back to free times/.test(picker), 'no quick picks; exact wheel and timeline behind a button');
 check(/hapticFeedback\.error\(\); shake\(\)/.test(picker) && /onLongPress=\{longPress\}/.test(picker), 'too-short gaps refuse with haptic + shake; hold forces past tiny blockers');
 check(/clashFor\(selMin, durationMinutes, busy\)/.test(picker), 'picker warns about overlaps for the chosen time');
 check(!/numberOfLines/.test(picker), 'nothing truncates');

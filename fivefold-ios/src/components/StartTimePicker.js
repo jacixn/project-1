@@ -9,19 +9,10 @@ import { computeDayFlow, fmtFlowTime, clashFor } from '../utils/dayFlow';
 import { loadBusyForDate } from '../utils/dayBusy';
 import DayTimeline from './DayTimeline';
 
-// Picking a start time without dragging: quick picks for the usual times of
-// day, then the day itself as a list where every free gap is a tap target
+// Picking a start time without dragging: the day itself as a list where every free gap is a tap target
 // that says whether the workout fits, an exact wheel, and the drag timeline
 // only for people who want it. Same onPick(hour, minute) contract as
 // DayTimeline so callers swap without changes.
-export const TIME_PRESETS = [
-  { label: 'Early', min: 6 * 60 },
-  { label: 'Morning', min: 7 * 60 + 30 },
-  { label: 'Midday', min: 12 * 60 + 30 },
-  { label: 'Afternoon', min: 15 * 60 },
-  { label: 'Evening', min: 18 * 60 },
-  { label: 'Night', min: 20 * 60 + 30 },
-];
 
 const FreeRow = ({ row, active, theme, accent, tile, onPick }) => {
   const shakeX = useSharedValue(0);
@@ -141,27 +132,6 @@ const StartTimePicker = ({
     <ScrollView style={styles.fill} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
       {clash ? <Text style={[styles.clash, { color: theme.warning || '#F59E0B' }]}>{clash}. Pick a free time below or keep it anyway.</Text> : null}
 
-      <Text style={[styles.kicker, { color: theme.textSecondary }]}>Quick pick</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presets} keyboardShouldPersistTaps="handled">
-        {TIME_PRESETS.map((p) => {
-          const active = selMin === p.min;
-          return (
-            <TouchableOpacity
-              key={p.label}
-              onPress={() => { hapticFeedback.light(); pick(p.min); }}
-              style={[styles.preset, { backgroundColor: active ? accent : tile }]}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={`${p.label}, ${fmtFlowTime(p.min)}`}
-            >
-              <Text style={[styles.presetLabel, { color: active ? '#FFFFFF' : theme.text }]}>{p.label}</Text>
-              <Text style={[styles.presetTime, { color: active ? 'rgba(255,255,255,0.9)' : theme.textSecondary }]}>{fmtFlowTime(p.min)}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
       <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} style={[styles.exactBtn, { borderColor: accent, backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button">
         <MaterialIcons name="schedule" size={18} color={accent} />
         <Text style={[styles.link, { color: accent }]}>{showWheel ? 'Done' : 'Set an exact time'}</Text>
@@ -208,11 +178,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   kicker: { fontSize: 14, fontWeight: '600' },
   clash: { fontSize: 14, fontWeight: '600', lineHeight: 20, marginBottom: 14 },
-  presets: { flexDirection: 'row', paddingRight: 8, marginTop: 10 },
-  preset: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, marginRight: 8, minWidth: 86 },
-  presetLabel: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
-  presetTime: { fontSize: 13, fontWeight: '600', marginTop: 2, fontVariant: ['tabular-nums'] },
-  exactBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5, marginTop: 14 },
+  exactBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5 },
   smallBtn: { height: 36, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, justifyContent: 'center' },
   link: { fontSize: 15, fontWeight: '800' },
   wheel: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, marginTop: 10, paddingVertical: 4 },
