@@ -2,15 +2,87 @@
 // one-time items, a new date) through the service that owns it, so storage,
 // notifications, cloud and the iPhone Calendar mirror all follow.
 import { DeviceEventEmitter } from 'react-native';
+import * as Calendar from 'expo-calendar';
 import { updatePrayer } from './simplePrayersService';
 import { updateReminder } from './reminderService';
 import WorkoutService from './workoutService';
 import { scheduleWorkoutNotifications } from './workoutSchedule';
 
+// Calendar-sourced items (EyeCandy, EyeCandy Sports, other writable iPhone
+// calendars) are moved in the iPhone Calendar itself. EyeCandy reads its own
+// events back on its next launch (calendarSync.adoptCalendarChanges), so the
+// Calendar is the shared truth between the two apps.
+const CALENDAR_KINDS = new Set(['eyecandy', 'eyecandySports', 'calendar']);
+
+// New start/end for a calendar event moved to `to`, keeping its length. A
+// repeating event keeps its date (only the time moves); a one-time one may
+// change day. Pure, so it is selftested.
+export const calendarMoveDates = (raw, to) => {
+  const start = new Date(raw.startDate);
+  const end = new Date(raw.endDate);
+  const lengthMs = Math.max(60000, end.getTime() - start.getTime());
+  const [hh, mm] = String(to.time).split(':').map(Number);
+  const next = new Date(start);
+  if (to.date && !raw.recurring) {
+    const [y, m, d] = to.date.split('-').map(Number);
+    next.setFullYear(y, m - 1, d);
+  }
+  next.setHours(hh, mm, 0, 0);
+  return { startDate: next, endDate: new Date(next.getTime() + lengthMs) };
+};
+
+// expo-calendar's native update writes title, notes, location, alarms, allDay
+// and availability unconditionally, so a bare { startDate, endDate } would
+// blank the event. Carry the current values across. The recurrence rule is
+// only sent when the whole series moves; leaving it out keeps the rule as is.
+export const calendarMoveDetails = (ev, dates, series) => ({
+  title: (ev && ev.title) || '',
+  ...(ev && ev.notes != null ? { notes: ev.notes } : {}),
+  ...(ev && ev.location ? { location: ev.location } : {}),
+  ...(ev && ev.url ? { url: ev.url } : {}),
+  alarms: Array.isArray(ev && ev.alarms) ? ev.alarms : [],
+  allDay: !!(ev && ev.allDay),
+  ...(ev && ev.availability ? { availability: ev.availability } : {}),
+  ...(ev && ev.timeZone ? { timeZone: ev.timeZone } : {}),
+  ...(series && ev && ev.recurrenceRule ? { recurrenceRule: ev.recurrenceRule } : {}),
+  startDate: dates.startDate,
+  endDate: dates.endDate,
+});
+
+// How a repeating calendar event is edited: EyeCandy's weekly slots are one
+// rule (weekday + time), so the whole series moves and EyeCandy adopts it.
+// Other calendars get the safe default, this occurrence only.
+export const calendarMoveOptions = (kind, raw) => {
+  if (!raw.recurring) return undefined;
+  return kind === 'calendar'
+    ? { futureEvents: false, instanceStartDate: new Date(raw.startDate) }
+    : { futureEvents: true };
+};
+
 // item: from utils/dayItems; to: { time: 'HH:MM', date?: 'YYYY-MM-DD' }
 export const moveItem = async (item, to) => {
   if (!item || !item.movable || !to?.time) return false;
   const raw = item.raw || {};
+  if (CALENDAR_KINDS.has(item.kind) && raw.eventId) {
+    const dates = calendarMoveDates(raw, to);
+    const options = calendarMoveOptions(item.kind, raw);
+    const series = !!(options && options.futureEvents);
+    let ev = null;
+    try {
+      ev = await Calendar.getEventAsync(raw.eventId, options && options.instanceStartDate ? { instanceStartDate: options.instanceStartDate } : undefined);
+    } catch {}
+    if (!ev) throw new Error('That event is no longer in your Calendar.');
+    const details = calendarMoveDetails(ev, dates, series);
+    try {
+      await Calendar.updateEventAsync(raw.eventId, details, options);
+    } catch (e) {
+      // An unusual time zone id is the one field iOS rejects; retry without it.
+      if (!details.timeZone) throw e;
+      const { timeZone, ...rest } = details;
+      await Calendar.updateEventAsync(raw.eventId, rest, options);
+    }
+    return true;
+  }
   const oneTime = raw.type === 'one-time';
   if (item.kind === 'prayer') {
     await updatePrayer(raw.id, { ...raw, time: to.time, date: oneTime ? (to.date || raw.date) : null });

@@ -17,9 +17,10 @@ import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, r
 import { moveItem } from '../services/rescheduleItem';
 
 // My Week: everything scheduled, from every source, on one screen. Prayers,
-// reminders and workouts can be moved from here (nudge, pick a free time,
-// another day); EyeCandy and other calendar events show so the day is
-// honest, but they are changed where they live.
+// reminders, workouts, EyeCandy events and your own calendar events can all
+// be moved from here (nudge, pick a free time, another day). Calendar-sourced
+// items are changed in the iPhone Calendar; EyeCandy adopts its own on its
+// next launch. Only read-only (subscribed) calendars stay locked.
 const NUDGES = [
   { label: '-1 hr', delta: -60 }, { label: '-30 min', delta: -30 }, { label: '-15 min', delta: -15 },
   { label: '+15 min', delta: 15 }, { label: '+30 min', delta: 30 }, { label: '+1 hr', delta: 60 },
@@ -153,7 +154,7 @@ const MyWeekScreen = ({ navigation }) => {
         }]}
         accessibilityRole="button"
         accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
-        accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
+        accessibilityHint={it.movable ? 'Opens move options' : 'Read-only calendar'}
       >
         {c.proportional ? <View style={[styles.cardFill, { backgroundColor: it.color + (isDark ? '3A' : '2A') }]} /> : null}
         <View style={[styles.cardBar, { backgroundColor: it.color }]} />
@@ -294,17 +295,16 @@ const MyWeekScreen = ({ navigation }) => {
     setSaving(false);
   };
 
+  // Only read-only calendars (subscriptions, holidays, shared calendars you
+  // cannot edit) land here.
   const explainExternal = (item) => {
     hapticFeedback.light();
-    const fromEyeCandy = item.kind === 'eyecandy' || item.kind === 'eyecandySports';
     Alert.alert(
       item.title,
-      fromEyeCandy
-        ? 'This comes from EyeCandy. Move it in EyeCandy and it updates here.'
-        : `This comes from your iPhone Calendar (${item.subtitle || 'Calendar'}). Change it in the Calendar app and it updates here.`,
+      `The ${item.subtitle || 'Calendar'} calendar is read-only on this iPhone, so it cannot be moved from here.`,
       [
-        { text: 'Not now', style: 'cancel' },
-        { text: fromEyeCandy ? 'Open EyeCandy' : 'Open Calendar', onPress: () => Linking.openURL(fromEyeCandy ? 'eyecandy://' : 'calshow:').catch(() => {}) },
+        { text: 'OK', style: 'cancel' },
+        { text: 'Open Calendar', onPress: () => Linking.openURL('calshow:').catch(() => {}) },
       ],
     );
   };
@@ -486,7 +486,7 @@ const MyWeekScreen = ({ navigation }) => {
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
-                accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
+                accessibilityHint={it.movable ? 'Opens move options' : 'Read-only calendar'}
               >
                 <View style={[styles.bar, { backgroundColor: it.color }]} />
                 <View style={styles.timeCol}>

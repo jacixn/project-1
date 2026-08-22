@@ -134,9 +134,20 @@ export const loadDayItems = async (date) => {
             // Other calendars keep their own colour (Work magenta, etc.), like iOS
             color: kind === 'calendar' ? (cal.color || KINDS.calendar.color) : KINDS[kind].color,
             icon: KINDS[kind].icon,
-            movable: false,
+            // Writable calendars (EyeCandy's, your own) can be moved right here:
+            // the event is changed in the iPhone Calendar and EyeCandy adopts
+            // the new time when it next opens. Subscribed/read-only ones cannot.
+            movable: !!cal.allowsModifications,
             subtitle: isEyeCandy ? (cal.title || 'EyeCandy') : (cal.title || 'Calendar'),
-            raw: { eventId: e.id, calendarTitle: cal.title },
+            raw: {
+              calendar: true,
+              eventId: e.id,
+              calendarTitle: cal.title,
+              startDate: s.toISOString(),
+              endDate: en.toISOString(),
+              recurring: !!e.recurrenceRule,
+              type: e.recurrenceRule ? 'recurring' : 'one-time',
+            },
           });
         }
       }
@@ -204,6 +215,14 @@ export const weekOf = (date) => {
 export const moveScope = (item) => {
   if (!item?.movable) return null;
   const raw = item.raw || {};
+  if (raw.calendar) {
+    const fromEyeCandy = item.kind === 'eyecandy' || item.kind === 'eyecandySports';
+    if (fromEyeCandy) {
+      return `${raw.recurring ? 'Every week at the new time' : 'Only this one'}. EyeCandy picks it up when you next open it.`;
+    }
+    const where = raw.calendarTitle ? `your ${raw.calendarTitle} calendar` : 'your Calendar';
+    return `${raw.recurring ? 'Only this one, not the repeats' : 'Only this one'}. Changes it in ${where}.`;
+  }
   if (raw.type === 'one-time') return 'Only this one';
   return `Every ${patternOf(raw) === 'every day' ? 'day' : patternOf(raw)} at the new time`;
 };
