@@ -67,15 +67,22 @@ const MyWeekScreen = ({ navigation }) => {
   useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 60000); return () => clearInterval(t); }, []);
 
   const weekKey = dateKeyOf(week[0]);
+  // Weeks already shown once refresh in place: the timeline stays mounted
+  // and the scroll position stays put (a move, or coming back to the screen,
+  // must not throw the user to the top). Only a week's first look shows the
+  // loading state.
+  const loadedWeeksRef = useRef(new Set());
   const loadWeek = useCallback(async () => {
-    setLoading(true);
+    const fresh = !loadedWeeksRef.current.has(weekKey);
+    if (fresh) setLoading(true);
     try {
       const lists = await Promise.all(week.map((d) => loadDayItems(d)));
       const map = {};
       week.forEach((d, i) => { map[dateKeyOf(d)] = lists[i]; });
-      setItemsByDay(map);
-    } catch { setItemsByDay({}); }
-    setLoading(false);
+      setItemsByDay((prev) => ({ ...prev, ...map }));
+      loadedWeeksRef.current.add(weekKey);
+    } catch { if (fresh) setItemsByDay({}); }
+    if (fresh) setLoading(false);
   }, [weekKey]);
 
   useEffect(() => { loadWeek(); }, [loadWeek]);
@@ -288,7 +295,11 @@ const MyWeekScreen = ({ navigation }) => {
       setStatus(`${moving.title} moved to ${fmtClock(draftMin)}${movedDay ? ` on ${draftDate}` : ''}.`);
       setMoving(null);
       setShowWheel(false);
+      // Keep the user where they were: the refresh swaps data in place, and
+      // the panel closing shrinks the bottom padding, so pin the offset.
+      const keepY = scrollYRef.current;
       await loadWeek();
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: keepY, animated: false }));
     } catch (e) {
       hapticFeedback.error();
       Alert.alert('Could not move it', e?.message || 'Please try again.');

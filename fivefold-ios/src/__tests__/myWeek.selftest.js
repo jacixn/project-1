@@ -79,6 +79,8 @@ check(moveScope({ ...ecItem, raw: { ...ecItem.raw, recurring: true } }) === 'Eve
 check(moveScope({ kind: 'calendar', movable: true, raw: { calendar: true, recurring: true, calendarTitle: 'Work' } }) === 'Only this one, not the repeats. Changes it in your Work calendar.', 'other calendar scope names the calendar');
 check(!/Move it in EyeCandy/.test(screen) && /read-only on this iPhone/.test(screen), 'no more "open EyeCandy" detour for EyeCandy shows; read-only calendars explain themselves');
 check(/movable: !!cal\.allowsModifications && !isSports/.test(src) && /CALENDAR_KINDS = new Set\(\['eyecandy', 'calendar'\]\)/.test(resrc) && /item\.kind === 'eyecandySports'\) return false/.test(resrc), 'sports fixtures are never movable: kick-off is the league\'s, not the user\'s');
+check(/const fresh = !loadedWeeksRef\.current\.has\(weekKey\);\s*if \(fresh\) setLoading\(true\);/.test(screen) && !/^\s*setLoading\(true\);/m.test(screen) && /setItemsByDay\(\(prev\) => \(\{ \.\.\.prev, \.\.\.map \}\)\)/.test(screen), 'refreshes after the first look keep the timeline mounted (no loading flash, no jump to top)');
+check(/const keepY = scrollYRef\.current;\s*await loadWeek\(\);\s*requestAnimationFrame\(\(\) => scrollRef\.current\?\.scrollTo\(\{ y: keepY, animated: false \}\)\)/.test(screen), 'saving a move restores the scroll offset');
 check(/item\.kind === 'eyecandySports'\) \{\s*Alert\.alert\(/.test(screen) && /Kick-off is \$\{fmtClock\(item\.startMin\)\}/.test(screen) && /Match times come from the fixture list/.test(screen), 'tapping a fixture explains the kick-off is fixed');
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
