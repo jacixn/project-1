@@ -77,7 +77,9 @@ const ecItem = { kind: 'eyecandy', movable: true, raw: { calendar: true, recurri
 check(moveScope(ecItem) === 'Only this one. EyeCandy picks it up when you next open it.', `EyeCandy one-time scope (${moveScope(ecItem)})`);
 check(moveScope({ ...ecItem, raw: { ...ecItem.raw, recurring: true } }) === 'Every week at the new time. EyeCandy picks it up when you next open it.', 'EyeCandy weekly scope');
 check(moveScope({ kind: 'calendar', movable: true, raw: { calendar: true, recurring: true, calendarTitle: 'Work' } }) === 'Only this one, not the repeats. Changes it in your Work calendar.', 'other calendar scope names the calendar');
-check(!/Move it in EyeCandy/.test(screen) && /read-only on this iPhone/.test(screen) && !/'eyecandy:\/\/'/.test(screen), 'no more "open EyeCandy" detour; only read-only calendars explain themselves');
+check(!/Move it in EyeCandy/.test(screen) && /read-only on this iPhone/.test(screen), 'no more "open EyeCandy" detour for EyeCandy shows; read-only calendars explain themselves');
+check(/movable: !!cal\.allowsModifications && !isSports/.test(src) && /CALENDAR_KINDS = new Set\(\['eyecandy', 'calendar'\]\)/.test(resrc) && /item\.kind === 'eyecandySports'\) return false/.test(resrc), 'sports fixtures are never movable: kick-off is the league\'s, not the user\'s');
+check(/item\.kind === 'eyecandySports'\) \{\s*Alert\.alert\(/.test(screen) && /Kick-off is \$\{fmtClock\(item\.startMin\)\}/.test(screen) && /Match times come from the fixture list/.test(screen), 'tapping a fixture explains the kick-off is fixed');
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

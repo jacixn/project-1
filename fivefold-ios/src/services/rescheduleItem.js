@@ -8,11 +8,12 @@ import { updateReminder } from './reminderService';
 import WorkoutService from './workoutService';
 import { scheduleWorkoutNotifications } from './workoutSchedule';
 
-// Calendar-sourced items (EyeCandy, EyeCandy Sports, other writable iPhone
-// calendars) are moved in the iPhone Calendar itself. EyeCandy reads its own
-// events back on its next launch (calendarSync.adoptCalendarChanges), so the
-// Calendar is the shared truth between the two apps.
-const CALENDAR_KINDS = new Set(['eyecandy', 'eyecandySports', 'calendar']);
+// Calendar-sourced items (EyeCandy, other writable iPhone calendars) are
+// moved in the iPhone Calendar itself. EyeCandy reads its own events back on
+// its next launch (calendarSync.adoptCalendarChanges), so the Calendar is the
+// shared truth between the two apps. Sports fixtures are never moved: the
+// kick-off comes from the league, not the user.
+const CALENDAR_KINDS = new Set(['eyecandy', 'calendar']);
 
 // New start/end for a calendar event moved to `to`, keeping its length. A
 // repeating event keeps its date (only the time moves); a one-time one may
@@ -61,7 +62,7 @@ export const calendarMoveOptions = (kind, raw) => {
 
 // item: from utils/dayItems; to: { time: 'HH:MM', date?: 'YYYY-MM-DD' }
 export const moveItem = async (item, to) => {
-  if (!item || !item.movable || !to?.time) return false;
+  if (!item || !item.movable || !to?.time || item.kind === 'eyecandySports') return false;
   const raw = item.raw || {};
   if (CALENDAR_KINDS.has(item.kind) && raw.eventId) {
     const dates = calendarMoveDates(raw, to);

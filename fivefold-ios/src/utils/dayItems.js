@@ -136,8 +136,9 @@ export const loadDayItems = async (date) => {
             icon: KINDS[kind].icon,
             // Writable calendars (EyeCandy's, your own) can be moved right here:
             // the event is changed in the iPhone Calendar and EyeCandy adopts
-            // the new time when it next opens. Subscribed/read-only ones cannot.
-            movable: !!cal.allowsModifications,
+            // the new time when it next opens. Subscribed/read-only ones cannot,
+            // and neither can sports fixtures: kick-off is set by the league.
+            movable: !!cal.allowsModifications && !isSports,
             subtitle: isEyeCandy ? (cal.title || 'EyeCandy') : (cal.title || 'Calendar'),
             raw: {
               calendar: true,
