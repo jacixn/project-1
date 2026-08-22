@@ -10,6 +10,7 @@ import {
   KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope,
 } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
+import { layoutDay } from '../utils/timelineLayout';
 import { moveItem } from '../services/rescheduleItem';
 
 // My Week: everything scheduled, from every source, on one screen. Prayers,
@@ -49,6 +50,9 @@ const MyWeekScreen = ({ navigation }) => {
   const [pickOpen, setPickOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+  const [view, setView] = useState('timeline'); // timeline | list
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 60000); return () => clearInterval(t); }, []);
 
   const weekKey = dateKeyOf(week[0]);
   const loadWeek = useCallback(async () => {
@@ -70,6 +74,9 @@ const MyWeekScreen = ({ navigation }) => {
   const visible = useMemo(() => dayItems.filter((i) => !hidden.has(i.kind)), [dayItems, hidden]);
   const rows = useMemo(() => buildAgenda(visible), [visible]);
   const today = new Date();
+  const isTodaySelected = sameDay(anchor, today);
+  const nowMin = isTodaySelected ? new Date(nowTick).getHours() * 60 + new Date(nowTick).getMinutes() : null;
+  const layout = useMemo(() => layoutDay(visible, { nowMin }), [visible, nowMin]);
 
   const toggleKind = (k) => {
     hapticFeedback.light();
@@ -203,8 +210,83 @@ const MyWeekScreen = ({ navigation }) => {
 
         {status ? <Text style={[styles.status, { color: accent }]}>{status}</Text> : null}
 
-        {/* Agenda */}
-        <View style={styles.list}>
+        <View style={styles.viewRow}>
+          {[{ k: 'timeline', label: 'Timeline' }, { k: 'list', label: 'List' }].map((o) => {
+            const on = view === o.k;
+            return (
+              <TouchableOpacity key={o.k} onPress={() => { hapticFeedback.light(); setView(o.k); }} style={[styles.viewTab, { backgroundColor: on ? accent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                <Text style={[styles.viewTabText, { color: on ? '#fff' : theme.text }]}>{o.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Timeline: long things stretch over their hours, short things sit inside at their time */}
+        {view === 'timeline' && !loading && visible.length > 0 ? (
+          <View style={[styles.timeline, { height: layout.height + 16 }]}>
+            {layout.hours.map((h) => (
+              <View key={h.min} style={[styles.hourRow, { top: h.y }]} pointerEvents="none">
+                <Text style={[styles.hourLabel, { color: theme.textSecondary }]}>{h.label}</Text>
+                <View style={[styles.hourLine, { backgroundColor: hairline }]} />
+              </View>
+            ))}
+            <View style={styles.laneArea}>
+              {layout.blocks.map((b) => {
+                const it = b.item;
+                const tiny = b.h < 44;
+                const isMoving = moving && moving.id === it.id;
+                return (
+                  <TouchableOpacity
+                    key={it.id}
+                    onPress={() => (it.movable ? startMove(it) : explainExternal(it))}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.block,
+                      b.container ? styles.blockContainer : null,
+                      {
+                        top: b.y,
+                        height: b.h,
+                        left: b.container ? 0 : `${b.left * 100}%`,
+                        width: b.container ? '100%' : `${b.width * 100}%`,
+                        backgroundColor: b.container ? it.color + '26' : it.color + (isDark ? '33' : '2A'),
+                        borderColor: isMoving ? accent : it.color + (b.container ? '66' : 'AA'),
+                        paddingLeft: b.container ? 10 : (b.col === 0 ? 10 : 8),
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
+                    accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
+                  >
+                    <View style={[styles.blockBar, { backgroundColor: it.color }]} />
+                    {tiny ? (
+                      <Text style={[styles.blockTiny, { color: theme.text }]}>
+                        <Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}
+                      </Text>
+                    ) : (
+                      <>
+                        <Text style={[styles.blockTitle, { color: theme.text }]}>{it.title}</Text>
+                        <Text style={[styles.blockMeta, { color: theme.textSecondary }]}>
+                          <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{` to ${fmtClock(it.endMin)}  ·  ${KINDS[it.kind].label}`}
+                        </Text>
+                        {b.container && b.h > 120 ? <Text style={[styles.blockHint, { color: theme.textSecondary }]}>{fmtDur(it.endMin - it.startMin)}{it.movable ? '' : '  ·  managed elsewhere'}</Text> : null}
+                      </>
+                    )}
+                    {!it.movable && !tiny ? <MaterialIcons name="lock-outline" size={14} color={theme.textSecondary} style={styles.blockLock} /> : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {layout.nowY != null ? (
+              <View style={[styles.nowRow, { top: layout.nowY }]} pointerEvents="none">
+                <View style={[styles.nowDot, { backgroundColor: theme.error || '#EF4444' }]} />
+                <View style={[styles.nowLine, { backgroundColor: theme.error || '#EF4444' }]} />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* List */}
+        <View style={[styles.list, view === 'timeline' && visible.length > 0 && { display: 'none' }]}>
           {!loading && rows.length === 0 ? (
             <View style={[styles.emptyTile, { backgroundColor: tile }]}>
               <Text style={[styles.emptyTitle, { color: theme.text }]}>Nothing on {relDay(anchor).toLowerCase() === 'today' ? 'today' : 'this day'}</Text>
@@ -355,6 +437,25 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 12, borderRadius: 12 },
   chipText: { fontSize: 14, fontWeight: '700' },
   status: { fontSize: 13.5, fontWeight: '700', marginTop: 12 },
+  viewRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  viewTab: { height: 36, paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center' },
+  viewTabText: { fontSize: 14, fontWeight: '800' },
+  timeline: { marginTop: 14, position: 'relative' },
+  hourRow: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center' },
+  hourLabel: { width: 52, fontSize: 11.5, fontWeight: '700', fontVariant: ['tabular-nums'], marginTop: -7 },
+  hourLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  laneArea: { position: 'absolute', left: 56, right: 0, top: 0, bottom: 0 },
+  block: { position: 'absolute', borderRadius: 12, borderWidth: 1.5, paddingTop: 6, paddingRight: 8, overflow: 'hidden', marginRight: 3 },
+  blockContainer: { borderStyle: 'dashed' },
+  blockBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
+  blockTiny: { fontSize: 12.5, fontWeight: '800', lineHeight: 16 },
+  blockTitle: { fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2, lineHeight: 18 },
+  blockMeta: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+  blockHint: { fontSize: 12, fontWeight: '600', marginTop: 6 },
+  blockLock: { position: 'absolute', right: 8, top: 8 },
+  nowRow: { position: 'absolute', left: 50, right: 0, flexDirection: 'row', alignItems: 'center' },
+  nowDot: { width: 8, height: 8, borderRadius: 4 },
+  nowLine: { flex: 1, height: 1.5 },
   list: { marginTop: 14, gap: 10 },
   item: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1.5, paddingVertical: 12, paddingRight: 14, overflow: 'hidden' },
   bar: { width: 4, alignSelf: 'stretch', marginRight: 12 },

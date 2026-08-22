@@ -1,0 +1,34 @@
+// Day timeline layout rules.
+const fs = require('fs');
+const path = require('path');
+const src = fs.readFileSync(path.join(__dirname, '..', 'utils', 'timelineLayout.js'), 'utf8');
+const mod = {};
+new Function('exports', src.replace(/export const (\w+) =/g, 'const $1 = exports.$1 =').replace(/export default[^\n]*\n/, ''))(mod);
+const { layoutDay, PX_PER_HOUR } = mod;
+let failures = 0;
+const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
+const it = (id, s, e, kind = 'x') => ({ id, kind, title: id, startMin: s, endMin: e, movable: true, raw: {} });
+// The screenshot day: Work 9-5:30 with prayers at 11 and 1, lunch at 2, then shower + Push both at 5:35, dinner 7:30, social 8-9
+const day = [it('work', 540, 1050), it('p2', 660, 665), it('p3', 780, 785), it('lunch', 840, 860), it('p4', 1050, 1055), it('shower', 1055, 1085), it('push', 1055, 1160), it('dinner', 1170, 1190), it('social', 1200, 1260)];
+const L = layoutDay(day, { nowMin: 700 });
+const b = (id) => L.blocks.find((x) => x.item.id === id);
+check(b('work').container && b('work').width === 1 && b('work').left === 0, 'Work (9 to 5:30) is a full-width container');
+check(b('work').h === ((1050 - 540) / 60) * PX_PER_HOUR, 'container stretches over its whole duration');
+check(!b('p2').container && b('p2').y === ((660 - L.axisStart) / 60) * PX_PER_HOUR && b('p2').y > b('work').y && b('p2').y < b('work').y + b('work').h, '2nd Prayer sits inside Work at 11 AM');
+check(b('p2').h === 30 && b('lunch').h === 30, 'tiny items keep a readable minimum height');
+check(b('shower').cols === 3 && b('push').cols === 3 && new Set([b('p4').left, b('shower').left, b('push').left]).size === 3, '4th Prayer (5:30), shower and Push (5:35) sit side by side in three lanes');
+check(Math.abs(b('shower').width - 1 / 3) < 1e-9, 'three lanes share the width equally');
+check(b('dinner').cols === 1 && b('dinner').width === 1, 'dinner alone gets the full lane width');
+check(L.blocks[0].container === true, 'containers are drawn first (behind)');
+check(L.axisStart === 6 * 60 && L.axisEnd === 22 * 60 && L.hours[0].label === '6 AM' && L.hours[L.hours.length - 1].label === '10 PM', `axis 6 AM to 10 PM by default (${L.axisStart}-${L.axisEnd})`);
+check(L.nowY === ((700 - L.axisStart) / 60) * PX_PER_HOUR, 'now line placed at the current minute');
+const early = layoutDay([it('a', 300, 330), it('b', 23 * 60 + 30, 23 * 60 + 50)]);
+check(early.axisStart === 300 && early.axisEnd === 1440, 'axis widens for early and late items');
+const solo = layoutDay([it('long', 540, 900)]);
+check(!solo.blocks[0].container, 'a long item with nothing inside is a normal block, not a container');
+check(layoutDay([]).blocks.length === 0 && layoutDay(null).height > 0, 'empty and null safe');
+const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
+check(/useState\('timeline'\)/.test(screen) && /layoutDay\(visible, \{ nowMin \}\)/.test(screen) && /layout\.blocks\.map/.test(screen), 'screen defaults to the timeline and lays blocks out from the engine');
+check(/left: b\.container \? 0 : `\$\{b\.left \* 100\}%`/.test(screen) && /styles\.nowRow/.test(screen), 'lanes use percentage widths; now line rendered');
+console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
+process.exit(failures ? 1 : 0);
