@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -10,7 +10,8 @@ import {
   KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope,
 } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
-import { layoutDay } from '../utils/timelineLayout';
+import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { moveItem } from '../services/rescheduleItem';
 
 // My Week: everything scheduled, from every source, on one screen. Prayers,
@@ -51,6 +52,11 @@ const MyWeekScreen = ({ navigation }) => {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
   const [view, setView] = useState('timeline'); // timeline | list
+  const [pxPerHour, setPxPerHour] = useState(PX_PER_HOUR);
+  const scrollRef = useRef(null);
+  const scrollYRef = useRef(0);
+  const timelineTopRef = useRef(0);
+  const pinchStartRef = useRef({ px: PX_PER_HOUR, focalContentY: 0, focalScreenY: 0 });
   const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 60000); return () => clearInterval(t); }, []);
 
@@ -76,7 +82,36 @@ const MyWeekScreen = ({ navigation }) => {
   const today = new Date();
   const isTodaySelected = sameDay(anchor, today);
   const nowMin = isTodaySelected ? new Date(nowTick).getHours() * 60 + new Date(nowTick).getMinutes() : null;
-  const layout = useMemo(() => layoutDay(visible, { nowMin }), [visible, nowMin]);
+  const layout = useMemo(() => layoutDay(visible, { nowMin, pxPerHour }), [visible, nowMin, pxPerHour]);
+
+  // Zoom keeps the time under your fingers where it is: remember where the
+  // pinch started inside the timeline, then scroll so that point stays put.
+  const applyZoom = (nextPx, focalScreenY = null) => {
+    const next = clampZoom(nextPx);
+    const start = pinchStartRef.current;
+    setPxPerHour(next);
+    if (focalScreenY != null && start.px > 0) {
+      const newContentY = timelineTopRef.current + (start.focalContentY - timelineTopRef.current) * (next / start.px);
+      const target = Math.max(0, newContentY - start.focalScreenY);
+      scrollRef.current?.scrollTo({ y: target, animated: false });
+    }
+  };
+  const beginZoom = (focalScreenY) => {
+    pinchStartRef.current = { px: pxPerHour, focalContentY: scrollYRef.current + focalScreenY, focalScreenY };
+  };
+  const zoomStep = (dir) => {
+    hapticFeedback.selection();
+    const mid = 260; // keep the middle of the visible timeline in place
+    beginZoom(mid);
+    applyZoom(pxPerHour * (dir > 0 ? 1.6 : 1 / 1.6), mid);
+  };
+  const pinch = useMemo(() => Gesture.Pinch()
+    .runOnJS(true)
+    .onBegin((e) => beginZoom(e.focalY + timelineTopRef.current - scrollYRef.current))
+    .onUpdate((e) => applyZoom(pinchStartRef.current.px * e.scale, pinchStartRef.current.focalScreenY))
+    .onEnd(() => hapticFeedback.selection()), [pxPerHour]);
+  const doubleTap = useMemo(() => Gesture.Tap().numberOfTaps(2).runOnJS(true).onEnd(() => { hapticFeedback.light(); setPxPerHour(PX_PER_HOUR); }), []);
+  const zoomGesture = useMemo(() => Gesture.Simultaneous(pinch, doubleTap), [pinch, doubleTap]);
 
   const toggleKind = (k) => {
     hapticFeedback.light();
@@ -189,7 +224,7 @@ const MyWeekScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.body, moving && { paddingBottom: pickOpen ? 620 : 360 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16} contentContainerStyle={[styles.body, moving && { paddingBottom: pickOpen ? 620 : 360 }]} showsVerticalScrollIndicator={false}>
         <Text style={[styles.kicker, { color: theme.textSecondary }]}>{relDay(anchor)}</Text>
         <Text style={[styles.headline, { color: theme.text }]}>{anchor.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'short' })}</Text>
         <Text style={[styles.summary, { color: theme.textSecondary }]}>{loading ? 'Checking every source...' : daySummary(dayItems)}</Text>
@@ -211,6 +246,17 @@ const MyWeekScreen = ({ navigation }) => {
         {status ? <Text style={[styles.status, { color: accent }]}>{status}</Text> : null}
 
         <View style={styles.viewRow}>
+          {view === 'timeline' ? (
+            <View style={[styles.zoomCtl, { backgroundColor: tile }]}>
+              <TouchableOpacity onPress={() => zoomStep(-1)} disabled={pxPerHour <= ZOOM_MIN} style={styles.zoomBtn} hitSlop={{ top: 6, bottom: 6 }} accessibilityRole="button" accessibilityLabel="Zoom out">
+                <MaterialIcons name="remove" size={18} color={pxPerHour <= ZOOM_MIN ? theme.textSecondary : theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.zoomLabel, { color: theme.text }]}>{zoomLabelFor(pxPerHour)}</Text>
+              <TouchableOpacity onPress={() => zoomStep(1)} disabled={pxPerHour >= ZOOM_MAX} style={styles.zoomBtn} hitSlop={{ top: 6, bottom: 6 }} accessibilityRole="button" accessibilityLabel="Zoom in">
+                <MaterialIcons name="add" size={18} color={pxPerHour >= ZOOM_MAX ? theme.textSecondary : theme.text} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
           {[{ k: 'timeline', label: 'Timeline' }, { k: 'list', label: 'List' }].map((o) => {
             const on = view === o.k;
             return (
@@ -223,11 +269,13 @@ const MyWeekScreen = ({ navigation }) => {
 
         {/* Timeline: rails on the left show true spans and overlaps, cards on the right stay readable */}
         {view === 'timeline' && !loading && visible.length > 0 ? (
-          <View style={[styles.timeline, { height: layout.height }]}>
+          <GestureHandlerRootView onLayout={(e) => { timelineTopRef.current = e.nativeEvent.layout.y; }}>
+          <GestureDetector gesture={zoomGesture}>
+          <View style={[styles.timeline, { height: layout.height }]} accessibilityHint="Pinch to zoom the hours, double tap to reset">
             {layout.hours.map((h) => (
               <View key={h.min} style={[styles.hourRow, { top: h.y }]} pointerEvents="none">
-                <Text style={[styles.hourLabel, { color: theme.textSecondary }]}>{h.label}</Text>
-                <View style={[styles.hourLine, { backgroundColor: hairline }]} />
+                <Text style={[styles.hourLabel, { color: h.major ? theme.textSecondary : theme.textTertiary || theme.textSecondary, fontWeight: h.major ? '700' : '500', fontSize: h.major ? 11.5 : 10.5 }]}>{h.label}</Text>
+                <View style={[styles.hourLine, { backgroundColor: hairline, opacity: h.major ? 1 : 0.5 }]} />
               </View>
             ))}
             {/* Rails */}
@@ -251,7 +299,7 @@ const MyWeekScreen = ({ navigation }) => {
                     key={it.id}
                     onPress={() => (it.movable ? startMove(it) : explainExternal(it))}
                     activeOpacity={0.7}
-                    style={[styles.card, { top: c.y, height: c.h, backgroundColor: tile, borderColor: isMoving ? accent : 'transparent' }]}
+                    style={[styles.card, { top: c.y, height: c.h, backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile, borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'), alignItems: c.proportional ? 'flex-start' : 'center', paddingTop: c.proportional ? 10 : 0 }]}
                     accessibilityRole="button"
                     accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
                     accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
@@ -287,6 +335,11 @@ const MyWeekScreen = ({ navigation }) => {
               </View>
             ) : null}
           </View>
+          </GestureDetector>
+          </GestureHandlerRootView>
+        ) : null}
+        {view === 'timeline' && !loading && visible.length > 0 ? (
+          <Text style={[styles.zoomHint, { color: theme.textSecondary }]}>Pinch to zoom in to the minutes, or use − and +. Double tap to reset.</Text>
         ) : null}
 
         {/* List */}
@@ -441,7 +494,11 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 12, borderRadius: 12 },
   chipText: { fontSize: 14, fontWeight: '700' },
   status: { fontSize: 13.5, fontWeight: '700', marginTop: 12 },
-  viewRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  viewRow: { flexDirection: 'row', gap: 8, marginTop: 14, alignItems: 'center' },
+  zoomCtl: { flexDirection: 'row', alignItems: 'center', height: 36, borderRadius: 12, paddingHorizontal: 4, marginRight: 'auto' },
+  zoomBtn: { width: 34, height: 36, alignItems: 'center', justifyContent: 'center' },
+  zoomLabel: { fontSize: 12.5, fontWeight: '800', minWidth: 44, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  zoomHint: { fontSize: 12.5, lineHeight: 17, marginTop: 10 },
   viewTab: { height: 36, paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center' },
   viewTabText: { fontSize: 14, fontWeight: '800' },
   timeline: { marginTop: 14, position: 'relative' },
