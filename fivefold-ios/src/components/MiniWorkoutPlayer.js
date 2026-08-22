@@ -14,12 +14,26 @@ import { useWorkout } from '../contexts/WorkoutContext';
 import { hapticFeedback } from '../utils/haptics';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  LiquidGlassView,
-  isLiquidGlassSupported,
-} from '../utils/liquidGlassSafe';
+import HealingGlass from './HealingGlass';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// Glass surface for the bar. Module-level on purpose: defined inside render
+// it was a NEW component type every second (timer tick), which unmounted and
+// remounted the native glass on every tick.
+const GlassContainer = ({ children }) => (
+  <HealingGlass
+    interactive
+    effect="clear"
+    colorScheme="system"
+    tintColor="rgba(255, 255, 255, 0.08)"
+    style={StyleSheet.absoluteFill}
+    fallbackIntensity={60}
+    fallbackTint="dark"
+  >
+    {children}
+  </HealingGlass>
+);
 
 const MiniWorkoutPlayer = ({ onPress, bottomOffset = 85, hidden = false }) => {
   const { theme, isDark } = useTheme();
@@ -112,47 +126,9 @@ const MiniWorkoutPlayer = ({ onPress, bottomOffset = 85, hidden = false }) => {
 
   const maxWidth = Math.min(screenWidth * 0.9, 400);
 
-  // Liquid Glass wrapper component
-  const GlassContainer = ({ children }) => {
-    if (isLiquidGlassSupported) {
-      return (
-        <LiquidGlassView
-          interactive={true}
-          effect="clear"
-          colorScheme="system"
-          tintColor="rgba(255, 255, 255, 0.08)"
-          style={StyleSheet.absoluteFill}
-        >
-          {children}
-        </LiquidGlassView>
-      );
-    }
-    return (
-      <>
-        <BlurView
-          intensity={isDark ? 50 : 90}
-          tint={isDark ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-        />
-        <LinearGradient
-          colors={isDark 
-            ? ['rgba(40, 40, 40, 0.75)', 'rgba(25, 25, 25, 0.85)'] 
-            : ['rgba(255, 255, 255, 0.8)', 'rgba(245, 245, 245, 0.9)']}
-          style={StyleSheet.absoluteFill}
-        />
-        {children}
-      </>
-    );
-  };
-
   const slideDown = hideAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 160],
-  });
-  const fadeOut = hideAnim.interpolate({
-    inputRange: [0, 0.6],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
   });
 
   return (
@@ -162,8 +138,9 @@ const MiniWorkoutPlayer = ({ onPress, bottomOffset = 85, hidden = false }) => {
         styles.wrapper, 
         { 
           bottom: bottomOffset, 
+          // Transform-only: the bar holds Liquid Glass, and an animated
+          // opacity on its ancestor kills the material. The slide hides it.
           transform: [{ scale: pulseAnim }, { translateY: slideDown }],
-          opacity: fadeOut,
         },
       ]}
     >
