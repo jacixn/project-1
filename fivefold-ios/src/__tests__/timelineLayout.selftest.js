@@ -27,6 +27,9 @@ check(E.cards[E.cards.length - 1].strip === true, 'strips are drawn last (on top
 const order = E.cards.map((c) => c.item.id);
 check(order.indexOf('stade') < order.indexOf('candy') && order.indexOf('torino') < order.indexOf('elche'), 'nested blocks draw after their host');
 check(card(E, 'stade').h === 2 * PX_PER_HOUR && card(E, 'shower').h === 0.5 * PX_PER_HOUR, 'blocks are as tall as their items');
+check(card(E, 'stade').labelRoom === card(E, 'candy').y - card(E, 'stade').y && card(E, 'torino').labelRoom === card(E, 'elche').y - card(E, 'torino').y, 'a host knows how much room its label has above the nested block');
+check(card(E, 'social').labelRoom === null && card(E, 'candy').labelRoom === null, 'blocks with nothing on top have no label limit');
+check(mod.NEST_INSET <= 12, 'nested blocks inset only slightly (iOS-like)');
 
 // Work day: prayers inside Work are strips, lunch nests
 const day = [it('work', 540, 1050), it('p2', 660, 665), it('p3', 780, 785), it('lunch', 840, 860), it('p4', 1050, 1055)];
@@ -56,7 +59,7 @@ check(layoutDay(evening, { nowMin: 1100 }).nowY === ((1100 - E.axisStart) / 60) 
 
 const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
 check(/NEST_INSET/.test(screen) && /c\.strip/.test(screen) && /styles\.stripDot/.test(screen) && !/layout\.rails/.test(screen) && !/horizontal/.test(screen.slice(screen.indexOf('{/* Cards'), screen.indexOf('{layout.nowY'))) && /colW: cardAreaW \/ Math\.max\(1, g\.cols\)/.test(screen), 'screen draws nested blocks and strips; columns share the width, never scroll sideways');
-check(/fmtRange\(it\.startMin, it\.endMin\)/.test(screen) && /\$\{ca\.slice\(0, -3\)\} – \$\{cb\}/.test(screen), 'compact iOS-style time range (8:15 – 9:50 PM)');
+check(/fmtRange\(it\.startMin, it\.endMin\)/.test(screen) && /\\u00A0– \$\{nb\(cb\)\}/.test(screen) && /numberOfLines=\{titleLines\}/.test(screen) && /Math\.min\(NEST_INSET, Math\.round\(colW \* 0\.1\)\)/.test(screen), 'compact time range that breaks only at the dash; host titles limited to the room above a nested block; small scaled inset');
 check(/backgroundColor: c\.proportional \? theme\.background : tile/.test(screen) && /styles\.cardFill/.test(screen), 'blocks are opaque so nested ones cover their host');
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

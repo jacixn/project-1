@@ -15,7 +15,7 @@ export const ZOOM_MAX = 720;  // px per hour, 5-minute marks, 1 min = 12 px
 export const CARD_H = 52;
 export const CARD_H_TINY = 40;
 export const CARD_GAP = 6;
-export const NEST_INSET = 28;  // px a later overlapping block is inset when drawn on top of an earlier one
+export const NEST_INSET = 10;  // px a later overlapping block is inset when drawn on top of an earlier one (iOS uses about this)
 export const STRIP_H = 20;     // px height of a tiny item drawn as a full-width strip
 export const STRIP_MAX_MIN = 15; // items this short (minutes) become strips
 export const LABEL_PX = 44;    // room an earlier block needs above a later one for its title to stay visible
@@ -128,7 +128,11 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
       const gBottom = Math.max(...group.map(bottomOf));
       groups.push({ index, y: gTop, h: gBottom - gTop, cols });
       for (const { i, col, depth } of placed) {
-        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, depth, left: col / cols, width: 1 / cols, group: index, strip: false });
+        // Where the first block nested on top of this one begins: the host's
+        // label has to fit above that (iOS shortens the title to that room).
+        const covering = placed.filter((p) => p.col === col && p.depth > depth && topOf(p.i) >= topOf(i) && topOf(p.i) < bottomOf(i));
+        const coverTop = covering.length ? Math.min(...covering.map((p) => topOf(p.i))) : null;
+        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, depth, left: col / cols, width: 1 / cols, group: index, strip: false, labelRoom: coverTop != null ? coverTop - topOf(i) : null });
       }
       for (const i of strips) {
         cards.push({ item: i, y: topOf(i), h: STRIP_H, pushed: false, proportional: true, col: 0, cols: 1, depth: 0, left: 0, width: 1, group: index, strip: true });

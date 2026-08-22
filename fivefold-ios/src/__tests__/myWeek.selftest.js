@@ -34,7 +34,7 @@ check(/it\.movable \? startMove\(it\) : explainExternal\(it\)/.test(screen), 'mo
 check(/NUDGES\.map/.test(screen) && /<StartTimePicker/.test(screen) && /moving\.raw\?\.type === 'one-time'/.test(screen), 'move panel: nudges, free-time picker, another day for one-time items');
 check(/moveItem\(moving, \{ time: minToTime\(draftMin\), date: draftDate \}\)/.test(screen), 'save goes through rescheduleItem');
 check(/'eyecandy:\/\/'/.test(screen) && /'calshow:'/.test(screen), 'external items can open EyeCandy or Calendar');
-check(!/numberOfLines/.test(screen) && !/[—]/.test(screen) && !/[—]/.test(src), 'no truncation, no em dashes');
+check((screen.match(/numberOfLines/g) || []).length === 1 && /numberOfLines=\{titleLines\}/.test(screen) && !/[—]/.test(screen) && !/[—]/.test(src), 'no truncation except a host title above a nested block (iOS rule), no em dashes');
 const move = read('services/rescheduleItem.js');
 check(/updatePrayer\(raw\.id/.test(move) && /updateReminder\(raw\.id/.test(move) && /updateScheduledWorkout\(raw\.id/.test(move) && /scheduleWorkoutNotifications\(fresh\)/.test(move), 'moves go through each owner service; workout alerts rescheduled');
 check(/name="MyWeek"/.test(read('navigation/RootNavigator.js')), 'MyWeek route registered as a modal');

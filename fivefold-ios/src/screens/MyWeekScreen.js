@@ -94,17 +94,23 @@ const MyWeekScreen = ({ navigation }) => {
     return out;
   }, [layout.groups, cardAreaW]);
   // 8:15 – 9:50 PM (one suffix when both sides share it)
+  // Breaks only at the dash, never inside a time or before AM/PM.
   const fmtRange = (a, b) => {
+    const nb = (t) => t.replace(' ', '\u00A0');
     const ca = fmtClock(a), cb = fmtClock(b);
     const sa = ca.slice(-2), sb = cb.slice(-2);
-    return sa === sb ? `${ca.slice(0, -3)} – ${cb}` : `${ca} – ${cb}`;
+    return sa === sb ? `${ca.slice(0, -3)}\u00A0– ${nb(cb)}` : `${nb(ca)}\u00A0– ${nb(cb)}`;
   };
   const renderCard = (c, originY) => {
     const it = c.item;
     const isMoving = moving && moving.id === it.id;
     const gw = c.group != null ? groupWidths[c.group] : null;
     const colW = gw ? gw.colW : cardAreaW;
-    const inset = (c.depth || 0) * NEST_INSET;
+    const inset = (c.depth || 0) * Math.min(NEST_INSET, Math.round(colW * 0.1));
+    // Host with something nested on top: keep the title to the room above it
+    const room = c.labelRoom != null ? c.labelRoom - 8 : null;
+    const titleLines = room != null ? Math.max(1, Math.floor((room - 15) / 17)) : undefined;
+    const showMeta = room == null || room >= 17 + 15;
     const width = c.strip ? (gw ? gw.contentW : cardAreaW) : Math.max(40, Math.round(colW) - (c.cols > 1 ? 4 : 0) - inset);
     const tinyCard = c.h <= 44;
     const narrowCard = width < 200;
@@ -155,10 +161,12 @@ const MyWeekScreen = ({ navigation }) => {
             </Text>
           ) : (
             <>
-              <Text style={[styles.cardTitle, { color: c.proportional ? it.color : theme.text }]}>{it.title}</Text>
-              <Text style={[styles.cardMeta, { color: c.proportional ? it.color : theme.textSecondary, opacity: c.proportional ? 0.85 : 1 }]}>
-                {fmtRange(it.startMin, it.endMin)}{narrowCard ? '' : `  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
-              </Text>
+              <Text style={[styles.cardTitle, { color: c.proportional ? it.color : theme.text }]} numberOfLines={titleLines}>{it.title}</Text>
+              {showMeta ? (
+                <Text style={[styles.cardMeta, { color: c.proportional ? it.color : theme.textSecondary, opacity: c.proportional ? 0.85 : 1 }]}>
+                  {fmtRange(it.startMin, it.endMin)}{narrowCard ? '' : `  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
+                </Text>
+              ) : null}
             </>
           )}
         </View>
