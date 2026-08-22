@@ -1,22 +1,28 @@
-// Make it fit: planning for a day where things overlap. Three tiers:
-//   fixed  fixtures, read-only calendars, repeating workouts/prayers/shows
+// Make it fit: when something new lands on a busy day, make room for IT and
+// touch nothing else. Scope is the thing just added (the anchor) plus what
+// it collides with, plus whatever those moves then collide with. The rest
+// of the day, however messy, is none of the planner's business.
+//
+// Matches (EyeCandy Sports) are ignored entirely: they never block, never
+// count as overlaps. Short things (a 5-minute prayer) likewise.
+//
+// Tiers for what IS in scope:
+//   fixed  read-only calendars, repeating workouts/prayers, weekly shows
 //   life   tasks, reminders (this day only for repeats), one-time workouts,
-//          your own calendar events: they must happen, they only move for
-//          other life items or fixed things, never for a show or a game
-//   fun    EyeCandy shows and games: they give way. End early, start late,
-//          move a little, or skip today.
-// The thing just added stays (explicit anchor, else the newest life item in
-// a conflict). Life items are placed by a small search for the smallest
-// total change; fun items are resolved after. The AI may propose a plan,
-// but only one the validator here accepts, and it cannot be worse than the
-// rules' plan. Import-free so the selftest evaluates it under plain node.
+//          your own calendar events: they must happen, they move at most
+//          2 hours, only for fixed or other life items, never for a show
+//   fun    one-time EyeCandy shows and games: they give way. End early,
+//          start late, move a little, or skip today.
+// Life items are placed by a small search for the smallest total change.
+// The AI may propose a plan, but only one this file accepts, and never one
+// worse than the rules' own plan. Import-free so the selftest runs in node.
 
-export const SOFT_MAX_MIN = 15;    // things this short sit inside longer ones (a 5-min prayer in a show)
+export const SOFT_MAX_MIN = 15;
 export const OVERLAP_MIN = 10;     // overlaps shorter than this are life, not conflicts
 export const WAKE_START = 5 * 60;
 export const EARLY_FLOOR = 8 * 60; // nothing is planned earlier than 8 AM
 export const DAY_LIMIT = 24 * 60;
-export const MAX_LIFE_SHIFT = 120; // a life item moves at most 2 h; further is not a fix, it is a different day
+export const MAX_LIFE_SHIFT = 120; // a life item moves at most 2 h
 export const MAX_FUN_SHIFT = 180;  // a show moves at most 3 h, else it is cut or skipped
 export const FUN_PENALTY = 0.5;    // cost per minute a life item sits on a show
 export const TRIM_KEEP = 0.5;      // a show must keep at least half of itself
@@ -26,7 +32,6 @@ export const SLACK = 30;           // AI plans may cost at most this much more t
 const r5up = (m) => Math.ceil(m / 5) * 5;
 const r5dn = (m) => Math.floor(m / 5) * 5;
 const overlapMin = (a, b) => Math.min(a.endMin, b.endMin) - Math.max(a.startMin, b.startMin);
-const overlap = (a, b) => overlapMin(a, b) > 0;
 const conflicts = (a, b) => overlapMin(a, b) >= OVERLAP_MIN;
 export const hm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 const fromHm = (s) => {
@@ -50,7 +55,6 @@ export const tierOf = (it) => {
   return 'fixed';
 };
 
-// My Week items -> planner model.
 export const toModel = (items) => (items || []).map((it, i) => {
   const raw = it.raw || {};
   const oneTime = raw.type === 'one-time';
@@ -59,7 +63,7 @@ export const toModel = (items) => (items || []).map((it, i) => {
   const days = Array.isArray(raw.days) ? raw.days : [];
   const daily = !days.length || days.length === 7;
   const todayOnly = tier === 'life' && it.kind === 'reminder' && !oneTime;
-  const why = it.kind === 'eyecandySports' ? 'kick-off is fixed'
+  const why = it.kind === 'eyecandySports' ? 'match'
     : !it.movable ? 'read-only'
     : tier === 'fixed' ? (it.kind === 'prayer' ? 'daily prayer' : it.kind === 'gym' && daily ? 'repeats every day' : 'repeats every week')
     : null;
@@ -73,6 +77,8 @@ export const toModel = (items) => (items || []).map((it, i) => {
     endMin: it.endMin,
     durationMin,
     soft: durationMin <= SOFT_MAX_MIN,
+    sport: it.kind === 'eyecandySports',
+    show: it.kind === 'eyecandy',
     tier,
     movable: tier !== 'fixed',
     todayOnly,
@@ -82,70 +88,100 @@ export const toModel = (items) => (items || []).map((it, i) => {
   };
 });
 
-const blockingOf = (model, anchorId) => model.filter((m) => !m.soft || m.id === anchorId);
+const ignored = (m) => m.soft || m.sport;
+const blockingOf = (model, anchorId) => model.filter((m) => !ignored(m) || m.id === anchorId);
 const isLocked = (m, anchorId) => m.tier === 'fixed' || m.id === anchorId;
 
-// Every conflicting pair among blocking items, fixed-vs-fixed excluded.
-const allConflicts = (model, anchorId) => {
-  const list = blockingOf(model, anchorId);
+// No anchor given: the newest life item that is in a conflict is what the
+// user just added, so it stays and the plan is built around it.
+export const pickAnchor = (model, explicit = null) => {
+  if (explicit && model.some((m) => m.id === explicit)) return explicit;
+  const list = blockingOf(model, null);
+  let best = null;
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i]; const b = list[j];
+      if (!conflicts(a, b) || (a.tier === 'fixed' && b.tier === 'fixed')) continue;
+      for (const m of [a, b]) if (m.tier === 'life' && m.createdAt != null && (!best || m.createdAt > best.createdAt)) best = m;
+    }
+  }
+  return best ? best.id : null;
+};
+
+// The anchor's cluster over life + fixed items (shows excluded): everything
+// reachable through conflicts. Only these may be asked to move.
+const lifeComponent = (model, anchorId) => {
+  const out = new Set();
+  if (!anchorId) return out;
+  const list = blockingOf(model, anchorId).filter((m) => !m.show);
+  const byId = new Map(list.map((m) => [m.id, m]));
+  if (!byId.has(anchorId)) return out;
+  const queue = [anchorId];
+  out.add(anchorId);
+  while (queue.length) {
+    const cur = byId.get(queue.shift());
+    for (const m of list) {
+      if (out.has(m.id) || !conflicts(cur, m)) continue;
+      if (cur.tier === 'fixed' && m.tier === 'fixed') continue;
+      out.add(m.id);
+      if (m.tier === 'life') queue.push(m.id); // fixed things end the chain
+    }
+  }
+  return out;
+};
+
+export const lifeMovers = (model, anchorArg = null) => {
+  const anchorId = pickAnchor(model, anchorArg);
+  const comp = lifeComponent(model, anchorId);
+  const byId = new Map(model.map((m) => [m.id, m]));
+  return new Set([...comp].filter((id) => id !== anchorId && byId.get(id).tier === 'life'));
+};
+
+// Shows in the way of the scope life items (at the given positions).
+const showsInWay = (model, anchorId, lifeMoves, scopeLifeIds) => {
+  const moved = new Map((lifeMoves || []).map((mv) => [mv.id, mv.startMin]));
+  const life = model.filter((m) => scopeLifeIds.has(m.id)).map((m) => {
+    const s = moved.has(m.id) ? moved.get(m.id) : m.startMin;
+    return { startMin: s, endMin: s + m.durationMin };
+  });
+  const out = new Set();
+  for (const f of model) {
+    if (!f.show || f.soft) continue;
+    if (life.some((l) => conflicts(f, l))) out.add(f.id);
+  }
+  return out;
+};
+
+// Conflicts a plan is allowed to care about: inside the anchor's scope.
+export const fixableOverlaps = (model, anchorArg = null) => {
+  const anchorId = pickAnchor(model, anchorArg);
+  if (!anchorId) return [];
+  const comp = lifeComponent(model, anchorId);
+  const shows = showsInWay(model, anchorId, [], comp);
+  const scope = new Set([...comp, ...shows]);
+  const list = blockingOf(model, anchorId).filter((m) => scope.has(m.id));
   const out = [];
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
       const a = list[i]; const b = list[j];
-      if (!conflicts(a, b)) continue;
-      if (isLocked(a, anchorId) && isLocked(b, anchorId)) continue;
+      if (!conflicts(a, b) || (isLocked(a, anchorId) && isLocked(b, anchorId))) continue;
+      if (a.show && b.show) continue;
       out.push([a, b]);
     }
   }
   return out;
 };
 
-// Conflicts a plan could do something about (same thing, exported name kept).
-export const fixableOverlaps = (model, anchorId = null) => allConflicts(model, anchorId);
-
-// No anchor given: the newest life item that is in a conflict is what the
-// user just added, so it stays.
-export const pickAnchor = (model, explicit = null) => {
-  if (explicit && model.some((m) => m.id === explicit)) return explicit;
-  let best = null;
-  for (const [a, b] of allConflicts(model, null)) {
-    for (const m of [a, b]) {
-      if (m.tier !== 'life' || m.createdAt == null) continue;
-      if (!best || m.createdAt > best.createdAt) best = m;
-    }
-  }
-  return best ? best.id : null;
-};
-
-// Life items that may move: members of conflict clusters built over life and
-// fixed items only (a show sitting on a meal is the show's problem).
-export const lifeMovers = (model, anchorId) => {
-  const list = blockingOf(model, anchorId).filter((m) => m.tier !== 'fun');
-  const parent = new Map(list.map((m) => [m.id, m.id]));
-  const find = (x) => { while (parent.get(x) !== x) x = parent.get(x); return x; };
-  const inConflict = new Set();
-  for (let i = 0; i < list.length; i++) {
-    for (let j = i + 1; j < list.length; j++) {
-      const a = list[i]; const b = list[j];
-      if (!conflicts(a, b) || (isLocked(a, anchorId) && isLocked(b, anchorId))) continue;
-      parent.set(find(a.id), find(b.id)); inConflict.add(a.id); inConflict.add(b.id);
-    }
-  }
-  const roots = new Set([...inConflict].map(find));
-  return new Set(list.filter((m) => m.tier === 'life' && m.id !== anchorId && roots.has(find(m.id))).map((m) => m.id));
-};
-
-// Kept for callers/tests: every id a plan may touch (life movers + every fun item in a conflict).
-export const allowedIds = (model, anchorId = null) => {
+// Kept for callers: every id a plan may touch.
+export const allowedIds = (model, anchorArg = null) => {
+  const anchorId = pickAnchor(model, anchorArg);
   const out = lifeMovers(model, anchorId);
-  for (const [a, b] of allConflicts(model, anchorId)) for (const m of [a, b]) if (m.tier === 'fun') out.add(m.id);
+  for (const id of showsInWay(model, anchorId, [], lifeComponent(model, anchorId))) if (model.find((m) => m.id === id).tier === 'fun') out.add(id);
   return out;
 };
 
 const clearAgainst = (ivs, s, dur) => ivs.every((o) => !(s < o.endMin && s + dur > o.startMin));
 
-// Candidate starts for a life item: its own start plus the edges of every
-// obstacle, nearest first, within the day (never before 8 AM).
 const candidatesFor = (m, edges) => {
   const set = new Set([m.startMin]);
   for (const o of edges) {
@@ -159,73 +195,40 @@ const candidatesFor = (m, edges) => {
     .slice(0, 24);
 };
 
-// Conflict clusters over life + fixed items (shows ignored): each is solved
-// on its own, so one impossible corner of the day does not freeze the rest.
-const lifeClusters = (model, anchorId) => {
-  const list = blockingOf(model, anchorId).filter((m) => m.tier !== 'fun');
-  const parent = new Map(list.map((m) => [m.id, m.id]));
-  const find = (x) => { while (parent.get(x) !== x) x = parent.get(x); return x; };
-  const inConflict = new Set();
-  for (let i = 0; i < list.length; i++) {
-    for (let j = i + 1; j < list.length; j++) {
-      const a = list[i]; const b = list[j];
-      if (!conflicts(a, b) || (isLocked(a, anchorId) && isLocked(b, anchorId))) continue;
-      parent.set(find(a.id), find(b.id)); inConflict.add(a.id); inConflict.add(b.id);
-    }
-  }
-  const groups = new Map();
-  for (const m of list) {
-    if (m.tier !== 'life' || m.id === anchorId) continue;
-    const r = find(m.id);
-    if (![...inConflict].some((id) => find(id) === r)) continue;
-    if (!groups.has(r)) groups.set(r, new Set());
-    groups.get(r).add(m.id);
-  }
-  return [...groups.values()];
-};
-
-// Smallest total change that places every mover clear of fixed things, the
-// anchor, untouched life items and each other. Sitting on a show costs a
-// little, so a real gap is preferred but a game is never a wall.
+// Smallest total change that places every mover clear of the anchor, fixed
+// things and untouched life items. Shows are not walls, but sitting on one
+// costs a little, so a real gap wins when there is one nearby.
 const placeLife = (model, anchorId) => {
-  const clusters = lifeClusters(model, anchorId);
-  const moverIds = new Set(clusters.flatMap((c) => [...c]));
-  const blocking = blockingOf(model, anchorId);
-  const hardBase = blocking.filter((m) => m.tier !== 'fun' && !moverIds.has(m.id)).map(({ startMin, endMin }) => ({ startMin, endMin }));
-  const fun = model.filter((m) => m.tier === 'fun').map(({ startMin, endMin }) => ({ startMin, endMin }));
-  const funCostOf = (iv) => { let c = 0; for (const f of fun) c += Math.max(0, overlapMin(iv, f)); return FUN_PENALTY * c; };
-  const placedAll = []; const moves = []; const stuck = []; let total = 0;
-  for (const cluster of clusters) {
-    const movers = blocking.filter((m) => cluster.has(m.id)).sort((a, b) => a.startMin - b.startMin);
-    const hard = [...hardBase, ...placedAll];
-    const edges = [...hard, ...fun, ...movers.map(({ startMin, endMin }) => ({ startMin, endMin }))];
-    const cands = movers.map((m) => candidatesFor(m, edges));
-    let best = null; let bestCost = Infinity;
-    const placed = [];
-    const dfs = (i, cost) => {
-      if (cost >= bestCost) return;
-      if (i === movers.length) { bestCost = cost; best = placed.map((p) => ({ ...p })); return; }
-      const m = movers[i];
-      for (const s of cands[i]) {
-        if (!clearAgainst(hard, s, m.durationMin) || !clearAgainst(placed, s, m.durationMin)) continue;
-        const iv = { startMin: s, endMin: s + m.durationMin };
-        placed.push({ id: m.id, startMin: s, endMin: iv.endMin });
-        dfs(i + 1, cost + Math.abs(s - m.startMin) + funCostOf(iv));
-        placed.pop();
-      }
-    };
-    dfs(0, 0);
-    if (best) {
-      for (const p of best) {
-        const m = movers.find((x) => x.id === p.id);
-        if (p.startMin !== m.startMin) moves.push({ id: m.id, startMin: p.startMin });
-        placedAll.push(p);
-      }
-      total += bestCost;
-      continue;
+  const movers = blockingOf(model, anchorId).filter((m) => lifeMovers(model, anchorId).has(m.id)).sort((a, b) => a.startMin - b.startMin);
+  const moverIds = new Set(movers.map((m) => m.id));
+  const hard = blockingOf(model, anchorId).filter((m) => !m.show && !moverIds.has(m.id)).map(({ startMin, endMin }) => ({ startMin, endMin }));
+  const shows = model.filter((m) => m.show && !m.soft).map(({ startMin, endMin }) => ({ startMin, endMin }));
+  const funCostOf = (iv) => { let c = 0; for (const f of shows) c += Math.max(0, overlapMin(iv, f)); return FUN_PENALTY * c; };
+  const edges = [...hard, ...shows, ...movers.map(({ startMin, endMin }) => ({ startMin, endMin }))];
+  const cands = movers.map((m) => candidatesFor(m, edges));
+  let best = null; let bestCost = Infinity;
+  const placed = [];
+  const dfs = (i, cost) => {
+    if (cost >= bestCost) return;
+    if (i === movers.length) { bestCost = cost; best = placed.map((p) => ({ ...p })); return; }
+    const m = movers[i];
+    for (const s of cands[i]) {
+      if (!clearAgainst(hard, s, m.durationMin) || !clearAgainst(placed, s, m.durationMin)) continue;
+      const iv = { startMin: s, endMin: s + m.durationMin };
+      placed.push({ id: m.id, startMin: s, endMin: iv.endMin });
+      dfs(i + 1, cost + Math.abs(s - m.startMin) + funCostOf(iv));
+      placed.pop();
     }
-    // No arrangement clears this corner of the day: place what can be
-    // placed, one by one, and say which stay put.
+  };
+  dfs(0, 0);
+  const moves = []; const stuck = []; let total = 0;
+  if (best) {
+    for (const p of best) { const m = movers.find((x) => x.id === p.id); if (p.startMin !== m.startMin) moves.push({ id: m.id, startMin: p.startMin }); }
+    total = bestCost;
+  } else {
+    // No arrangement clears everything within 2 hours: place what can be
+    // placed one by one, and say which stay put.
+    const placedAll = [];
     movers.forEach((m, i) => {
       const opts = cands[i].filter((s) => clearAgainst(hard, s, m.durationMin) && clearAgainst(placedAll, s, m.durationMin));
       if (!opts.length) { stuck.push(m.title); return; }
@@ -238,7 +241,6 @@ const placeLife = (model, anchorId) => {
   return { moves, stuck, cost: total };
 };
 
-// Largest clear stretch of [s,e] once obstacles are cut out.
 const clearMiddle = (s, e, obstacles) => {
   let segs = [[s, e]];
   for (const o of obstacles) {
@@ -264,30 +266,33 @@ const nearestGap = (m, obstacles, maxShift) => {
   return opts.length ? opts[0] : null;
 };
 
-// Shows and games give way: end early / start late when most survives,
-// move a little when a gap is near, else skip today.
+// Shows in the way of the anchor or of a life item that moved give way:
+// end early / start late when most survives, move a little when a gap is
+// near, else skip today. Weekly shows cannot change and are just reported.
 const placeFun = (model, anchorId, lifeMoves) => {
+  const scopeLife = new Set([anchorId, ...lifeMoves.map((mv) => mv.id)]);
+  const inWay = showsInWay(model, anchorId, lifeMoves, scopeLife);
   const moved = new Map(lifeMoves.map((mv) => [mv.id, mv.startMin]));
-  const hard = blockingOf(model, anchorId).filter((m) => m.tier !== 'fun').map((m) => {
+  const hard = blockingOf(model, anchorId).filter((m) => !m.show).map((m) => {
     const s = moved.has(m.id) ? moved.get(m.id) : m.startMin;
     return { startMin: s, endMin: s + m.durationMin };
   });
-  const funs = model.filter((m) => m.tier === 'fun').sort((a, b) => a.startMin - b.startMin);
-  const settled = []; const moves = []; const trims = []; const drops = []; const stuck = [];
-  for (const f of funs) {
-    const obstacles = [...hard, ...settled];
-    const hit = obstacles.some((o) => overlapMin(f, o) >= OVERLAP_MIN);
-    if (!hit) { settled.push({ startMin: f.startMin, endMin: f.endMin }); continue; }
+  const shows = model.filter((m) => m.show && !m.soft).sort((a, b) => a.startMin - b.startMin);
+  const settled = new Map(shows.map((f) => [f.id, { startMin: f.startMin, endMin: f.endMin }]));
+  const moves = []; const trims = []; const drops = []; const stuck = [];
+  for (const f of shows) {
+    if (!inWay.has(f.id)) continue;
+    if (f.tier !== 'fun') { stuck.push(f.title); continue; }
+    const obstacles = [...hard, ...shows.filter((o) => o.id !== f.id && settled.has(o.id)).map((o) => settled.get(o.id))];
     const mid = clearMiddle(f.startMin, f.endMin, obstacles);
     const cs = mid ? r5up(mid[0]) : 0; const ce = mid ? r5dn(mid[1]) : 0;
     const keep = Math.max(0, ce - cs);
     const lost = 1 - keep / f.durationMin;
-    if (keep >= TRIM_MIN && lost <= 0.34) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.push({ startMin: cs, endMin: ce }); continue; }
+    if (keep >= TRIM_MIN && lost <= 0.34) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
     const s = nearestGap(f, obstacles, MAX_FUN_SHIFT);
-    if (s != null) { moves.push({ id: f.id, startMin: s }); settled.push({ startMin: s, endMin: s + f.durationMin }); continue; }
-    if (keep >= Math.max(TRIM_MIN, f.durationMin * TRIM_KEEP)) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.push({ startMin: cs, endMin: ce }); continue; }
-    if (f.droppable) { drops.push(f.id); continue; }
-    stuck.push(f.title);
+    if (s != null) { moves.push({ id: f.id, startMin: s }); settled.set(f.id, { startMin: s, endMin: s + f.durationMin }); continue; }
+    if (keep >= Math.max(TRIM_MIN, f.durationMin * TRIM_KEEP)) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
+    drops.push(f.id); settled.delete(f.id);
   }
   return { moves, trims, drops, stuck };
 };
@@ -295,6 +300,7 @@ const placeFun = (model, anchorId, lifeMoves) => {
 // The rules' plan. { moves, trims, drops, overflow, anchorId, lifeCost }
 export const cascadePlan = (model, anchorArg = null) => {
   const anchorId = pickAnchor(model, anchorArg);
+  if (!anchorId) return { anchorId: null, moves: [], trims: [], drops: [], overflow: [], lifeCost: 0 };
   const life = placeLife(model, anchorId);
   const fun = placeFun(model, anchorId, life.moves);
   return {
@@ -303,11 +309,10 @@ export const cascadePlan = (model, anchorArg = null) => {
     trims: fun.trims,
     drops: fun.drops,
     overflow: [...life.stuck, ...fun.stuck],
-    lifeCost: life.moves.reduce((n, mv) => n + Math.abs(mv.startMin - model.find((m) => m.id === mv.id).startMin), 0),
+    lifeCost: life.cost,
   };
 };
 
-// Apply a plan to a copy of the model (blocking items only).
 const applyTo = (model, plan, anchorId) => {
   const dropped = new Set(plan.drops || []);
   return blockingOf(model, anchorId).filter((m) => !dropped.has(m.id)).map((m) => {
@@ -319,35 +324,43 @@ const applyTo = (model, plan, anchorId) => {
   });
 };
 
-// Conflicts still standing once a plan is applied (pair keys).
-const remainingConflicts = (model, plan, anchorId) => {
+// Conflicts still standing after a plan, inside its scope (the anchor, the
+// life movers and the shows they touch). Pairs elsewhere are not ours.
+const remainingInScope = (model, plan, anchorId) => {
+  const byId = new Map(model.map((m) => [m.id, m]));
+  const lifeMoves = (plan.moves || []).filter((mv) => byId.get(mv.id)?.tier === 'life');
+  const scope = new Set([anchorId, ...lifeMovers(model, anchorId), ...showsInWay(model, anchorId, lifeMoves, new Set([anchorId, ...lifeMoves.map((mv) => mv.id)]))]);
+  for (const mv of plan.moves || []) scope.add(mv.id);
+  for (const tr of plan.trims || []) scope.add(tr.id);
   const after = applyTo(model, plan, anchorId);
   const out = [];
   for (let i = 0; i < after.length; i++) {
     for (let j = i + 1; j < after.length; j++) {
       const a = after[i]; const b = after[j];
+      if (!scope.has(a.id) && !scope.has(b.id)) continue;
       if (!conflicts(a, b) || (isLocked(a, anchorId) && isLocked(b, anchorId))) continue;
+      if (a.show && b.show) continue;
       out.push({ key: `${a.id}|${b.id}`, a, b });
     }
   }
   return out;
 };
 
-// Check a plan (AI or otherwise). `baseline` = the rules' plan: an AI plan
-// may not cost life items more than baseline + SLACK, may not skip more
-// shows, and may not leave a conflict the baseline solved. Without a
-// baseline, leftovers are only allowed around items the plan itself
-// reports as left as is (plan.overflow).
+// Check a plan (AI or otherwise) against the rules. `baseline` = the rules'
+// plan: an AI plan may not cost life items more than baseline + SLACK, may
+// not skip more shows, and may not leave a scope conflict the baseline
+// solved. Without a baseline, leftovers are allowed only around items the
+// plan itself reports as left as is (plan.overflow).
 export const validatePlan = (model, plan, anchorArg = null, baseline = null) => {
   if (!plan || !Array.isArray(plan.moves)) return { ok: false, reason: 'no moves array' };
   const anchorId = pickAnchor(model, anchorArg);
+  if (!anchorId) return { ok: false, reason: 'nothing to plan around' };
   const byId = new Map(model.map((m) => [m.id, m]));
   const lifeOk = lifeMovers(model, anchorId);
   const touched = new Set();
   const seen = (m) => { if (touched.has(m.id)) return `${m.title} changed twice`; touched.add(m.id); return null; };
   const grid = (v) => Number.isInteger(v) && v % 5 === 0;
 
-  // 1. life moves
   let lifeCost = 0;
   for (const mv of plan.moves) {
     const m = byId.get(mv.id);
@@ -362,10 +375,8 @@ export const validatePlan = (model, plan, anchorArg = null, baseline = null) => 
     lifeCost += Math.abs(s - m.startMin);
   }
 
-  // 2. shows and games may only be touched when, after the life moves, they are in the way
-  const lifePlan = { moves: plan.moves.filter((mv) => byId.get(mv.id)?.tier === 'life'), trims: [], drops: [] };
-  const funOk = new Set();
-  for (const c of remainingConflicts(model, lifePlan, anchorId)) for (const m of [c.a, c.b]) if (m.tier === 'fun') funOk.add(m.id);
+  const lifeMoves = plan.moves.filter((mv) => byId.get(mv.id)?.tier === 'life');
+  const funOk = showsInWay(model, anchorId, lifeMoves, new Set([anchorId, ...lifeMoves.map((mv) => mv.id)]));
   const funTouch = (id, what) => {
     const m = byId.get(id);
     if (!m) return `unknown item ${id}`;
@@ -393,27 +404,24 @@ export const validatePlan = (model, plan, anchorArg = null, baseline = null) => 
     if (!byId.get(id).droppable) return { ok: false, reason: `${byId.get(id).title} cannot be skipped` };
   }
 
-  // 3. no worse than the rules, and nothing solvable left standing
   if (baseline) {
     if (lifeCost > (baseline.lifeCost || 0) + SLACK) return { ok: false, reason: 'moves life items more than needed' };
     if ((plan.drops || []).length > (baseline.drops || []).length) return { ok: false, reason: 'skips more than needed' };
   }
-  const allowedLeft = baseline
-    ? new Set(remainingConflicts(model, baseline, anchorId).map((c) => c.key))
-    : null;
+  const allowedLeft = baseline ? new Set(remainingInScope(model, baseline, anchorId).map((c) => c.key)) : null;
   const leftTitles = new Set(plan.overflow || []);
-  for (const c of remainingConflicts(model, plan, anchorId)) {
+  for (const c of remainingInScope(model, plan, anchorId)) {
     if (allowedLeft ? allowedLeft.has(c.key) : (leftTitles.has(c.a.title) || leftTitles.has(c.b.title))) continue;
     return { ok: false, reason: `${c.a.title} still overlaps ${c.b.title}` };
   }
   return { ok: true };
 };
 
-// Free room once fixed things, the anchor and untouched life items are in place.
+// Free room for life items: around the anchor, fixed things and untouched life items (shows and matches are not walls).
 export const freeGaps = (model, anchorArg = null) => {
   const anchorId = pickAnchor(model, anchorArg);
   const movers = lifeMovers(model, anchorId);
-  const obstacles = blockingOf(model, anchorId).filter((m) => m.tier !== 'fun' && !movers.has(m.id)).map(({ startMin, endMin }) => ({ startMin, endMin })).sort((a, b) => a.startMin - b.startMin);
+  const obstacles = blockingOf(model, anchorId).filter((m) => !m.show && !movers.has(m.id)).map(({ startMin, endMin }) => ({ startMin, endMin })).sort((a, b) => a.startMin - b.startMin);
   const gaps = []; let cur = WAKE_START;
   for (const o of obstacles) { if (o.startMin > cur) gaps.push({ startMin: cur, endMin: o.startMin }); cur = Math.max(cur, o.endMin); }
   if (cur < DAY_LIMIT) gaps.push({ startMin: cur, endMin: DAY_LIMIT });
@@ -429,27 +437,30 @@ const planLines = (model, plan) => {
   return out;
 };
 
-// What the AI is asked.
 export const buildMessages = (model, anchorArg = null, dayLabel = 'today') => {
   const anchorId = pickAnchor(model, anchorArg);
   const movers = lifeMovers(model, anchorId);
-  const funOk = new Set([...allConflicts(model, anchorId)].flat().filter((m) => m.tier === 'fun').map((m) => m.id));
+  const base = cascadePlan(model, anchorId);
+  const baseLife = base.moves.filter((mv) => model.find((m) => m.id === mv.id)?.tier === 'life');
+  const inWay = showsInWay(model, anchorId, baseLife, new Set([anchorId, ...baseLife.map((mv) => mv.id)]));
+  const comp = lifeComponent(model, anchorId);
   const lines = model.slice().sort((a, b) => a.startMin - b.startMin).map((m) => {
     const tag = m.id === anchorId ? 'JUST ADDED, must stay'
+      : m.sport ? 'match, ignore'
       : m.soft ? 'short, ignore'
-      : m.tier === 'fixed' ? `FIXED (${m.why || 'cannot move'})`
+      : m.tier === 'fixed' ? (comp.has(m.id) || inWay.has(m.id) ? `FIXED (${m.why || 'cannot move'})` : 'leave as is')
       : m.tier === 'life' ? (movers.has(m.id) ? `life, movable${m.todayOnly ? ' (this day only)' : ''}` : 'life, leave as is')
-      : funOk.has(m.id) ? 'show or game, in the way: move a little, cut, or skip today' : 'show or game, leave as is';
+      : inWay.has(m.id) ? 'show or game, in the way: move a little, cut, or skip today' : 'show or game, leave as is';
     return `${m.key} | ${m.title} | ${hm(m.startMin)}-${hm(m.endMin)} | ${m.durationMin} min | ${tag}`;
   });
-  const base = cascadePlan(model, anchorId);
-  const confl = allConflicts(model, anchorId).map(([a, b]) => `${a.title} (${a.key}) with ${b.title} (${b.key})`);
+  const confl = fixableOverlaps(model, anchorId).map(([a, b]) => `${a.title} (${a.key}) with ${b.title} (${b.key})`);
   const gaps = freeGaps(model, anchorId).map((g) => `${hm(g.startMin)}-${hm(g.endMin)}`);
   const system = [
-    'You plan one day of a person\'s schedule inside the Biblely app. Some items overlap.',
-    'Life items (meals, tasks, workouts, appointments) must happen: move ONLY the ones marked movable, at most 2 hours and only as far as needed, never because of a show or game, and never before 08:00.',
+    'You plan one day of a person\'s schedule inside the Biblely app. Something was just added and it lands on other things.',
+    'Make room for the new thing and touch NOTHING else: only items marked movable or "in the way" may change. Matches are ignored; they never block anything.',
+    'Life items (meals, tasks, workouts, appointments) must happen: move them at most 2 hours, only as far as needed, never because of a show or game, never before 08:00.',
     'Shows and games give way: end early, start late (keep at least half and 20 minutes), move at most 3 hours, or skip today.',
-    'Afterwards no two items longer than 15 minutes may overlap by 10 minutes or more (fixed-vs-fixed excepted). Keep every life item\'s length. Times in 5-minute steps.',
+    'Afterwards the new thing and whatever moved must not overlap anything longer than 15 minutes by 10 minutes or more. Keep every life item\'s length. Times in 5-minute steps.',
     'You are given a plan that already works; return it in full, or a better one that changes life items no more than it does. Leaving out one of its changes is not a better plan.',
     'Reply with ONE JSON object and nothing else: {"moves":[{"id":"k3","start":"13:40"}],"trims":[{"id":"k5","start":"12:05","end":"13:40"}],"skip":["k6"],"note":"one short plain sentence for the user"}.',
   ].join(' ');
@@ -464,7 +475,6 @@ export const buildMessages = (model, anchorArg = null, dayLabel = 'today') => {
   return [{ role: 'system', content: system }, { role: 'user', content: user }];
 };
 
-// JSON out of whatever the model wrote; keys mapped back to ids.
 export const parsePlanText = (text, model) => {
   if (typeof text !== 'string') return null;
   const a = text.indexOf('{'); const b = text.lastIndexOf('}');
@@ -494,7 +504,6 @@ export const parsePlanText = (text, model) => {
   return { moves, trims, drops, note };
 };
 
-// Rows for the preview.
 export const describePlan = (model, plan) => {
   const byId = new Map(model.map((m) => [m.id, m]));
   const rows = [];
@@ -504,11 +513,11 @@ export const describePlan = (model, plan) => {
   return rows;
 };
 
-// Fixed things in a conflict, so the preview can say why they stay.
+// What stays and why: the anchor, and fixed things it (or a mover) sits on.
 export const staysFor = (model, anchorArg = null) => {
   const anchorId = pickAnchor(model, anchorArg);
   const out = []; const seen = new Set();
-  for (const [a, b] of allConflicts(model, anchorId)) {
+  for (const [a, b] of fixableOverlaps(model, anchorId)) {
     for (const m of [a, b]) {
       if (!isLocked(m, anchorId) || seen.has(m.id)) continue;
       seen.add(m.id);

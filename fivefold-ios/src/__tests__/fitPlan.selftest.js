@@ -53,25 +53,33 @@ check(pickAnchor(model) === 'reminder:hc', 'with no anchor given, the newest lif
 check(pickAnchor(model, 'gym:p') === 'gym:p' && pickAnchor(model, 'nope') === 'reminder:hc', 'an explicit anchor wins; an unknown one falls back');
 
 const movers = [...lifeMovers(model, 'reminder:hc')].sort().join(' ');
-check(movers === 'gym:p reminder:l reminder:sh reminder:sm', `life movers: lunch (under the haircut), Pull (under Newcastle), shower and social (under the evening matches); dinner under a show is not a life problem (${movers})`);
+check(movers === 'reminder:l', `only lunch, the life item under the haircut, may move; shower, Pull and Social are not the haircut's business (${movers})`);
+const pairs = fixableOverlaps(model).map(([a, b]) => `${a.title}+${b.title}`).sort().join(' | ');
+check(pairs === 'Haircut+FragPunk | Haircut+eat lunch', `scope conflicts: haircut with lunch and FragPunk; the match is ignored (${pairs})`);
 
 const plan = cascadePlan(model);
 const rows = describePlan(model, plan);
 console.log('  plan:', rows.map((r) => `${r.title}: ${r.action === 'drop' ? 'skip' : r.action === 'trim' ? `${hm(r.to)}-${hm(r.endTo)}` : hm(r.to)}`).join(' | '), '| left:', plan.overflow.join(', ') || 'none');
 const act = Object.fromEntries(rows.map((r) => [r.id, r]));
 check(plan.anchorId === 'reminder:hc' && !act['reminder:hc'], 'the haircut stays at 2 PM');
-check(act['reminder:l'] && act['reminder:l'].action === 'move' && act['reminder:l'].to === T(13, 40) && act['reminder:l'].todayOnly, `lunch slides to 1:40 PM, this day only, not to the morning (${act['reminder:l'] ? hm(act['reminder:l'].to) : 'untouched'})`);
-check(act['cal:fp'] && act['cal:fp'].action === 'drop', 'FragPunk (under the haircut and the match, no room near) is skipped today');
-check(act['reminder:sh'] && act['reminder:sh'].action === 'move' && act['reminder:sh'].to === T(18, 55), `shower moves to 6:55 PM, before dinner, not 11:30 PM (${act['reminder:sh'] ? hm(act['reminder:sh'].to) : 'untouched'})`);
-check(act['cal:sl'] && act['cal:sl'].action === 'drop', 'Solo Leveling (already under Newcastle, then the shower) is skipped today');
+check(act['reminder:l'] && act['reminder:l'].action === 'move' && act['reminder:l'].to === T(13, 40) && act['reminder:l'].todayOnly, `lunch slides to 1:40 PM, this day only (${act['reminder:l'] ? hm(act['reminder:l'].to) : 'untouched'})`);
 check(act['cal:fc'] && act['cal:fc'].action === 'trim' && act['cal:fc'].to === T(12, 5) && act['cal:fc'].endTo === T(13, 40), `EA Sports FC just ends early for lunch (${act['cal:fc'] ? `${hm(act['cal:fc'].to)}-${hm(act['cal:fc'].endTo)}` : 'untouched'})`);
-check(!act['gym:p'] && plan.overflow.includes('Pull'), 'Pull under Newcastle has nothing within 2 hours: left as is and said so');
-check(!act['reminder:sm'] && plan.overflow.includes('Social Media time'), 'Social Media time has nothing within 2 hours either');
-check(act['cal:cj'] && act['cal:cj'].action === 'drop', 'Candy Jar under three matches is skipped today');
+check(act['cal:fp'] && act['cal:fp'].action === 'trim' && act['cal:fp'].to === T(15) && act['cal:fp'].endTo === T(15, 50), `FragPunk starts when the haircut ends, the match under it is not a reason to drop it (${act['cal:fp'] ? `${hm(act['cal:fp'].to)}-${hm(act['cal:fp'].endTo)}` : 'untouched'})`);
+check(rows.length === 3 && !plan.overflow.length, `nothing else on the day is touched: ${rows.length} changes, nothing left over`);
+check(!act['cal:sl'] && !act['cal:cj'] && !act['reminder:sh'] && !act['gym:p'] && !act['reminder:sm'] && !act['reminder:d'], 'Solo Leveling, Candy Jar, shower, Pull, Social Media and dinner are untouched');
 check(rows.every((r) => r.action !== 'move' || r.tier !== 'life' || r.to >= T(8)), 'no life item lands before 8 AM');
 check(validatePlan(model, plan).ok, 'the rules plan passes its own validator');
 const stays = staysFor(model).map((s) => `${s.title}:${s.why}`);
-check(stays.includes('Haircut:just added') && stays.includes('Manchester City vs AFC Bournemouth:kick-off is fixed'), `stays list explains the haircut and the match (${stays.join(' | ')})`);
+check(stays.join('|') === 'Haircut:just added', `stays list names only the haircut; matches are never listed (${stays.join(' | ')})`);
+
+// matches are ignored, full stop
+const pullDay = toModel([
+  it('gym:p', 'gym', 'Pull', T(16), T(17), true, 'one-time', { createdAt: '2026-08-23T10:00:00Z' }),
+  it('cal:nl', 'eyecandySports', 'Newcastle United vs Liverpool', T(16, 30), T(18, 30), false, 'one-time'),
+]);
+check(fixableOverlaps(pullDay).length === 0 && cascadePlan(pullDay).moves.length === 0 && pickAnchor(pullDay) === null, 'a workout during a match is not an overlap');
+const noAnchor = toModel([it('cal:a', 'calendar', 'Work', T(9), T(12), true, 'one-time'), it('cal:b', 'calendar', 'Dentist', T(11), T(12), true, 'one-time')]);
+check(pickAnchor(noAnchor) === null && fixableOverlaps(noAnchor).length === 0 && cascadePlan(noAnchor).moves.length === 0, 'nothing just added that we can tell: nothing is planned');
 
 // Simple day: an errand on a workout slides the workout next door.
 const simple = toModel([
@@ -90,17 +98,18 @@ check(cp.trims.length === 1 && cp.trims[0].startMin === T(12) && cp.trims[0].end
 
 // AI plans: accept the good, refuse the rest
 const K = (id) => byId[id].key;
-const good = parsePlanText('```json\n{"moves":[{"id":"' + K('reminder:l') + '","start":"13:40"},{"id":"' + K('reminder:sh') + '","start":"18:55"}],"trims":[{"id":"' + K('cal:fc') + '","start":"12:05","end":"13:40"}],"skip":["' + K('cal:fp') + '","' + K('cal:cj') + '","' + K('cal:sl') + '"],"note":"Lunch a bit earlier, shower before dinner, three games skipped."}\n```', model);
-check(good && good.moves.length === 2 && good.trims.length === 1 && good.drops.length === 3 && good.moves[0].id === 'reminder:l', 'parses fenced JSON with moves, trims and skips');
+const good = parsePlanText('```json\n{"moves":[{"id":"' + K('reminder:l') + '","start":"13:40"}],"trims":[{"id":"' + K('cal:fc') + '","start":"12:05","end":"13:40"},{"id":"' + K('cal:fp') + '","start":"15:00","end":"15:50"}],"skip":[],"note":"Lunch a bit earlier, the game ends early, FragPunk starts after the haircut."}\n```', model);
+check(good && good.moves.length === 1 && good.trims.length === 2 && good.drops.length === 0 && good.moves[0].id === 'reminder:l', 'parses fenced JSON with moves and trims');
+check(parsePlanText('{"moves":[],"skip":["' + K('cal:fp') + '"]}', model).drops[0] === 'cal:fp', 'parses skips');
 check(validatePlan(model, good, null, plan).ok, 'the rules plan restated by the AI is accepted');
 check(!validatePlan(model, { moves: [{ id: 'reminder:hc', startMin: T(22, 30) }] }, null, plan).ok, 'refuses to move the haircut (the anchor)');
 check(validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(10, 45) }] }, null, plan).reason === 'eat lunch: moved too far', 'refuses lunch at 10:45 AM: more than 2 hours');
-check(!validatePlan(model, { moves: [{ id: 'reminder:sh', startMin: T(23, 30) }] }, null, plan).ok, 'refuses the shower at 11:30 PM');
+check(validatePlan(model, { moves: [{ id: 'reminder:sh', startMin: T(18, 55) }] }, null, plan).reason === 'take shower must not move', 'refuses touching the shower: not the haircut\'s business');
 check(!validatePlan(model, { moves: [{ id: 'reminder:d', startMin: T(20) }] }, null, plan).ok, 'refuses moving dinner (its only overlap is a show)');
 check(!validatePlan(model, { moves: [], trims: [{ id: 'reminder:l', startMin: T(14), endMin: T(14, 10) }] }, null, plan).ok, 'refuses cutting a meal short');
 check(!validatePlan(model, { moves: [], trims: [{ id: 'cal:sl', startMin: T(17, 45), endMin: T(18) }] }, null, plan).ok, 'refuses cutting a show below half');
-check(!validatePlan(model, { moves: [], drops: ['cal:lnd'] }, null, plan).ok, 'refuses skipping a show that is not in the way');
-check(validatePlan(model, { moves: [], drops: ['cal:fp', 'cal:cj'] }, null, { moves: [], drops: ['cal:fp'], lifeCost: 0 }).reason === 'skips more than needed', 'refuses skipping more than the rules would');
+check(!validatePlan(model, { moves: [], drops: ['cal:lnd'] }, null, plan).ok && validatePlan(model, { moves: [], drops: ['cal:cj'] }, null, plan).reason === 'Candy Jar is not in the way', 'refuses skipping shows that are not in the way (Candy Jar under matches included)');
+check(validatePlan(model, { moves: [], drops: ['cal:fp'] }, null, { moves: [], drops: [], lifeCost: 0 }).reason === 'skips more than needed', 'refuses skipping more than the rules would');
 check(!validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(13, 42) }] }, null, plan).ok, 'refuses times off the 5-minute grid');
 check(!validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(13, 40) }] }, null, plan).ok, 'refuses a half plan that leaves FragPunk on the haircut');
 check(parsePlanText('no json', model) === null && parsePlanText('{"moves":[{"id":"zzz","start":"10:00"}]}', model) === null && parsePlanText('{"skip":["zzz"]}', model) === null, 'garbage and unknown ids are rejected at parse');
@@ -108,11 +117,11 @@ check(parsePlanText('no json', model) === null && parsePlanText('{"moves":[{"id"
 // prompt
 const msgs = buildMessages(model, null, 'today');
 const u = msgs[1].content;
-check(/ONE JSON object/.test(msgs[0].content) && /"trims"/.test(msgs[0].content) && /"skip"/.test(msgs[0].content) && /at most 2 hours/.test(msgs[0].content), 'system prompt explains actions and limits');
-check(/Haircut \| 14:00-15:00 \| 60 min \| JUST ADDED, must stay/.test(u) && /eat lunch \| 14:00-14:20 \| 20 min \| life, movable \(this day only\)/.test(u) && /FragPunk \| .* \| show or game, in the way: move a little, cut, or skip today/.test(u) && /Love Next Door \| .* \| show or game, leave as is/.test(u) && /eat dinner \| .* \| life, leave as is/.test(u) && /Manchester City vs AFC Bournemouth \| .* \| FIXED \(kick-off is fixed\)/.test(u) && /3rd Prayer \| .* \| short, ignore/.test(u), 'every item is labelled by tier and role');
-check(/A plan that already works: .*k\d+ -> 13:40/.test(u) && /skipped today/.test(u) && /cut to 12:05-13:40/.test(u), 'the baseline plan is spelled out with moves, cuts and skips');
+check(/ONE JSON object/.test(msgs[0].content) && /"trims"/.test(msgs[0].content) && /"skip"/.test(msgs[0].content) && /at most 2 hours/.test(msgs[0].content) && /Matches are ignored/.test(msgs[0].content) && /touch NOTHING else/.test(msgs[0].content), 'system prompt explains scope, actions and limits');
+check(/Haircut \| 14:00-15:00 \| 60 min \| JUST ADDED, must stay/.test(u) && /eat lunch \| 14:00-14:20 \| 20 min \| life, movable \(this day only\)/.test(u) && /FragPunk \| .* \| show or game, in the way: move a little, cut, or skip today/.test(u) && /Candy Jar \| .* \| show or game, leave as is/.test(u) && /take shower \| .* \| life, leave as is/.test(u) && /Manchester City vs AFC Bournemouth \| .* \| match, ignore/.test(u) && /Newcastle United vs Liverpool \| .* \| match, ignore/.test(u) && /3rd Prayer \| .* \| short, ignore/.test(u), 'every item is labelled by role; matches say ignore');
+check(/A plan that already works: .*k\d+ -> 13:40/.test(u) && /cut to 12:05-13:40/.test(u) && /cut to 15:00-15:50/.test(u) && /Overlaps to solve: Haircut \(k\d+\) with eat lunch \(k\d+\); Haircut \(k\d+\) with FragPunk \(k\d+\)\./.test(u), 'the baseline plan and only the scope conflicts are spelled out');
 const gaps = freeGaps(model).map((g) => `${hm(g.startMin)}-${hm(g.endMin)}`).join(' ');
-check(gaps.startsWith('05:00-08:10') && gaps.includes('10:15-14:00'), `free room ignores shows (${gaps})`);
+check(gaps.startsWith('05:00-08:10') && gaps.includes('08:30-14:00') && gaps.includes('17:00-19:25'), `free room ignores shows and matches (${gaps})`);
 
 // wiring
 const planner = read('services/schedulePlanner.js');
