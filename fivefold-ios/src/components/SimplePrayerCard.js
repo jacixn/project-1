@@ -27,7 +27,9 @@ import userStorage from '../utils/userStorage';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import notificationService from '../services/notificationService';
-import { savePrayersList, getTwoRandomVerses, PRAYERS_CHANGED } from '../services/simplePrayersService';
+import { savePrayersList, getTwoRandomVerses, refreshDailyVerses, PRAYERS_CHANGED } from '../services/simplePrayersService';
+import { applyVerses } from '../utils/prayerVerses';
+import { AppState } from 'react-native';
 import { isPrayerDayEnabled, daysUntilNextPrayerDay, formatPrayerDays } from '../utils/prayerDays';
 import verseByReferenceService from '../services/verseByReferenceService';
 import completeBibleService from '../services/completeBibleService';
@@ -164,10 +166,18 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
     );
   };
   
-  // Load prayers on start
+  // Load prayers on start, then make sure every prayer carries today's verses
   useEffect(() => {
     loadPrayers();
-    // Note: We don't pre-load verses anymore - they're fetched only when needed (when creating/viewing prayers)
+    refreshDailyVerses().catch(() => {});
+  }, []);
+
+  // Coming back to the app after midnight should show today's verses too
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshDailyVerses().catch(() => {});
+    });
+    return () => sub.remove();
   }, []);
 
   // The Add/Edit wizard screens persist via simplePrayersService; pick up
@@ -249,6 +259,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
       const today = new Date().toDateString();
       if (today !== lastResetDate) {
         resetCompletedPrayersFromStorage();
+        refreshDailyVerses().catch(() => {});
         setLastResetDate(today);
       }
     }, 60000); // check every minute
@@ -765,7 +776,7 @@ const SimplePrayerCard = ({ onNavigateToBible }) => {
           const prayerIndex = prayersToUpdate.findIndex(p => p.id === prayer.id);
           
           if (prayerIndex !== -1) {
-            prayersToUpdate[prayerIndex].verses = randomVerses;
+            prayersToUpdate[prayerIndex] = applyVerses(prayersToUpdate[prayerIndex], randomVerses);
             setPrayers(prayersToUpdate);
             await savePrayers(prayersToUpdate);
             console.log('✅ New verses loaded for next prayer:', randomVerses.map(v => v.reference).join(', '));

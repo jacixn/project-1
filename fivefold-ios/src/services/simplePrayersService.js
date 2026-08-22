@@ -12,6 +12,7 @@ import { pushToCloud } from './userSyncService';
 import notificationService from './notificationService';
 import completeBibleService from './completeBibleService';
 import { normalizeDays, ALL_DAYS } from '../utils/prayerDays';
+import { dayKey, versesStale, applyVerses } from '../utils/prayerVerses';
 
 export const PRAYERS_CHANGED = 'simplePrayersChanged';
 
@@ -39,8 +40,8 @@ export const getTwoRandomVerses = async () => {
     // The old `sort(() => Math.random() - 0.5)` shuffle is heavily biased on
     // real JS engines (measured up to ~9x overweight for some verses), which
     // made the same handful of verses recycle across prayers. We now sample
-    // uniformly AND remember the last 60 shown refs so nothing repeats until
-    // at least 60 other verses have been shown.
+    // uniformly AND remember the last 200 shown refs so nothing repeats until
+    // at least 200 other verses have been shown (the pool holds ~2300).
     const RECENT_KEY = 'recentPrayerVerseRefs';
     let recentRefs = [];
     try {
@@ -51,7 +52,7 @@ export const getTwoRandomVerses = async () => {
     const recentSet = new Set(recentRefs);
     let candidates = curatedReferences.filter((r) => !recentSet.has(r));
     if (candidates.length < 2) {
-      // Window exhausted the pool (tiny pools only) — reset it
+      // Window exhausted the pool (tiny pools only), reset it
       candidates = [...curatedReferences];
       recentRefs = [];
     }
@@ -63,7 +64,7 @@ export const getTwoRandomVerses = async () => {
     const selectedRefs = [candidates[first], candidates[second]];
 
     // Persist the updated no-repeat window (fire and forget)
-    saveData(RECENT_KEY, [...recentRefs, ...selectedRefs].slice(-60)).catch(() => {});
+    saveData(RECENT_KEY, [...recentRefs, ...selectedRefs].slice(-200)).catch(() => {});
 
     const versePromises = selectedRefs.map(async (reference, i) => {
       try {
@@ -140,7 +141,7 @@ export const addPrayer = async (payload) => {
     const stored = await getPrayers();
     const idx = stored.findIndex((p) => p.id === newPrayer.id);
     if (idx !== -1) {
-      stored[idx] = { ...stored[idx], verses: randomVerses };
+      stored[idx] = applyVerses(stored[idx], randomVerses);
       await savePrayersList(stored);
     }
   }).catch((error) => {
@@ -148,6 +149,43 @@ export const addPrayer = async (payload) => {
   });
 
   return newPrayer;
+};
+
+// "Today's Verses" has to mean today's. Any persistent prayer whose verses
+// were not picked today (or are still placeholders) gets two fresh ones.
+// Before this, verses only changed when a prayer was marked complete, so
+// someone who opens a prayer to read it saw the same two verses every day.
+// Runs on the prayer card's mount, at midnight and on foreground; a no-op
+// when nothing is stale. Failed fetches (offline) are simply retried next time.
+let refreshInFlight = null;
+export const refreshDailyVerses = async () => {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const list = await getPrayers();
+      const today = dayKey();
+      const stale = list.filter((p) => versesStale(p, today));
+      if (!stale.length) return list;
+      let next = list;
+      for (const p of stale) {
+        try {
+          const verses = await getTwoRandomVerses();
+          if (!Array.isArray(verses) || verses.length < 2 || verses.some((v) => /loading/i.test(String(v?.reference || '')))) continue;
+          next = next.map((q) => (q.id === p.id ? applyVerses(q, verses) : q));
+        } catch (e) { /* try again next time */ }
+      }
+      if (next !== list) {
+        await saveData('simplePrayers', next);
+        pushToCloud('simplePrayers', next);
+        DeviceEventEmitter.emit(PRAYERS_CHANGED, next);
+        console.log(`[Prayers] fresh verses for ${stale.length} prayer(s)`);
+      }
+      return next;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
 };
 
 export const updatePrayer = async (id, payload) => {

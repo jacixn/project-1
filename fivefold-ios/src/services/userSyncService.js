@@ -8,6 +8,7 @@
  */
 
 import {
+import { mergePrayerFromCloud } from '../utils/prayerVerses';
   doc,
   collection,
   getDoc,
@@ -1089,19 +1090,24 @@ export const downloadAndMergeCloudData = async (userId) => {
         const localStr = await userStorage.getRaw('fivefold_simplePrayers');
         const localPrayers = localStr ? JSON.parse(localStr) : [];
         const localCompletions = {};
+        const localById = {};
         localPrayers.forEach(p => {
+          localById[p.id] = p;
           if (p.completedAt) localCompletions[p.id] = { completedAt: p.completedAt, canComplete: p.canComplete };
         });
         const merged = cloudPrayers.map(cloudPrayer => {
+          // Verses picked more recently on this device beat the cloud copy,
+          // otherwise a stale cloud copy brings yesterday's verses back.
+          const base = mergePrayerFromCloud(cloudPrayer, localById[cloudPrayer.id]);
           const localCompletion = localCompletions[cloudPrayer.id];
           if (localCompletion && localCompletion.completedAt) {
             const localDate = new Date(localCompletion.completedAt);
             const cloudDate = cloudPrayer.completedAt ? new Date(cloudPrayer.completedAt) : new Date(0);
             if (localDate > cloudDate) {
-              return { ...cloudPrayer, completedAt: localCompletion.completedAt, canComplete: false };
+              return { ...base, completedAt: localCompletion.completedAt, canComplete: false };
             }
           }
-          return cloudPrayer;
+          return base;
         });
         await userStorage.setRaw('fivefold_simplePrayers', JSON.stringify(merged));
         console.log(`[Sync] Merged ${merged.length} prayers (preserved local completions)`);
