@@ -70,19 +70,56 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
   });
   const lanes = Math.max(1, laneEnd.length);
 
-  // Cards: chronological, pinned to start, pushed down just enough. Zoomed in
-  // far enough, a card grows to its item's true length, so the day turns
-  // into proportional blocks without ever losing a readable label.
+  // Cards. Two modes:
+  //  compact (zoomed out): fixed-height labels pinned to their start and
+  //    pushed down only as far as needed so none overlap; rails carry duration.
+  //  proportional (zoomed in past PROPORTIONAL_FROM): every card is as tall as
+  //    its item and sits at its true time; items that overlap split the width
+  //    into columns, calendar-style, so a prayer at 11 AM sits beside the Work
+  //    block at 11 AM instead of under it.
+  const proportional = pxPerHour >= PROPORTIONAL_FROM;
+  let cards = [];
   let prevBottom = -Infinity;
-  const cards = list.map((i) => {
-    const minH = (i.endMin - i.startMin) <= 15 ? CARD_H_TINY : CARD_H;
-    const trueH = pxPerHour >= PROPORTIONAL_FROM ? y(i.endMin) - y(i.startMin) : 0;
-    const h = Math.max(minH, trueH);
-    const wanted = y(i.startMin);
-    const top = Math.max(wanted, prevBottom + CARD_GAP);
-    prevBottom = top + h;
-    return { item: i, y: top, h, pushed: top - wanted > 1, proportional: trueH >= minH };
-  });
+  if (!proportional) {
+    cards = list.map((i) => {
+      const h = (i.endMin - i.startMin) <= 15 ? CARD_H_TINY : CARD_H;
+      const wanted = y(i.startMin);
+      const top = Math.max(wanted, prevBottom + CARD_GAP);
+      prevBottom = top + h;
+      return { item: i, y: top, h, pushed: top - wanted > 1, proportional: false, left: 0, width: 1, col: 0, cols: 1 };
+    });
+  } else {
+    const minH = (i) => ((i.endMin - i.startMin) <= 15 ? CARD_H_TINY : CARD_H);
+    const topOf = (i) => y(i.startMin);
+    const heightOf = (i) => Math.max(minH(i), y(i.endMin) - y(i.startMin));
+    const bottomOf = (i) => topOf(i) + heightOf(i);
+    let group = [];
+    let groupBottom = -Infinity;
+    const flush = () => {
+      if (!group.length) return;
+      const colBottom = [];
+      const placed = group.map((i) => {
+        let col = colBottom.findIndex((b) => b <= topOf(i));
+        if (col === -1) { col = colBottom.length; colBottom.push(0); }
+        colBottom[col] = bottomOf(i);
+        return { i, col };
+      });
+      const cols = colBottom.length;
+      for (const { i, col } of placed) {
+        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, left: col / cols, width: 1 / cols });
+      }
+      prevBottom = Math.max(prevBottom, ...placed.map(({ i }) => bottomOf(i)));
+      group = [];
+      groupBottom = -Infinity;
+    };
+    for (const i of list) {
+      if (group.length && topOf(i) >= groupBottom) flush();
+      group.push(i);
+      groupBottom = Math.max(groupBottom, bottomOf(i));
+    }
+    flush();
+    cards.sort((a, b) => a.y - b.y || a.col - b.col);
+  }
 
   // Ruler marks, denser as you zoom in. Hours are "major".
   const step = tickStepFor(pxPerHour);

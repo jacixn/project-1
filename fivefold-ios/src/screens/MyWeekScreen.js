@@ -293,13 +293,25 @@ const MyWeekScreen = ({ navigation }) => {
               {layout.cards.map((c) => {
                 const it = c.item;
                 const isMoving = moving && moving.id === it.id;
-                const tinyCard = c.h === 40;
+                const tinyCard = c.h <= 44;
+                const narrowCard = c.cols > 1;
                 return (
                   <TouchableOpacity
                     key={it.id}
                     onPress={() => (it.movable ? startMove(it) : explainExternal(it))}
                     activeOpacity={0.7}
-                    style={[styles.card, { top: c.y, height: c.h, backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile, borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'), alignItems: c.proportional ? 'flex-start' : 'center', paddingTop: c.proportional ? 10 : 0 }]}
+                    style={[styles.card, {
+                      top: c.y,
+                      height: c.h,
+                      left: `${c.left * 100}%`,
+                      width: `${c.width * 100}%`,
+                      backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile,
+                      borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'),
+                      alignItems: c.proportional ? 'flex-start' : 'center',
+                      paddingTop: c.proportional ? 8 : 0,
+                      paddingLeft: c.cols > 1 ? 10 : 12,
+                      paddingRight: c.cols > 1 ? 8 : 12,
+                    }]}
                     accessibilityRole="button"
                     accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
                     accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
@@ -308,19 +320,19 @@ const MyWeekScreen = ({ navigation }) => {
                     <View style={{ flex: 1 }}>
                       {tinyCard ? (
                         <Text style={[styles.cardTitle, { color: theme.text }]}>
-                          <Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}
+                          {narrowCard ? it.title : <><Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}</>}
                         </Text>
                       ) : (
                         <>
                           <Text style={[styles.cardTitle, { color: theme.text }]}>{it.title}</Text>
                           <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                            <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{` to ${fmtClock(it.endMin)}  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
+                            <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{narrowCard ? ` to ${fmtClock(it.endMin)}` : ` to ${fmtClock(it.endMin)}  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
                           </Text>
                         </>
                       )}
                     </View>
                     {it.movable ? (
-                      <Text style={[styles.cardMove, { color: accent }]}>Move</Text>
+                      narrowCard ? null : <Text style={[styles.cardMove, { color: accent }]}>Move</Text>
                     ) : (
                       <MaterialIcons name="lock-outline" size={16} color={theme.textSecondary} />
                     )}
@@ -509,7 +521,7 @@ const styles = StyleSheet.create({
   rail: { position: 'absolute', width: 4, borderRadius: 3 },
   railDot: { position: 'absolute', width: 8, height: 8, borderRadius: 4, marginLeft: -1 },
   cardArea: { position: 'absolute', right: 0, top: 0, bottom: 0 },
-  card: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, paddingLeft: 12, paddingRight: 12, overflow: 'hidden' },
+  card: { position: 'absolute', flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, overflow: 'hidden' },
   cardBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
   cardTitle: { fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2, lineHeight: 18 },
   cardMeta: { fontSize: 12, fontWeight: '600', marginTop: 2 },

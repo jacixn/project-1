@@ -41,7 +41,14 @@ check(zoomed.hours.some((h) => h.label === '11:05') && zoomed.hours.filter((h) =
 const zWork = zoomed.cards.find((c) => c.item.id === 'work');
 check(zWork.proportional && zWork.h === ((1050 - 540) / 60) * 600, 'zoomed in, Work becomes a block as long as 9 to 5:30');
 const zP2 = zoomed.cards.find((c) => c.item.id === 'p2');
-check(zP2.proportional && zP2.h === 50, 'zoomed in, a 5-minute prayer is a real 50 px block');
+check(zP2.proportional && zP2.h === 50 && zP2.y === ((660 - zoomed.axisStart) / 60) * 600, 'zoomed in, the 11 AM prayer is a real 50 px block AT 11 AM');
+check(zWork.cols === 2 && zWork.left === 0 && zP2.col === 1 && zP2.left === 0.5, 'Work takes the left column, the prayer sits beside it in the right column');
+check(zoomed.cards.find((c) => c.item.id === 'p3').col === 1 && zoomed.cards.find((c) => c.item.id === 'lunch').col === 1, 'later prayers and lunch reuse the right column');
+const zPush = zoomed.cards.find((c) => c.item.id === 'push'), zShower = zoomed.cards.find((c) => c.item.id === 'shower');
+check(zPush.cols === 2 && zShower.cols === 2 && zPush.left !== zShower.left && zPush.y === zShower.y, 'shower and Push (both 5:35) split the width side by side at the same height');
+check(zoomed.cards.find((c) => c.item.id === 'dinner').cols === 1, 'dinner alone keeps the full width');
+const zMatch = zoomed.cards.find((c) => c.item.id === 'match'), zSocial = zoomed.cards.find((c) => c.item.id === 'social');
+check(zMatch.y === zSocial.y && zMatch.h === 2 * zSocial.h && zMatch.left !== zSocial.left, 'the match (2 hr) and Social Media (1 hr) start together, side by side, match twice as tall');
 const out = layoutDay(day, { pxPerHour: 40 });
 check(out.hours.every((h) => h.min % 120 === 0) && out.cards.every((c) => c.h === CARD_H || c.h === CARD_H_TINY), 'zoomed out, 2-hour marks and compact cards');
 const screen2 = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
