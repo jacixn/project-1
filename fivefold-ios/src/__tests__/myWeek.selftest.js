@@ -34,7 +34,7 @@ check(fmtClock(430) === '7:10 AM' && minToTime(430) === '07:10', 'clock helpers'
 const screen = read('screens/MyWeekScreen.js');
 check(/loadDayItems\(d\)/.test(screen) && /week\.map/.test(screen) && /KIND_ORDER\.filter/.test(screen), 'week strip loads all 7 days with per-kind dots');
 check(/it\.movable \? startMove\(it\) : explainExternal\(it\)/.test(screen), 'movable items open Move; others explain where to change them');
-check(/NUDGES\.map/.test(screen) && /computeDayFlow\(\{ events: dayList/.test(screen) && /freeSlots\.map/.test(screen) && /<DateTimePicker/.test(screen) && /moving\.raw\?\.type === 'one-time'/.test(screen), 'move panel: nudges, free-time chips, inline exact wheel, another day for one-time items');
+check(/NUDGES\.map/.test(screen) && /computeDayFlow\(\{ events: dayList/.test(screen) && /freeSlots\.map/.test(screen) && /<DateTimePicker/.test(screen) && /Set an exact time/.test(screen) && /styles\.backdrop/.test(screen) && /styles\.panelSurface/.test(screen) && /moving\.raw\?\.type === 'one-time'/.test(screen), 'move panel: nudges, free-time chips, explicit exact-time button with inline wheel, dimmed backdrop, own surface, another day for one-time items');
 check(/moveItem\(moving, \{ time: minToTime\(draftMin\), date: draftDate \}\)/.test(screen), 'save goes through rescheduleItem');
 check(/'eyecandy:\/\/'/.test(screen) && /'calshow:'/.test(screen), 'external items can open EyeCandy or Calendar');
 check((screen.match(/numberOfLines/g) || []).length === 1 && /numberOfLines=\{titleLines\}/.test(screen) && !/[—]/.test(screen) && !/[—]/.test(src), 'no truncation except a host title above a nested block (iOS rule), no em dashes');

@@ -458,9 +458,13 @@ const MyWeekScreen = ({ navigation }) => {
         {loading ? <ActivityIndicator style={{ marginTop: 24 }} color={accent} /> : null}
       </ScrollView>
 
-      {/* Move panel */}
+      {/* Move panel: dims the day behind it and sits on its own lighter surface */}
       {moving ? (
-        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: hairline }]}>
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={cancelMove} accessibilityRole="button" accessibilityLabel="Cancel move" />
+      ) : null}
+      {moving ? (
+        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: accent + '55' }]}>
+          <View style={[styles.panelSurface, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} pointerEvents="none" />
           <View style={styles.panelHead}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={[styles.panelTitle, { color: theme.text }]}>Move {moving.title}</Text>
@@ -477,11 +481,24 @@ const MyWeekScreen = ({ navigation }) => {
             </Text>
             <Text style={[styles.panelWas, { color: showWheel ? accent : theme.textSecondary }]}>
               {showWheel ? 'Done setting the exact time' : draftMin !== moving.startMin || (draftDate && draftDate !== dateKeyOf(anchor))
-                ? `was ${fmtClock(moving.startMin)}${draftDate && draftDate !== dateKeyOf(anchor) ? `  ·  now on ${pickDate.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}` : ''}  ·  tap the time to set it exactly`
-                : 'Tap the time to set it exactly, nudge it, or pick a free time.'}
+                ? `was ${fmtClock(moving.startMin)}${draftDate && draftDate !== dateKeyOf(anchor) ? `  ·  now on ${pickDate.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}` : ''}`
+                : 'Nudge it, pick a free time, or set an exact time.'}
             </Text>
           </TouchableOpacity>
 
+
+          <View style={styles.nudgeRow}>
+            {NUDGES.map((n) => (
+              <TouchableOpacity key={n.label} onPress={() => nudge(n.delta)} style={[styles.nudge, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button">
+                <Text style={[styles.nudgeText, { color: theme.text }]}>{n.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} style={[styles.exactBtn, { borderColor: accent, backgroundColor: showWheel ? accent : 'transparent' }]} activeOpacity={0.7} accessibilityRole="button">
+            <MaterialIcons name="schedule" size={18} color={showWheel ? '#fff' : accent} />
+            <Text style={[styles.exactBtnText, { color: showWheel ? '#fff' : accent }]}>{showWheel ? 'Done' : 'Set an exact time'}</Text>
+          </TouchableOpacity>
           {showWheel && Platform.OS === 'ios' ? (
             <View style={[styles.wheel, { borderColor: hairline }]}>
               <DateTimePicker
@@ -495,14 +512,6 @@ const MyWeekScreen = ({ navigation }) => {
               />
             </View>
           ) : null}
-
-          <View style={styles.nudgeRow}>
-            {NUDGES.map((n) => (
-              <TouchableOpacity key={n.label} onPress={() => nudge(n.delta)} style={[styles.nudge, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button">
-                <Text style={[styles.nudgeText, { color: theme.text }]}>{n.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
 
           <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>
             {freeSlots.length ? `Free times ${draftDate && draftDate !== dateKeyOf(anchor) ? 'that day' : relDay(anchor) === 'Today' ? 'today' : relDay(anchor)}` : `No free time ${relDay(anchor) === 'Today' ? 'left today' : 'on ' + relDay(anchor)} that fits ${fmtDur(moving.endMin - moving.startMin)}`}
@@ -611,7 +620,11 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 17, fontWeight: '800' },
   emptySub: { fontSize: 14, lineHeight: 20, marginTop: 6 },
   footnote: { fontSize: 13, lineHeight: 18, marginTop: 16 },
-  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: StyleSheet.hairlineWidth, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: -6 } },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1.5, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } },
+  panelSurface: { ...StyleSheet.absoluteFillObject },
+  exactBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 14, borderWidth: 1.5, marginTop: 12 },
+  exactBtnText: { fontSize: 15, fontWeight: '800' },
   panelHead: { flexDirection: 'row', alignItems: 'flex-start' },
   panelTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
   panelSub: { fontSize: 13, fontWeight: '600', marginTop: 2 },
