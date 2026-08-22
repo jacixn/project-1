@@ -118,6 +118,24 @@ export const cascadePlan = (model, anchorId = null) => {
   return { moves, overflow };
 };
 
+// Free gaps once everything that cannot or need not move is in place: the
+// only room a plan may use. [{ startMin, endMin }] from 5 AM to midnight.
+export const freeGaps = (model, anchorId = null) => {
+  const allowed = allowedIds(model, anchorId);
+  const obstacles = blockingOf(model, anchorId)
+    .filter((m) => !allowed.has(m.id))
+    .map(({ startMin, endMin }) => ({ startMin, endMin }))
+    .sort((a, b) => a.startMin - b.startMin);
+  const gaps = [];
+  let cur = WAKE_START;
+  for (const o of obstacles) {
+    if (o.startMin > cur) gaps.push({ startMin: cur, endMin: o.startMin });
+    cur = Math.max(cur, o.endMin);
+  }
+  if (cur < DAY_LIMIT) gaps.push({ startMin: cur, endMin: DAY_LIMIT });
+  return gaps.filter((g) => g.endMin - g.startMin >= 5);
+};
+
 // Check a plan (AI or otherwise) against the rules. { ok, reason }.
 export const validatePlan = (model, plan, anchorId = null) => {
   if (!plan || !Array.isArray(plan.moves)) return { ok: false, reason: 'no moves array' };
@@ -153,6 +171,7 @@ export const validatePlan = (model, plan, anchorId = null) => {
 // rules spelled out; the answer must be one JSON object.
 export const buildMessages = (model, anchorId = null, dayLabel = 'today') => {
   const allowed = allowedIds(model, anchorId);
+  const byId = new Map(model.map((m) => [m.id, m]));
   const lines = model
     .slice()
     .sort((a, b) => a.startMin - b.startMin)
@@ -162,17 +181,28 @@ export const buildMessages = (model, anchorId = null, dayLabel = 'today') => {
         : m.soft ? 'short, ignore'
         : m.movable ? 'not involved, leave it'
         : `FIXED (${m.why || 'cannot move'})`;
-      return `${m.key} | ${m.title} | ${hm(m.startMin)}-${hm(m.endMin)} | ${tag}`;
+      return `${m.key} | ${m.title} | ${hm(m.startMin)}-${hm(m.endMin)} | ${m.durationMin} min | ${tag}`;
     });
+  const conflicts = fixableOverlaps(model, anchorId).map(([a, b]) => `${a.title} (${a.key}) with ${b.title} (${b.key})`);
+  const gaps = freeGaps(model, anchorId).map((g) => `${hm(g.startMin)}-${hm(g.endMin)}`);
+  const base = cascadePlan(model, anchorId);
+  const baseline = base.moves.map((mv) => `${byId.get(mv.id).key} -> ${hm(mv.startMin)}`);
   const system = [
     'You plan one day of a person\'s schedule inside the Biblely app.',
-    'Some items overlap. Move ONLY the items marked "movable" so nothing longer than 15 minutes overlaps anything else.',
-    'Rules: keep every item\'s length; never move FIXED or "must stay" items; times in 5-minute steps, between 05:00 and 23:30;',
-    'prefer the smallest change that works, keep the original order when it makes sense, and a free gap earlier in the day is fine if it is really free.',
+    'Some items overlap. Move ONLY the items marked "movable" so that, afterwards, no two items longer than 15 minutes overlap. Every listed overlap must be solved.',
+    'Rules: keep every item\'s length; never move FIXED or "must stay" items; every moved item must sit entirely inside ONE of the free gaps given, and moved items must not overlap each other;',
+    'times in 5-minute steps, between 05:00 and 23:30; prefer the smallest change, and an earlier free gap is fine when the whole item fits in it.',
+    'You are given a plan that already works. Return it unchanged, or a better one that obeys every rule.',
     'Reply with ONE JSON object and nothing else: {"moves":[{"id":"k3","start":"18:30"}],"note":"one short plain sentence for the user, no jargon"}.',
-    'Leave "moves" empty if nothing needs to change.',
   ].join(' ');
-  const user = `Items for ${dayLabel} (key | title | start-end | status):\n${lines.join('\n')}`;
+  const user = [
+    `Items for ${dayLabel} (key | title | start-end | length | status):`,
+    ...lines,
+    '',
+    `Overlaps to solve: ${conflicts.join('; ') || 'none'}.`,
+    `Free gaps you may use (nothing else is free): ${gaps.join(', ') || 'none'}.`,
+    `A plan that already works: ${baseline.join(', ') || 'no moves needed'}.`,
+  ].join('\n');
   return [{ role: 'system', content: system }, { role: 'user', content: user }];
 };
 
