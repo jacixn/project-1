@@ -11,7 +11,10 @@
 //          never overlap. Two things starting together simply stack.
 // Unit-tested in src/__tests__/timelineLayout.selftest.js.
 
-export const PX_PER_HOUR = 64;
+// Default zoom: the 30-minute ruler with true-length blocks (the view the
+// user picked). Pinch out for the compact overview, in for minutes.
+export const PX_PER_HOUR = 160;
+export const COMPACT_PX_PER_HOUR = 64;
 export const ZOOM_MIN = 36;   // px per hour, whole day in one screen
 export const ZOOM_MAX = 720;  // px per hour, 5-minute marks, 1 min = 12 px
 export const CARD_H = 52;
