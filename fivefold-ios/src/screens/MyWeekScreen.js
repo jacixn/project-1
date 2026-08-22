@@ -26,7 +26,7 @@ const NUDGES = [
   { label: '-1 hr', delta: -60 }, { label: '-30 min', delta: -30 }, { label: '-15 min', delta: -15 },
   { label: '+15 min', delta: 15 }, { label: '+30 min', delta: 30 }, { label: '+1 hr', delta: 60 },
 ];
-const WEEK_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const WEEK_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Sunday first, index = getDay()
 const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const relDay = (d, now = new Date()) => {
   const t = new Date(now); t.setHours(0, 0, 0, 0);
@@ -265,8 +265,8 @@ const MyWeekScreen = ({ navigation }) => {
       ? `${a.getDate()} – ${b.getDate()} ${b.toLocaleDateString('en', { month: 'short' })}`
       : `${a.getDate()} ${a.toLocaleDateString('en', { month: 'short' })} – ${b.getDate()} ${b.toLocaleDateString('en', { month: 'short' })}`;
     const t = new Date(); t.setHours(0, 0, 0, 0);
-    const thisMon = weekOf(t)[0];
-    const diff = Math.round((week[0] - thisMon) / (7 * 86400000));
+    const thisStart = weekOf(t)[0];
+    const diff = Math.round((week[0] - thisStart) / (7 * 86400000));
     const rel = diff === 0 ? 'This week' : diff === 1 ? 'Next week' : diff === -1 ? 'Last week' : diff > 0 ? `${diff} weeks ahead` : `${-diff} weeks ago`;
     return `${range}  ·  ${rel}`;
   })();

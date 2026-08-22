@@ -204,10 +204,10 @@ export const daySummary = (items) => {
   return `${n} ${n === 1 ? 'thing' : 'things'}  ·  ${fmtDur(busyMinutes(items))} busy  ·  first at ${fmtClock(first.startMin)}`;
 };
 
-// Monday-first week containing `date`
+// Sunday-first week containing `date` (like the iPhone Calendar)
 export const weekOf = (date) => {
   const d = new Date(date); d.setHours(0, 0, 0, 0);
-  const back = (d.getDay() + 6) % 7;
+  const back = d.getDay();
   d.setDate(d.getDate() - back);
   return Array.from({ length: 7 }, (_, i) => { const x = new Date(d); x.setDate(d.getDate() + i); return x; });
 };

@@ -26,7 +26,9 @@ check(busyMinutes([it('a', 0, 60), it('b', 30, 90), it('c', 200, 230)]) === 120,
 check(daySummary(day) === '5 things  ·  5 hr 10 min busy  ·  first at 7:10 AM', `day summary (${daySummary(day)})`);
 check(daySummary([]) === 'Nothing scheduled', 'empty summary');
 const w = weekOf(new Date(2026, 7, 22)); // Saturday
-check(w[0].getDay() === 1 && w[0].getDate() === 17 && w[6].getDate() === 23, 'Monday-first week around a Saturday');
+check(w[0].getDay() === 0 && w[0].getDate() === 16 && w[6].getDate() === 22 && w[6].getDay() === 6, 'Sunday-first week around a Saturday (16 to 22 Aug)');
+check(weekOf(new Date(2026, 7, 23))[0].getDate() === 23, 'a Sunday starts its own week');
+check(/WEEK_LETTERS = \['S', 'M', 'T', 'W', 'T', 'F', 'S'\]/.test(screen), 'strip letters start at Sunday');
 check(patternOf({ type: 'recurring', days: [1, 5] }) === 'Mon, Fri' && patternOf({ days: [0, 1, 2, 3, 4, 5, 6] }) === 'every day' && patternOf({ type: 'one-time' }) === 'one-time', 'pattern words');
 check(moveScope(it('prayer', 0, 5, { raw: { type: 'one-time' } })) === 'Only this one' && /Every day at the new time/.test(moveScope(it('gym', 0, 5, { raw: { days: [0,1,2,3,4,5,6] } }))) && moveScope(it('eyecandy', 0, 5)) === null, 'move scope wording');
 check(fmtClock(430) === '7:10 AM' && minToTime(430) === '07:10', 'clock helpers');
