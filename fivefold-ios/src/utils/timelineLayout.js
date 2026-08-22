@@ -49,10 +49,7 @@ export const clampZoom = (px) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, px));
 // compact and the rails carry the duration.
 export const PROPORTIONAL_FROM = 130;
 
-// maxCols: how many columns fit the card area at COL_MIN_W (the screen
-// measures this). A group that needs more switches to a stacked list of
-// full-width compact cards, and everything after it moves down to make room.
-export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null, maxCols = 2 } = {}) => {
+export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}) => {
   const list = (items || [])
     .filter((i) => i && Number.isFinite(i.startMin) && Number.isFinite(i.endMin) && i.endMin > i.startMin)
     .slice()
@@ -103,9 +100,6 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null, maxCo
     const bottomOf = (i) => topOf(i) + heightOf(i);
     let group = [];
     let groupBottom = -Infinity;
-    // Earlier groups can grow (stacked bands), so every group starts no
-    // higher than the previous one ended.
-    let shift = 0;
     const flush = () => {
       if (!group.length) return;
       const colBottom = [];
@@ -116,33 +110,14 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null, maxCo
         return { i, col };
       });
       const cols = colBottom.length;
+      const gTop = Math.min(...placed.map(({ i }) => topOf(i)));
+      const gBottom = Math.max(...placed.map(({ i }) => bottomOf(i)));
       const index = groups.length;
-      const gTopTrue = Math.min(...placed.map(({ i }) => topOf(i)));
-      const gTop = Math.max(gTopTrue + shift, prevBottom === -Infinity ? -Infinity : prevBottom + CARD_GAP);
-      shift = gTop - gTopTrue;
-      if (cols > maxCols) {
-        // Too crowded for columns: stack compact full-width cards in time order.
-        let cursor = gTop;
-        for (const { i } of placed) {
-          const h = minH(i);
-          cards.push({ item: i, y: cursor, h, pushed: true, proportional: false, col: 0, cols: 1, left: 0, width: 1, group: index, stacked: true });
-          cursor += h + CARD_GAP;
-        }
-        const gBottom = cursor - CARD_GAP;
-        groups.push({ index, y: gTop, h: gBottom - gTop, cols: 1, stacked: true });
-        prevBottom = gBottom;
-        shift = gBottom - Math.max(...placed.map(({ i }) => bottomOf(i)));
-        if (shift < 0) shift = 0;
-      } else {
-        // Positions relative to the group's top so a shifted group never drifts
-        // by a fraction of a pixel from where the previous one ended.
-        const gBottom = gTop + (Math.max(...placed.map(({ i }) => bottomOf(i))) - gTopTrue);
-        groups.push({ index, y: gTop, h: gBottom - gTop, cols, stacked: false });
-        for (const { i, col } of placed) {
-          cards.push({ item: i, y: gTop + (topOf(i) - gTopTrue), h: heightOf(i), pushed: shift > 0, proportional: true, col, cols, left: col / cols, width: 1 / cols, group: index, stacked: false });
-        }
-        prevBottom = gBottom;
+      groups.push({ index, y: gTop, h: gBottom - gTop, cols });
+      for (const { i, col } of placed) {
+        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, left: col / cols, width: 1 / cols, group: index });
       }
+      prevBottom = Math.max(prevBottom, gBottom);
       group = [];
       groupBottom = -Infinity;
     };

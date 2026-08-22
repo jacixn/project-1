@@ -51,25 +51,13 @@ const zPush = zoomed.cards.find((c) => c.item.id === 'push'), zShower = zoomed.c
 check(zPush.cols === 2 && zShower.cols === 2 && zPush.left !== zShower.left && zPush.y === zShower.y, 'shower and Push (both 5:35) split the width side by side at the same height');
 check(zoomed.cards.find((c) => c.item.id === 'dinner').cols === 1, 'dinner alone keeps the full width');
 const busyEvening = layoutDay([it('a', 1170, 1320), it('b', 1170, 1320), it('c', 1180, 1260), it('d', 1185, 1300), it('e', 1200, 1260)], { pxPerHour: 160 });
-check(busyEvening.maxCols === 1, 'a stacked band reports one column');
-check(busyEvening.groups.length === 1 && busyEvening.groups[0].stacked && busyEvening.cards.every((c) => c.group === 0 && c.cols === 1 && c.width === 1), 'five at once (more than fit) become one stacked band of full-width cards');
-for (let i = 1; i < busyEvening.cards.length; i++) if (busyEvening.cards[i].y < busyEvening.cards[i - 1].y + busyEvening.cards[i - 1].h) { failures++; console.log('FAIL: stacked band cards overlap'); }
-console.log('PASS: stacked band cards never overlap');
-const after = layoutDay([it('a', 1170, 1320), it('b', 1170, 1320), it('c', 1180, 1260), it('d', 1185, 1300), it('e', 1200, 1260), it('late', 1330, 1380)], { pxPerHour: 160 });
-const lateCard = after.cards.find((c) => c.item.id === 'late'), band = after.groups[0];
-check(lateCard.y >= band.y + band.h + CARD_GAP, 'the thing after a stacked band sits below it');
-const burst = layoutDay([it('a', 1170, 1175), it('b', 1170, 1175), it('c', 1170, 1175), it('d', 1171, 1176), it('e', 1172, 1177), it('next', 1200, 1220)], { pxPerHour: 160 });
-const nextCard = burst.cards.find((c) => c.item.id === 'next'), burstBand = burst.groups[0];
-check(burstBand.stacked && nextCard.pushed && nextCard.y >= burstBand.y + burstBand.h + CARD_GAP, 'when a stacked band is taller than its real extent, the next thing moves down to make room');
-const pair = layoutDay([it('x', 660, 665), it('y', 665, 725)], { pxPerHour: 160, maxCols: 2 });
-check(pair.groups[0].cols === 2 && !pair.groups[0].stacked, 'two at once stay side by side');
-const threeFit = layoutDay([it('a', 1050, 1055), it('b', 1055, 1085), it('c', 1055, 1160)], { pxPerHour: 160, maxCols: 3 });
-check(threeFit.groups[0].cols === 3 && !threeFit.groups[0].stacked, 'three stay in columns when the screen has room for three');
+check(busyEvening.maxCols === 5, 'five things at once report five columns');
+check(busyEvening.groups.length === 1 && busyEvening.groups[0].cols === 5 && busyEvening.cards.every((c) => c.group === 0), 'they form one overlap group');
 const twoGroups = layoutDay([it('solo', 420, 480), it('a', 1170, 1320), it('b', 1170, 1320), it('c', 1180, 1260), it('d', 1185, 1300), it('e', 1200, 1260)], { pxPerHour: 160 });
 check(mod.COL_MIN_W * 2 <= 250, 'two columns fit a phone-width card area (no sideways scroll for pairs)');
-check(twoGroups.groups.length === 2 && twoGroups.groups[0].cols === 1 && twoGroups.groups[1].stacked && twoGroups.cards.find((c) => c.item.id === 'solo').group === 0 && twoGroups.cards.find((c) => c.item.id === 'solo').width === 1, 'a lone morning item is its own full-width group, untouched by the crowded evening');
+check(twoGroups.groups.length === 2 && twoGroups.groups[0].cols === 1 && twoGroups.groups[1].cols === 5 && twoGroups.cards.find((c) => c.item.id === 'solo').group === 0, 'a lone morning item is its own 1-column group, untouched by the crowded evening');
 const screen3 = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
-check(/layoutDay\(visible, \{ nowMin, pxPerHour, maxCols \}\)/.test(screen3) && !/horizontal/.test(screen3.slice(screen3.indexOf('{/* Cards'), screen3.indexOf('{layout.nowY'))) && /left: Math\.round\(c\.col \* colW\)/.test(screen3), 'screen passes how many columns fit; no sideways scrolling in the card area');
+check(/g\.cols \* COL_MIN_W > cardAreaW/.test(screen3) && /scrollGroups\.map\(\(g\) =>/.test(screen3) && /left: Math\.round\(c\.col \* colW\)/.test(screen3) && /colW: scroll \? COL_MIN_W : cardAreaW \/ g\.cols/.test(screen3), 'each group sizes itself; only crowded bands scroll sideways');
 const zMatch = zoomed.cards.find((c) => c.item.id === 'match'), zSocial = zoomed.cards.find((c) => c.item.id === 'social');
 check(zMatch.y === zSocial.y && zMatch.h === 2 * zSocial.h && zMatch.left !== zSocial.left, 'the match (2 hr) and Social Media (1 hr) start together, side by side, match twice as tall');
 const out = layoutDay(day, { pxPerHour: 40 });
@@ -78,7 +66,7 @@ const screen2 = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScr
 check(/Gesture\.Pinch\(\)/.test(screen2) && /numberOfTaps\(2\)/.test(screen2) && /zoomStep\(-1\)/.test(screen2) && /zoomStep\(1\)/.test(screen2), 'pinch, double tap and - / + buttons all zoom');
 check(/scrollRef\.current\?\.scrollTo\(\{ y: target, animated: false \}\)/.test(screen2), 'zoom keeps the focal time in place');
 const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
-check(/layout\.rails\.map/.test(screen) && /layout\.cards\.map/.test(screen) && /styles\.railDot/.test(screen), 'screen draws rails and cards from the engine');
+check(/layout\.rails\.map/.test(screen) && /layout\.cards\.filter/.test(screen) && /styles\.railDot/.test(screen), 'screen draws rails and cards from the engine');
 check(!/container/.test(screen.slice(screen.indexOf('{/* Timeline'), screen.indexOf('{/* List */}'))), 'no container boxes left in the timeline');
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);
