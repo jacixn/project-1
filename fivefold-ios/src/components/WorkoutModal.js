@@ -705,6 +705,25 @@ const WorkoutModal = ({ visible, onClose, templateData = null, asScreen = false,
         }
         return ex;
       }));
+    } else {
+      // Reps (and any other whole-number field): one at a time, never below 0.
+      // This branch was missing, so + / - did nothing on the Reps field.
+      const currentValue = parseInt(numpadValue, 10) || 0;
+      const newValueStr = String(Math.max(0, currentValue + adjustment));
+
+      setNumpadValue(newValueStr);
+
+      setExercises(exercises.map(ex => {
+        if (ex.id === activeInput.exerciseId) {
+          const updatedSets = [...ex.sets];
+          updatedSets[activeInput.setIndex] = {
+            ...updatedSets[activeInput.setIndex],
+            [activeInput.field]: newValueStr
+          };
+          return { ...ex, sets: updatedSets };
+        }
+        return ex;
+      }));
     }
   };
 
