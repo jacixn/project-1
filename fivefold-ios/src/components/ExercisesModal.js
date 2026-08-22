@@ -49,6 +49,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   const [exercises, setExercises] = useState([]);
   const [filteredExercises, setFilteredExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [headerH, setHeaderH] = useState(0);
   const [selectedBodyPart, setSelectedBodyPart] = useState('Any Body Part');
   const [selectedCategory, setSelectedCategory] = useState('Any Category');
   const [loading, setLoading] = useState(true);
@@ -377,6 +378,10 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     return acc;
   }, {});
 
+  // Alphabetical inside each letter too (the library + custom list arrive in
+  // insertion order, which put "Ab Crunch Machine" after "Around the World")
+  Object.values(groupedExercises).forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name)));
+
   // Sort sections alphabetically
   const sortedSections = Object.keys(groupedExercises).sort();
   
@@ -397,10 +402,13 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     closeOptionsMenu(() => openPicker('category'));
   };
 
+  const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
+
   const renderExercise = (exercise) => (
     <TouchableOpacity
       key={exercise.id}
-      style={[styles.exerciseItem, { borderBottomColor: theme.border }]}
+      style={[styles.exerciseItem, { backgroundColor: tileColor }]}
+      activeOpacity={0.6}
       onPress={() => {
         hapticFeedback.light();
         if (selectionMode && onSelectExercise) {
@@ -409,16 +417,22 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
           navigation.navigate('ExerciseDetail', { exercise });
         }
       }}
+      accessibilityRole="button"
+      accessibilityLabel={`${exercise.name}, ${exercise.bodyPart}${exercise.equipment ? `, ${exercise.equipment}` : ''}`}
+      accessibilityHint={selectionMode ? 'Adds this exercise' : 'Shows how to do it'}
     >
       <View style={styles.exerciseInfo}>
-        <Text style={[styles.exerciseName, { color: theme.text }]}>
-          {exercise.name}
-        </Text>
+        <Text style={[styles.exerciseName, { color: theme.text }]}>{exercise.name}</Text>
         <Text style={[styles.exerciseCategory, { color: theme.textSecondary }]}>
-          {exercise.bodyPart}
+          {[exercise.bodyPart, exercise.equipment].filter(Boolean).join('  ·  ')}
+          {exercise.isCustom ? <Text style={{ color: theme.primary }}>{'  ·  Custom'}</Text> : null}
         </Text>
       </View>
-      <MaterialIcons name="chevron-right" size={24} color={theme.textSecondary} />
+      {selectionMode ? (
+        <View style={[styles.addPill, { backgroundColor: theme.primary }]}>
+          <MaterialIcons name="add" size={18} color="#fff" />
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 
@@ -426,7 +440,10 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     <>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header — matches Fuel */}
-        <View style={{ paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 8, backgroundColor: theme.background }}>
+        <View
+          style={{ paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 10, backgroundColor: theme.background }}
+          onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <TouchableOpacity
               onPress={() => { hapticFeedback.light(); onClose(); }}
@@ -443,7 +460,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
               <MaterialIcons name="arrow-back-ios-new" size={18} color={textPrimary} />
             </TouchableOpacity>
             <Text style={{ color: textPrimary, fontSize: 20, fontWeight: '700', letterSpacing: 0.3 }}>
-              {selectionMode ? 'New' : 'Exercises'}
+              {selectionMode ? 'Pick an exercise' : 'Exercises'}
             </Text>
             <TouchableOpacity
               onPress={openOptionsMenu}
@@ -503,6 +520,28 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Body part chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow} keyboardShouldPersistTaps="handled">
+            {bodyParts.map((bp) => {
+              const active = selectedBodyPart === bp;
+              return (
+                <TouchableOpacity
+                  key={bp}
+                  onPress={() => { hapticFeedback.light(); setSelectedBodyPart(bp); }}
+                  style={[styles.chip, { backgroundColor: active ? theme.primary : tileColor }]}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.chipText, { color: active ? '#fff' : theme.text }]}>{bp === 'Any Body Part' ? 'All' : bp}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <Text style={[styles.countText, { color: theme.textSecondary }]}>
+            {filteredExercises.length} {filteredExercises.length === 1 ? 'exercise' : 'exercises'}{selectedCategory !== 'Any Category' ? `  ·  ${selectedCategory}` : ''}
+          </Text>
         </View>
 
         {/* Options Popup - Add-Food-style layered overlay + animated sheet */}
@@ -717,7 +756,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
             <ScrollView
               ref={scrollViewRef}
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingTop: 8, paddingBottom: 50 }}
+              contentContainerStyle={{ paddingTop: 6, paddingBottom: 60 }}
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
@@ -743,7 +782,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
             </ScrollView>
 
             {/* Alphabet Navigation */}
-            <View style={styles.alphabetNav}>
+            <View style={[styles.alphabetNav, { top: headerH, backgroundColor: tileColor }]}>
               {alphabet.map(letter => (
                 <TouchableOpacity
                   key={letter}
@@ -1072,19 +1111,29 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
   sectionLetter: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.4,
   },
   exerciseItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    marginLeft: 20,
+    marginRight: 40,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: 16,
   },
+  addPill: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
+  chipsRow: { flexDirection: 'row', gap: 8, paddingTop: 12, paddingRight: 8 },
+  chip: { height: 36, paddingHorizontal: 14, borderRadius: 12, justifyContent: 'center' },
+  chipText: { fontSize: 14, fontWeight: '700' },
+  countText: { fontSize: 13, fontWeight: '600', marginTop: 10 },
   exerciseIconContainer: {
     width: 60,
     height: 60,
@@ -1104,25 +1153,31 @@ const styles = StyleSheet.create({
   },
   exerciseName: {
     fontSize: 17,
-    fontWeight: '500',
-    marginBottom: 2,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    lineHeight: 22,
   },
   exerciseCategory: {
     fontSize: 14,
+    fontWeight: '500',
+    marginTop: 2,
   },
   alphabetNav: {
     position: 'absolute',
-    right: 5,
-    top: Platform.OS === 'ios' ? 185 : 165,
-    bottom: 0,
-    justifyContent: 'center',
-    paddingVertical: 10,
+    right: 6,
+    marginTop: 10,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    alignSelf: 'flex-start',
     zIndex: 5,
   },
   alphabetLetter: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 11.5,
+    fontWeight: '700',
     paddingVertical: 1,
+    textAlign: 'center',
+    width: 16,
   },
   loadingContainer: {
     flex: 1,
