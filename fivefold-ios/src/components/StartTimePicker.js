@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
@@ -115,16 +116,19 @@ const StartTimePicker = ({
             <Text style={[styles.link, { color: accent }]}>Back to free times</Text>
           </TouchableOpacity>
         </View>
-        <DayTimeline
-          date={date}
-          selected={selected}
-          durationMinutes={durationMinutes}
-          label={label}
-          accentColor={accent}
-          onPick={(h, m) => onPick(h, m)}
-          extraEvents={busy}
-          exclude={excludeEvent}
-        />
+        {/* DayTimeline uses gesture-handler views; give it a root wherever this picker is mounted */}
+        <GestureHandlerRootView style={styles.fill}>
+          <DayTimeline
+            date={date}
+            selected={selected}
+            durationMinutes={durationMinutes}
+            label={label}
+            accentColor={accent}
+            onPick={(h, m) => onPick(h, m)}
+            extraEvents={busy}
+            exclude={excludeEvent}
+          />
+        </GestureHandlerRootView>
       </View>
     );
   }
