@@ -320,8 +320,13 @@ const reconcile = (namespace, desired) => serialize(async () => {
   const calId = await ensureCalendar();
   if (!calId) return;
 
-  // Setting-driven default for events with no per-item lead time.
-  const defaultAlarms = alarmsFromNotify(await getDefaultAlarmMinutes()) || [{ relativeOffset: -10 }];
+  // Setting-driven default for events with no per-item lead time. When the
+  // user sets Calendar Alert to OFF, that is the whole story: no calendar
+  // alarm on ANY event, per-item lead or not — otherwise Biblely's own
+  // notification and the Calendar app's alert both fire (double ping).
+  const defaultMin = await getDefaultAlarmMinutes();
+  const calendarAlertsOff = Number.isFinite(defaultMin) && defaultMin < 0;
+  const defaultAlarms = alarmsFromNotify(defaultMin) || [{ relativeOffset: -10 }];
 
   const prefix = `${namespace}__`;
   const desiredByKey = new Map(desired.map((d) => [d.stableKey, d]));
@@ -352,7 +357,7 @@ const reconcile = (namespace, desired) => serialize(async () => {
       // Honor a per-event alarm (from the item's reminder lead time); domains
       // that don't specify one use the user's DEFAULT from Profile. An empty
       // array means no calendar alert fires.
-      alarms: d.alarms !== undefined ? d.alarms : defaultAlarms,
+      alarms: calendarAlertsOff ? [] : (d.alarms !== undefined ? d.alarms : defaultAlarms),
       notes: 'Added by Biblely',
       ...(d.recurring ? { recurrenceRule: { frequency: d.frequency } } : {}),
     };
