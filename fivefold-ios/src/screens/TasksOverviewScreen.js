@@ -41,6 +41,7 @@ import { updateTodoWidget } from '../utils/widgetBridge';
 import { pushToCloud } from '../services/userSyncService';
 import { scoreTask } from '../utils/todoScorer';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { offerFit } from '../services/fitOffer';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -390,6 +391,10 @@ const TasksOverviewScreen = () => {
     DeviceEventEmitter.emit('todosChanged');
     setEditingTask(null);
     setEditSaving(false);
+    // Re-timed onto other things? Offer to make room right now.
+    if (editDateTime) {
+      offerFit({ anchorId: `task:${editingTask.id}`, date: editDateTime, onDone: () => DeviceEventEmitter.emit('todosChanged') }).catch(() => {});
+    }
   }, [editingTask, editText, editDateTime, editSaving, todos]);
 
   // Group tasks by date

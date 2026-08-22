@@ -38,7 +38,7 @@ check(/loadDayItems\(d\)/.test(screen) && /week\.map/.test(screen) && /KIND_ORDE
 check(/Gesture\.Pan\(\)[\s\S]{0,80}activeOffsetX\(\[-14, 14\]\)/.test(screen) && /goWeek\(1\)/.test(screen) && /goWeek\(-1\)/.test(screen) && /withSpring\(0/.test(screen) && !/styles\.weekNav/.test(screen) && /\.slice\(0, 4\)/.test(screen), 'week strip swipes between weeks with a slide/spring, no chevron tiles, dots capped at four');
 check(/it\.movable \? startMove\(it\) : explainExternal\(it\)/.test(screen), 'movable items open Move; others explain where to change them');
 check(/NUDGES\.map/.test(screen) && /computeDayFlow\(\{ events: dayList/.test(screen) && /freeSlots\.map/.test(screen) && /<DateTimePicker/.test(screen) && /Set an exact time/.test(screen) && /styles\.backdrop/.test(screen) && /styles\.panelSurface/.test(screen) && /moving\.raw\?\.type === 'one-time'/.test(screen), 'move panel: nudges, free-time chips, explicit exact-time button with inline wheel, dimmed backdrop, own surface, another day for one-time items');
-check(/moveItem\(moving, \{ time: minToTime\(draftMin\), date: draftDate \}\)/.test(screen), 'save goes through rescheduleItem');
+check(/moveItem\(moving, \{ time: minToTime\(draftMin\), date: draftDate, from: dateKeyOf\(anchor\), todayOnly \}\)/.test(screen), 'save goes through rescheduleItem');
 check(/Linking\.openURL\('calshow:'\)/.test(screen) && /explainExternal/.test(screen) && /it\.movable \? startMove\(it\) : explainExternal\(it\)/.test(screen), 'read-only calendar items explain themselves and can open Calendar; everything movable opens the move panel');
 check((screen.match(/numberOfLines/g) || []).length === 1 && /numberOfLines=\{titleLines\}/.test(screen) && !/[—]/.test(screen) && !/[—]/.test(src), 'no truncation except a host title above a nested block (iOS rule), no em dashes');
 const move = read('services/rescheduleItem.js');
@@ -93,6 +93,21 @@ check(/if \(item\.kind === 'task'\) \{/.test(resrc) && /await saveData\('todos',
 const busy = read('utils/dayBusy.js');
 check(/excludeTaskId = null/.test(busy) && /getStoredData\('todos'\)/.test(busy) && /push\(out, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), 30, 'task'\)/.test(busy), 'tasks count as busy time for free-gap picking');
 check(/k === 'task' \|\| k === 'gym' \? 's'/.test(screen), 'legend chip says Tasks');
+
+// ---- just today / every day, and planning right after a move -------------
+check(/const isSeriesReminder = \(it\)/.test(screen) && /'Just today'/.test(screen) && /todayOnly = isSeriesReminder\(moving\) && !moveAll/.test(screen) && /from: dateKeyOf\(anchor\), todayOnly \}\)/.test(screen), 'Move panel: a repeating reminder moves just today unless Every day is chosen');
+check(/const fresh = await loadWeek\(\);/.test(screen) && /if \(fresh && fresh\[landedKey\]\) autoPlan\(fresh\[landedKey\], movedId\);/.test(screen) && /const autoPlan = async \(items, anchorId\)/.test(screen), 'after a move the day is planned at once if something overlaps');
+check(/moveReminderForDay\(raw\.id, \{ from, to: to\.date \|\| from, time: to\.time \}\)/.test(resrc) && /return copy \? \{ newId: `reminder:\$\{copy\.id\}` \} : false;/.test(resrc), 'today-only reminder moves skip the series for that day and place a copy');
+const rem = read('services/reminderService.js');
+check(/r\.skipDates\.includes\(dateStr\)\) return false;/.test(rem) && /export const moveReminderForDay = async \(id, \{ from, to, time \}\)/.test(rem) && /parentId: parent\.id/.test(rem), 'reminderService: skipDates honoured, one-day copies carry parentId');
+const notif = read('services/notificationService.js');
+check(/if \(skipDates\.includes\(candidateKey\)\) continue;/.test(notif) && /offset <= 14/.test(notif), 'reminder notifications skip moved days and look two weeks out');
+const offer = read('services/fitOffer.js');
+check(/export const nextDateFor/.test(offer) && /Alert\.alert\(/.test(offer) && /todayOnly: !!\(line && line\.todayOnly\)/.test(offer) && /'Leave it', style: 'cancel'/.test(offer), 'fitOffer: one alert, moves only on tap, today-only carried through');
+for (const [f, pat] of [['components/ScheduleReminderModal.js', /if \(offer\) offerFit\(offer\)/], ['screens/TodosTab.js', /offerFit\(\{ anchorId: `task:\$\{todo\.id\}`, date: todo\.scheduledDate/], ['screens/TasksOverviewScreen.js', /offerFit\(\{ anchorId: `task:\$\{editingTask\.id\}`, date: editDateTime/], ['components/ScheduleWorkoutModal.js', /if \(offer\) offerFit\(offer\)/]]) {
+  check(pat.test(read(f)), `${f} offers the plan right after saving`);
+}
+
 
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');

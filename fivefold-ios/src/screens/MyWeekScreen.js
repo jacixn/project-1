@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { computeDayFlow } from '../utils/dayFlow';
 import {
   loadDayItems, buildAgenda, countByKind, daySummary, weekOf,
-  KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope,
+  KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope, patternOf,
 } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
 import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
@@ -55,6 +55,7 @@ const MyWeekScreen = ({ navigation }) => {
   const [draftMin, setDraftMin] = useState(0);
   const [draftDate, setDraftDate] = useState(null);
   const [showWheel, setShowWheel] = useState(false);
+  const [moveAll, setMoveAll] = useState(false); // repeating reminder: just today (default) or every day
   const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
@@ -88,8 +89,11 @@ const MyWeekScreen = ({ navigation }) => {
       week.forEach((d, i) => { map[dateKeyOf(d)] = lists[i]; });
       setItemsByDay((prev) => ({ ...prev, ...map }));
       loadedWeeksRef.current.add(weekKey);
+      if (fresh) setLoading(false);
+      return map;
     } catch { if (fresh) setItemsByDay({}); }
     if (fresh) setLoading(false);
+    return null;
   }, [weekKey]);
 
   useEffect(() => { loadWeek(); }, [loadWeek]);
@@ -286,8 +290,11 @@ const MyWeekScreen = ({ navigation }) => {
     setDraftMin(item.startMin);
     setDraftDate(dateKeyOf(anchor));
     setShowWheel(false);
+    setMoveAll(false);
     setStatus(null);
   };
+  // A repeating reminder moves for this day alone unless the user says every day.
+  const isSeriesReminder = (it) => !!it && it.kind === 'reminder' && it.raw?.type !== 'one-time';
   const cancelMove = () => { hapticFeedback.light(); setMoving(null); setShowWheel(false); };
   const nudge = (delta) => {
     hapticFeedback.selection();
@@ -297,19 +304,24 @@ const MyWeekScreen = ({ navigation }) => {
     if (!moving || saving) return;
     setSaving(true);
     try {
-      const ok = await moveItem(moving, { time: minToTime(draftMin), date: draftDate });
+      const todayOnly = isSeriesReminder(moving) && !moveAll;
+      const ok = await moveItem(moving, { time: minToTime(draftMin), date: draftDate, from: dateKeyOf(anchor), todayOnly });
       if (!ok) throw new Error('not movable');
       hapticFeedback.success();
       const movedDay = draftDate && draftDate !== dateKeyOf(anchor);
-      setStatus(`${moving.title} moved to ${fmtClock(draftMin)}${movedDay ? ` on ${draftDate}` : ''}.`);
-      lastMovedRef.current = moving.id;
+      setStatus(`${moving.title} moved to ${fmtClock(draftMin)}${movedDay ? ` on ${draftDate}` : ''}${todayOnly ? ', just today' : ''}.`);
+      const movedId = ok && ok.newId ? ok.newId : moving.id;
+      const landedKey = draftDate || dateKeyOf(anchor);
+      lastMovedRef.current = movedId;
       setMoving(null);
       setShowWheel(false);
       // Keep the user where they were: the refresh swaps data in place, and
       // the panel closing shrinks the bottom padding, so pin the offset.
       const keepY = scrollYRef.current;
-      await loadWeek();
+      const fresh = await loadWeek();
       requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: keepY, animated: false }));
+      // Landed on something? Plan it right away, no button hunting.
+      if (fresh && fresh[landedKey]) autoPlan(fresh[landedKey], movedId);
     } catch (e) {
       hapticFeedback.error();
       Alert.alert('Could not move it', e?.message || 'Please try again.');
@@ -318,6 +330,13 @@ const MyWeekScreen = ({ navigation }) => {
   };
 
   // Make it fit: the AI plans, the rules check, the user approves.
+  const autoPlan = async (items, anchorId) => {
+    try {
+      const dayLabel = isTodaySelected ? 'today' : anchor.toLocaleDateString('en', { weekday: 'long' });
+      const plan = await planDay(items, { anchorId, dayLabel });
+      if (plan && plan.lines.length) { hapticFeedback.selection(); setFitSkipped(new Set()); setFitPlan(plan); }
+    } catch {}
+  };
   const makeItFit = async () => {
     if (fitting) return;
     hapticFeedback.light();
@@ -344,10 +363,12 @@ const MyWeekScreen = ({ navigation }) => {
     setSaving(true);
     let n = 0;
     const chosen = fitPlan.moves.filter((mv) => !fitSkipped.has(mv.id));
+    const key = dateKeyOf(anchor);
     for (const mv of chosen) {
       const it = dayItems.find((i) => i.id === mv.id);
+      const line = fitPlan.lines.find((l) => l.id === mv.id);
       if (!it) continue;
-      try { if (await moveItem(it, { time: minToTime(mv.startMin) })) n++; } catch {}
+      try { if (await moveItem(it, { time: minToTime(mv.startMin), date: key, from: key, todayOnly: !!(line && line.todayOnly) })) n++; } catch {}
     }
     hapticFeedback.success();
     setStatus(n === chosen.length
@@ -628,7 +649,10 @@ const MyWeekScreen = ({ navigation }) => {
               <TouchableOpacity key={l.id} onPress={() => toggleFitRow(l.id)} style={[styles.fitRow, { opacity: off ? 0.45 : 1 }]} activeOpacity={0.7} accessibilityRole="checkbox" accessibilityState={{ checked: !off }} accessibilityLabel={`${l.title}, ${fmtClock(l.from)} to ${fmtClock(l.to)}`}>
                 <View style={[styles.fitBar, { backgroundColor: l.color }]} />
                 <Text style={[styles.fitRowTitle, { color: theme.text }]}>{l.title}</Text>
-                <Text style={[styles.fitRowTime, { color: l.color }]}>{fmtClock(l.from)} to {fmtClock(l.to)}</Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={[styles.fitRowTime, { color: l.color }]}>{fmtClock(l.from)} to {fmtClock(l.to)}</Text>
+                  {l.todayOnly ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>this day only</Text> : null}
+                </View>
                 <MaterialIcons name={off ? 'check-box-outline-blank' : 'check-box'} size={22} color={off ? theme.textSecondary : accent} />
               </TouchableOpacity>
             );
@@ -662,7 +686,7 @@ const MyWeekScreen = ({ navigation }) => {
           <View style={styles.panelHead}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={[styles.panelTitle, { color: theme.text }]}>Move {moving.title}</Text>
-              <Text style={[styles.panelSub, { color: theme.textSecondary }]}>{moveScope(moving)}</Text>
+              <Text style={[styles.panelSub, { color: theme.textSecondary }]}>{isSeriesReminder(moving) && !moveAll ? `Just this day. Other days keep ${fmtClock(moving.startMin)}.` : moveScope(moving)}</Text>
             </View>
             <TouchableOpacity onPress={cancelMove} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Cancel move">
               <MaterialIcons name="close" size={22} color={theme.text} />
@@ -680,6 +704,19 @@ const MyWeekScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
 
+
+          {isSeriesReminder(moving) ? (
+            <View style={styles.scopeRow}>
+              {[{ all: false, label: 'Just today' }, { all: true, label: (() => { const pt = patternOf(moving.raw); return pt === 'every day' ? 'Every day' : pt === 'weekdays' ? 'Weekdays' : pt === 'weekends' ? 'Weekends' : `Every ${pt}`; })() }].map((o) => {
+                const on = moveAll === o.all;
+                return (
+                  <TouchableOpacity key={String(o.all)} onPress={() => { hapticFeedback.selection(); setMoveAll(o.all); }} style={[styles.scopeTab, { backgroundColor: on ? panelAccent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                    <Text style={[styles.scopeText, { color: on ? '#fff' : theme.text }]}>{o.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
 
           <View style={styles.nudgeRow}>
             {NUDGES.map((n) => (
@@ -724,7 +761,7 @@ const MyWeekScreen = ({ navigation }) => {
             </ScrollView>
           ) : null}
 
-          {moving.raw?.type === 'one-time' ? (
+          {moving.raw?.type === 'one-time' || (isSeriesReminder(moving) && !moveAll) ? (
             <>
               <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Another day</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsRow}>
@@ -844,6 +881,10 @@ const styles = StyleSheet.create({
   fitRowTitle: { flex: 1, flexShrink: 1, fontSize: 15, fontWeight: '700' },
   fitRowTime: { fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
   fitStay: { fontSize: 13.5, fontWeight: '600', lineHeight: 19, marginTop: 4 },
+  fitRowNote: { fontSize: 12, fontWeight: '600', marginTop: 1 },
+  scopeRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  scopeTab: { flex: 1, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  scopeText: { fontSize: 14, fontWeight: '800' },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, borderRadius: 16, marginTop: 18 },
   saveBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
 });

@@ -35,9 +35,13 @@ export const toModel = (items) => (items || []).map((it, i) => {
   const durationMin = Math.max(5, (it.endMin || 0) - (it.startMin || 0));
   const days = Array.isArray(raw.days) ? raw.days : [];
   const daily = !days.length || days.length === 7;
+  // A repeating reminder can move for this day alone (the series skips the
+  // day, a one-time copy takes it), so it is fair game. Workouts and
+  // prayers have no such exception yet and stay put.
+  const todayOnly = it.kind === 'reminder' && !oneTime && !!it.movable;
   const why = sports ? 'kick-off is fixed'
     : !it.movable ? 'read-only'
-    : !oneTime ? (it.kind === 'prayer' ? 'daily prayer' : daily && (it.kind === 'reminder' || it.kind === 'gym') ? 'repeats every day' : 'repeats every week')
+    : (!oneTime && !todayOnly) ? (it.kind === 'prayer' ? 'daily prayer' : daily && it.kind === 'gym' ? 'repeats every day' : 'repeats every week')
     : null;
   return {
     id: it.id,
@@ -49,7 +53,8 @@ export const toModel = (items) => (items || []).map((it, i) => {
     endMin: it.endMin,
     durationMin,
     soft: durationMin <= SOFT_MAX_MIN,
-    movable: !!it.movable && oneTime && !sports,
+    movable: !!it.movable && !sports && (oneTime || todayOnly),
+    todayOnly,
     why,
   };
 });
@@ -122,8 +127,8 @@ const clearBefore = (obstacles, start, dur) => {
 };
 
 // Deterministic plan: walk the day in start order; anything that collides
-// slides forward to the first clear gap, flowing around fixed items. When
-// the rest of the day is full it slides earlier instead (not before 8 AM).
+// goes to the nearest clear gap, later or earlier (not before 8 AM), the
+// smaller jump winning and later breaking ties. Flows around fixed items.
 // Only items in an overlap cluster are touched.
 export const cascadePlan = (model, anchorId = null) => {
   const allowed = allowedIds(model, anchorId);
@@ -133,8 +138,11 @@ export const cascadePlan = (model, anchorId = null) => {
   const moves = [];
   const overflow = [];
   for (const m of movers) {
-    let placed = clearOf(obstacles, m.startMin, m.durationMin);
-    if (placed + m.durationMin > DAY_LIMIT) placed = clearBefore(obstacles, m.startMin, m.durationMin);
+    const fwd = clearOf(obstacles, m.startMin, m.durationMin);
+    const later = fwd + m.durationMin <= DAY_LIMIT ? fwd : null;
+    const earlier = clearBefore(obstacles, m.startMin, m.durationMin);
+    let placed = later;
+    if (earlier != null && (later == null || m.startMin - earlier < later - m.startMin)) placed = earlier;
     if (placed == null) { overflow.push(m.title); continue; }
     if (placed !== m.startMin) moves.push({ id: m.id, startMin: placed });
     obstacles.push({ startMin: placed, endMin: placed + m.durationMin });
@@ -201,7 +209,7 @@ export const buildMessages = (model, anchorId = null, dayLabel = 'today') => {
     .sort((a, b) => a.startMin - b.startMin)
     .map((m) => {
       const tag = m.id === anchorId ? 'JUST ADDED, must stay'
-        : allowed.has(m.id) ? 'movable'
+        : allowed.has(m.id) ? (m.todayOnly ? 'movable (this day only, other days keep their time)' : 'movable')
         : m.soft ? 'short, ignore'
         : m.movable ? 'not involved, leave it'
         : `FIXED (${m.why || 'cannot move'})`;
@@ -258,7 +266,7 @@ export const describePlan = (model, plan) => {
   const byId = new Map(model.map((m) => [m.id, m]));
   return (plan?.moves || []).map((mv) => {
     const m = byId.get(mv.id);
-    return m ? { id: m.id, title: m.title, color: m.color, kind: m.kind, from: m.startMin, to: mv.startMin, durationMin: m.durationMin } : null;
+    return m ? { id: m.id, title: m.title, color: m.color, kind: m.kind, from: m.startMin, to: mv.startMin, durationMin: m.durationMin, todayOnly: !!m.todayOnly } : null;
   }).filter(Boolean);
 };
 

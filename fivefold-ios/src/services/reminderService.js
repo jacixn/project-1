@@ -173,6 +173,40 @@ export const updateReminder = async (id, updates) => {
   return reminders[idx];
 };
 
+// Move ONE occurrence of a recurring reminder: `from` (YYYY-MM-DD) is
+// skipped on the series and a one-time copy is placed on `to` (same day by
+// default) at `time`. Every other day keeps its time. One-time reminders
+// just move. Returns the reminder now carrying that day, or null.
+export const moveReminderForDay = async (id, { from, to, time }) => {
+  if (!from || !time) return null;
+  const reminders = await loadReminders();
+  const idx = reminders.findIndex(r => r.id === id);
+  if (idx === -1) return null;
+  const parent = reminders[idx];
+  if (parent.type === 'one-time') return updateReminder(id, { time, date: to || from });
+  const skipDates = Array.from(new Set([...(parent.skipDates || []), from]));
+  reminders[idx] = { ...parent, skipDates };
+  const date = to || from;
+  const copy = {
+    ...parent,
+    id: generateId(),
+    type: 'one-time',
+    date,
+    time,
+    days: [new Date(`${date}T12:00:00`).getDay()],
+    completions: {},
+    parentId: parent.id,
+    createdAt: new Date().toISOString(),
+  };
+  delete copy.skipDates;
+  reminders.push(copy);
+  await persist(reminders);
+  notificationService.cancelReminderNotification(parent.id).catch(() => {});
+  if (parent.enabled) notificationService.scheduleReminderNotification(reminders[idx]).catch(() => {});
+  notificationService.scheduleReminderNotification(copy).catch(() => {});
+  return copy;
+};
+
 export const deleteReminder = async (id) => {
   const reminders = await loadReminders();
   const existing = reminders.find(r => r.id === id);
@@ -236,6 +270,9 @@ export const getRemindersForDay = (reminders, dayIndex, dateStr) => {
       if (r.type === 'one-time') {
         return r.date === dateStr;
       }
+      // A day moved "just today" is skipped on the series (its one-time copy
+      // carries that day instead).
+      if (dateStr && Array.isArray(r.skipDates) && r.skipDates.includes(dateStr)) return false;
       return (r.days || []).includes(dayIndex);
     })
     .sort((a, b) => {

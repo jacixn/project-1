@@ -27,6 +27,7 @@ import { DEFAULT_DURATION, formatDuration } from '../utils/duration';
 import ReminderDetailsEditor from './ReminderDetailsEditor';
 import StartTimePicker from './StartTimePicker';
 import SheetHeader from './SheetHeader';
+import { offerFit, nextDateFor } from '../services/fitOffer';
 
 const pad = (n) => String(n).padStart(2, '0');
 const fmtDateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -288,24 +289,31 @@ const ScheduleReminderModal = ({ navigation, route }) => {
     };
     // Persist straight to storage; the Reminders/All-reminders screens refresh on
     // focus when this modal is dismissed.
+    let offer = null; // the saved reminder + the day it lands on, for the fit offer
     try {
       if (type === 'one-time') {
         const dates = oneTimeDates.length ? oneTimeDates : [new Date()];
         const list = dates.map((d) => ({ ...base, type: 'one-time', days: [d.getDay()], date: fmtDateKey(d) }));
         if (editingReminder) {
-          await updateReminder(editingReminder.id, list[0]);
+          const saved = await updateReminder(editingReminder.id, list[0]);
+          if (saved) offer = { anchorId: `reminder:${saved.id}`, date: list[0].date };
         } else {
-          for (const d of list) await addReminder(d);
+          for (const d of list) {
+            const saved = await addReminder(d);
+            if (!offer && saved) offer = { anchorId: `reminder:${saved.id}`, date: d.date };
+          }
         }
       } else {
         const payload = { ...base, type: 'recurring', days };
-        if (editingReminder) await updateReminder(editingReminder.id, payload);
-        else await addReminder(payload);
+        const saved = editingReminder ? await updateReminder(editingReminder.id, payload) : await addReminder(payload);
+        if (saved) offer = { anchorId: `reminder:${saved.id}`, date: nextDateFor(days, timeStr) };
       }
     } catch (e) {
       console.warn('[ScheduleReminder] save failed:', e?.message);
     }
     close();
+    // Landed on something that day? Offer to make room, right now.
+    if (offer) offerFit(offer).catch(() => {});
   };
 
   // ── header per step ────────────────────────────────────────────────────────

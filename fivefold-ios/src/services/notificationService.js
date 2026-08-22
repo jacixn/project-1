@@ -1921,12 +1921,17 @@ class NotificationService {
 
         let nextFireDate = null;
 
-        for (let offset = 0; offset <= 7; offset++) {
+        // Up to two weeks out: a weekly reminder moved "just today" skips a
+        // whole week (skipDates) and must land on the occurrence after it.
+        const skipDates = Array.isArray(reminder.skipDates) ? reminder.skipDates : [];
+        for (let offset = 0; offset <= 14; offset++) {
           const candidate = new Date(now);
           candidate.setDate(candidate.getDate() + offset);
           candidate.setHours(hour, minute, 0, 0);
 
           const candidateDayIndex = candidate.getDay();
+          const candidateKey = `${candidate.getFullYear()}-${String(candidate.getMonth() + 1).padStart(2, '0')}-${String(candidate.getDate()).padStart(2, '0')}`;
+          if (skipDates.includes(candidateKey)) continue;
 
           if (reminderDays.includes(candidateDayIndex) && candidate > now) {
             nextFireDate = candidate;

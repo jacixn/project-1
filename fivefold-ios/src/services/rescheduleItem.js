@@ -4,7 +4,7 @@
 import { DeviceEventEmitter } from 'react-native';
 import * as Calendar from 'expo-calendar';
 import { updatePrayer } from './simplePrayersService';
-import { updateReminder } from './reminderService';
+import { updateReminder, moveReminderForDay } from './reminderService';
 import WorkoutService from './workoutService';
 import { scheduleWorkoutNotifications } from './workoutSchedule';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -62,7 +62,8 @@ export const calendarMoveOptions = (kind, raw) => {
     : { futureEvents: true };
 };
 
-// item: from utils/dayItems; to: { time: 'HH:MM', date?: 'YYYY-MM-DD' }
+// item: from utils/dayItems; to: { time: 'HH:MM', date?: 'YYYY-MM-DD', from?: 'YYYY-MM-DD', todayOnly?: bool }
+// Resolves true (or { newId }) when moved, false when it could not be.
 export const moveItem = async (item, to) => {
   if (!item || !item.movable || !to?.time || item.kind === 'eyecandySports') return false;
   const raw = item.raw || {};
@@ -92,6 +93,14 @@ export const moveItem = async (item, to) => {
     return true;
   }
   if (item.kind === 'reminder') {
+    // A repeating reminder moved for one day: the series skips `from`, a
+    // one-time copy takes `date`. Returns the copy's id so the caller can
+    // keep pointing at the thing that moved.
+    if (!oneTime && to.todayOnly && (to.from || to.date)) {
+      const from = to.from || to.date;
+      const copy = await moveReminderForDay(raw.id, { from, to: to.date || from, time: to.time });
+      return copy ? { newId: `reminder:${copy.id}` } : false;
+    }
     await updateReminder(raw.id, { time: to.time, ...(oneTime && to.date ? { date: to.date } : {}) });
     return true;
   }

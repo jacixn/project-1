@@ -32,7 +32,7 @@ check(byId['cal:n'].movable === false && byId['cal:n'].why === 'kick-off is fixe
 check(byId['cal:t'].movable === false && byId['cal:t'].why === 'repeats every week', 'weekly EyeCandy slot is fixed for a one-day plan');
 check(byId['prayer:4'].movable === false && byId['prayer:4'].why === 'daily prayer' && byId['prayer:4'].soft, 'daily prayer is fixed and short');
 check(byId['gym:p'].movable && byId['cal:s'].movable && byId['reminder:sh'].movable, 'one-time things can move');
-check(model.every((m, i) => m.key === `k${i + 1}`) && byId['reminder:d'].why === 'repeats every day', 'short keys for the prompt; daily reminder fixed');
+check(model.every((m, i) => m.key === `k${i + 1}`) && byId['reminder:d'].movable && byId['reminder:d'].todayOnly && byId['reminder:d'].why === null, 'short keys for the prompt; a daily reminder can move for this day only');
 
 const pairs = fixableOverlaps(model, ANCHOR);
 const pk = pairs.map(([a, b]) => `${a.id}+${b.id}`).sort();
@@ -43,7 +43,7 @@ check(allowed.join(' ') === 'cal:s gym:p', `only items in the overlap cluster ma
 
 const plan = cascadePlan(model, ANCHOR);
 const mv = Object.fromEntries(plan.moves.map((m) => [m.id, m.startMin]));
-check(mv['gym:p'] === 1215 && mv['cal:s'] === 1275 && plan.moves.length === 2 && !plan.overflow.length, `cascade flows around the match, dinner and shower (Pull ${hm(mv['gym:p'] || 0)}, Solo ${hm(mv['cal:s'] || 0)})`);
+check(mv['gym:p'] === 900 && mv['cal:s'] === 1215 && plan.moves.length === 2 && !plan.overflow.length, `nearest gap wins: Pull slips to 3 PM just before the errand, Solo goes after the shower (Pull ${hm(mv['gym:p'] || 0)}, Solo ${hm(mv['cal:s'] || 0)})`);
 check(validatePlan(model, plan, ANCHOR).ok, 'cascade output passes validation');
 check(cascadePlan(toModel([it('a', 'reminder', 'A', 600, 660, true, 'one-time'), it('b', 'reminder', 'B', 700, 760, true, 'one-time')])).moves.length === 0, 'a clean day needs no moves');
 
@@ -56,9 +56,13 @@ const tail = toModel([
   it('cal:fp', 'eyecandy', 'FragPunk', 860, 950, true, 'one-time'),
 ]);
 const tailPairs = fixableOverlaps(tail, 'task:h').map(([a, b]) => `${a.id}+${b.id}`).sort().join(' ');
-check(tailPairs === 'cal:mc+cal:fp task:h+cal:fp', `the 5-minute game tail under the haircut is left alone; FragPunk is the conflict (${tailPairs})`);
-check(validatePlan(tail, { moves: [{ id: 'cal:fp', startMin: 960 }] }, 'task:h').ok, 'a plan that leaves the 5-minute tail is accepted');
-check(tail.find((m) => m.id === 'reminder:l').why === 'repeats every day', 'a daily reminder says so');
+check(tailPairs === 'cal:mc+cal:fp reminder:l+cal:mc task:h+cal:fp task:h+reminder:l', `the 5-minute game tail under the haircut is left alone; FragPunk and lunch are the conflicts (${tailPairs})`);
+check(validatePlan(tail, { moves: [{ id: 'cal:fp', startMin: 960 }, { id: 'reminder:l', startMin: 705 }] }, 'task:h').ok, 'a plan that leaves the 5-minute tail and has lunch at 11:45 (this day only, before the game) is accepted');
+check(tail.find((m) => m.id === 'reminder:l').todayOnly && /eat lunch \| .* \| movable \(this day only, other days keep their time\)/.test(buildMessages(tail, 'task:h')[1].content), 'lunch is offered as a this-day-only move');
+const tailPlan = cascadePlan(tail, 'task:h');
+const tailMv = Object.fromEntries(tailPlan.moves.map((m) => [m.id, m.startMin]));
+check(tailMv['reminder:l'] === 960 && tailMv['cal:fp'] === 980, `cascade: lunch to the nearest gap after the match, FragPunk right after it (${hm(tailMv['reminder:l'] || 0)}, ${hm(tailMv['cal:fp'] || 0)})`);
+check(toModel([it('gym:w', 'gym', 'Push', 600, 660, true, 'recurring')])[0].why === 'repeats every day', 'a daily workout still says so (no per-day exception yet)');
 const tailStays = staysFor(tail, 'task:h').map((s) => s.title).sort().join('|');
 check(tailStays === 'Manchester City vs AFC Bournemouth|haircut', `stays list names the match and the haircut (${tailStays})`);
 
@@ -100,11 +104,11 @@ check(gaps === '05:00-09:00 10:15-16:00 18:30-19:25 20:15-24:00', `free gaps aro
 const msgs = buildMessages(model, ANCHOR, 'today');
 const u = msgs[1].content;
 check(msgs[0].role === 'system' && /ONE JSON object/.test(msgs[0].content) && /5-minute steps/.test(msgs[0].content) && /plan that already works/.test(msgs[0].content), 'system prompt demands JSON on the grid and offers a working baseline');
-check(/Errand \| 16:00-16:45 \| 45 min \| JUST ADDED, must stay/.test(u) && /Newcastle United vs Liverpool \| 16:30-18:30 \| 120 min \| FIXED \(kick-off is fixed\)/.test(u) && /Pull \| 16:00-17:00 \| 60 min \| movable/.test(u) && /take shower \| .* \| not involved, leave it/.test(u) && /4th Prayer \| .* \| short, ignore/.test(u) && /eat dinner \| .* \| FIXED \(repeats every day\)/.test(u), 'every item is labelled honestly for the model');
-check(/Overlaps to solve: Errand \(k2\) with Pull \(k3\); Pull \(k3\) with Newcastle United vs Liverpool \(k4\); Newcastle United vs Liverpool \(k4\) with Solo Leveling \(k6\)\./.test(u) && /Free gaps you may use \(nothing else is free\): 05:00-09:00, 10:15-16:00, 18:30-19:25, 20:15-24:00\./.test(u) && /A plan that already works: k3 -> 20:15, k6 -> 21:15\./.test(u), 'the model gets the conflicts, the real free gaps and the cascade as a baseline');
+check(/Errand \| 16:00-16:45 \| 45 min \| JUST ADDED, must stay/.test(u) && /Newcastle United vs Liverpool \| 16:30-18:30 \| 120 min \| FIXED \(kick-off is fixed\)/.test(u) && /Pull \| 16:00-17:00 \| 60 min \| movable/.test(u) && /take shower \| .* \| not involved, leave it/.test(u) && /4th Prayer \| .* \| short, ignore/.test(u) && /eat dinner \| .* \| not involved, leave it/.test(u), 'every item is labelled honestly for the model');
+check(/Overlaps to solve: Errand \(k2\) with Pull \(k3\); Pull \(k3\) with Newcastle United vs Liverpool \(k4\); Newcastle United vs Liverpool \(k4\) with Solo Leveling \(k6\)\./.test(u) && /Free gaps you may use \(nothing else is free\): 05:00-09:00, 10:15-16:00, 18:30-19:25, 20:15-24:00\./.test(u) && /A plan that already works: k3 -> 15:00, k6 -> 20:15\./.test(u), 'the model gets the conflicts, the real free gaps and the cascade as a baseline');
 
 const lines = describePlan(model, plan);
-check(lines.length === 2 && lines[0].title === 'Pull' && lines[0].from === 960 && lines[0].to === 1215 && lines[0].color === '#000', 'preview rows carry title, colour, from and to');
+check(lines.length === 2 && lines[0].title === 'Pull' && lines[0].from === 960 && lines[0].to === 900 && lines[0].color === '#000' && lines[0].todayOnly === false, 'preview rows carry title, colour, from, to and the this-day-only flag');
 const stays = staysFor(model, ANCHOR).map((s) => `${s.title}:${s.why}`).sort();
 check(stays.join('|') === 'Errand:just added|Newcastle United vs Liverpool:kick-off is fixed', `stays-put list explains itself (${stays.join('|')})`);
 
@@ -114,8 +118,8 @@ check(/validatePlan\(model, parsed, anchorId\)\.ok/.test(planner) && /cascadePla
 check(/rawChat\(messages, \{ temperature: 0\.2/.test(planner) && /async rawChat\(messages, \{ temperature = 0\.2/.test(read('services/productionAiService.js')), 'planner runs the app AI chain at low temperature');
 const screen = read('screens/MyWeekScreen.js');
 check(/fixableOverlaps\(toModel\(dayItems\), lastMovedRef\.current\)/.test(screen) && /fixableCount > 0 \?/.test(screen) && /'Make it fit'/.test(screen), 'My Week shows Make it fit only when something fixable overlaps');
-check(/lastMovedRef\.current = moving\.id;/.test(screen) && /planDay\(dayItems, \{ anchorId: lastMovedRef\.current/.test(screen), 'the thing just moved is the anchor that stays put');
-check(/const applyFit = async/.test(screen) && /await moveItem\(it, \{ time: minToTime\(mv\.startMin\) \}\)/.test(screen) && /Apply \$\{fitCount\} moves/.test(screen) && /Stays put/.test(screen), 'plan is shown first and applied through moveItem on Apply');
+check(/lastMovedRef\.current = movedId;/.test(screen) && /planDay\(dayItems, \{ anchorId: lastMovedRef\.current/.test(screen), 'the thing just moved is the anchor that stays put');
+check(/const applyFit = async/.test(screen) && /await moveItem\(it, \{ time: minToTime\(mv\.startMin\), date: key, from: key, todayOnly/.test(screen) && /Apply \$\{fitCount\} moves/.test(screen) && /Stays put/.test(screen), 'plan is shown first and applied through moveItem on Apply');
 check(/const toggleFitRow = \(id\)/.test(screen) && /fitPlan\.moves\.filter\(\(mv\) => !fitSkipped\.has\(mv\.id\)\)/.test(screen) && /accessibilityRole="checkbox"/.test(screen) && /tap one to leave it where it is/.test(screen), 'each move can be unticked before Apply');
 check(!/numberOfLines/.test(screen.slice(screen.indexOf('Make it fit: the plan in words'), screen.indexOf('Move panel: dims'))), 'plan rows never truncate titles');
 

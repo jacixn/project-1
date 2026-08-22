@@ -23,6 +23,7 @@ import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
 import MultiDateCalendar from './MultiDateCalendar';
 import DurationField from './DurationField';
 import { formatDuration } from '../utils/duration';
+import { offerFit, nextDateFor } from '../services/fitOffer';
 
 const DAYS_OF_WEEK = [
   { id: 0, short: 'S', name: 'Sunday' },
@@ -143,6 +144,7 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
     const timeString = `${pad2(time.hour)}:${pad2(time.minute)}`;
     const base = { templateId: tmpl.id, templateName: tmpl.name, time: timeString, duration, notifyBefore };
 
+    let offer = null; // the saved workout + the day it lands on, for the fit offer
     try {
       if (scheduleType === 'recurring') {
         const schedule = { ...base, type: 'recurring', days: selectedDays };
@@ -151,6 +153,8 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
           : await WorkoutService.addScheduledWorkout(schedule);
         await scheduleNotification(saved || { ...schedule, id: editingSchedule?.id });
         onScheduled?.(saved);
+        const id = saved?.id || editingSchedule?.id;
+        if (id) offer = { anchorId: `gym:${id}`, date: nextDateFor(selectedDays, timeString) };
       } else {
         const dates = oneTimeDates.length ? oneTimeDates : [new Date()];
         if (editingSchedule) {
@@ -158,17 +162,21 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
           const saved = await WorkoutService.updateScheduledWorkout(editingSchedule.id, schedule);
           await scheduleNotification(saved || { ...schedule, id: editingSchedule.id });
           onScheduled?.(saved);
+          offer = { anchorId: `gym:${editingSchedule.id}`, date: schedule.date };
         } else {
           for (const d of dates) {
             const schedule = { ...base, type: 'one-time', date: fmtDateKey(d) };
             const saved = await WorkoutService.addScheduledWorkout(schedule);
             await scheduleNotification(saved);
+            if (!offer && saved?.id) offer = { anchorId: `gym:${saved.id}`, date: schedule.date };
           }
           onScheduled?.(null);
         }
       }
 
       onClose();
+      // Landed on something that day? Offer to make room, right now.
+      if (offer) offerFit(offer).catch(() => {});
 
       const whenText = scheduleType === 'recurring'
         ? (selectedDays.length === 7 ? 'every day' : selectedDays.map((d) => DAY_NAMES[d]).join(', '))

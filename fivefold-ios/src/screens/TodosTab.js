@@ -62,6 +62,7 @@ import HabitsCard from '../components/HabitsCard';
 import { loadHabits, checkIn as habitCheckIn } from '../services/habitsService';
 import RemindersCard from '../components/RemindersCard';
 import { loadReminders, completeReminder } from '../services/reminderService';
+import { offerFit } from '../services/fitOffer';
 
 // Format large numbers compactly: 1200 -> 1.2K, 1500000 -> 1.5M (kept for potential reuse)
 const formatCompact = (num) => {
@@ -519,6 +520,10 @@ const TodosTab = () => {
     // Mirror scheduled to-dos to iPhone Calendar (no-op if off / not scheduled).
     try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}
     updateTodoWidget().catch(() => {});
+    // A timed task that lands on other things: offer to make room right now.
+    if (todo && todo.id && todo.scheduledDate && todo.scheduledTime) {
+      offerFit({ anchorId: `task:${todo.id}`, date: todo.scheduledDate, onDone: () => DeviceEventEmitter.emit('todosChanged') }).catch(() => {});
+    }
   }, [todos]);
   handleTodoAddRef.current = handleTodoAdd;
 
