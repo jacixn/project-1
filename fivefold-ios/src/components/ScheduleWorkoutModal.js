@@ -49,7 +49,7 @@ const nextDateForWeekday = (dayIdx) => {
   return d;
 };
 
-// Presented as a native pull-to-dismiss modal SCREEN (presentation:'modal') —
+// Presented as a native pull-to-dismiss modal SCREEN (presentation:'modal') -
 // parent scales back, drag down to dismiss (like Bible Timeline). template (new)
 // or editingSchedule (edit) arrive via route.params.
 const ScheduleWorkoutModal = ({ navigation, route }) => {
@@ -59,7 +59,7 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
   const onClose = () => navigation.goBack();
   const onScheduled = (saved) => { try { DeviceEventEmitter.emit('workoutScheduled', saved); } catch {} };
 
-  // When editing, there may be no template object — fall back to the saved schedule.
+  // When editing, there may be no template object, fall back to the saved schedule.
   const tmpl = template || (editingSchedule
     ? { id: editingSchedule.templateId, name: editingSchedule.templateName }
     : null);
@@ -72,7 +72,7 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
   const [time, setTime] = useState({ hour: 18, minute: 0 });
   const [notifyBefore, setNotifyBefore] = useState(0); // 0 = At start (default), >0 = mins before
 
-  // Runs once on mount — the screen is presented fresh each time.
+  // Runs once on mount, the screen is presented fresh each time.
   useEffect(() => {
     setStep('setup');
     if (editingSchedule) {
