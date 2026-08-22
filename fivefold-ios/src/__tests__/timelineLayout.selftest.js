@@ -50,6 +50,10 @@ check(zoomed.cards.find((c) => c.item.id === 'p3').col === 1 && zoomed.cards.fin
 const zPush = zoomed.cards.find((c) => c.item.id === 'push'), zShower = zoomed.cards.find((c) => c.item.id === 'shower');
 check(zPush.cols === 2 && zShower.cols === 2 && zPush.left !== zShower.left && zPush.y === zShower.y, 'shower and Push (both 5:35) split the width side by side at the same height');
 check(zoomed.cards.find((c) => c.item.id === 'dinner').cols === 1, 'dinner alone keeps the full width');
+const busyEvening = layoutDay([it('a', 1170, 1320), it('b', 1170, 1320), it('c', 1180, 1260), it('d', 1185, 1300), it('e', 1200, 1260)], { pxPerHour: 160 });
+check(busyEvening.maxCols === 5, 'five things at once report five columns');
+const screen3 = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
+check(/layout\.maxCols \* COL_MIN_W/.test(screen3) && /horizontal[\s\S]{0,200}scrollEnabled=\{sideScroll\}/.test(screen3) && /left: Math\.round\(c\.left \* contentW\)/.test(screen3), 'columns keep a minimum width and the card area scrolls sideways when needed');
 const zMatch = zoomed.cards.find((c) => c.item.id === 'match'), zSocial = zoomed.cards.find((c) => c.item.id === 'social');
 check(zMatch.y === zSocial.y && zMatch.h === 2 * zSocial.h && zMatch.left !== zSocial.left, 'the match (2 hr) and Social Media (1 hr) start together, side by side, match twice as tall');
 const out = layoutDay(day, { pxPerHour: 40 });

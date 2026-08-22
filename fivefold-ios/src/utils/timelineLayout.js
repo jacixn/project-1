@@ -21,6 +21,7 @@ export const CARD_H = 52;
 export const CARD_H_TINY = 40;
 export const CARD_GAP = 6;
 export const RAIL_W = 10; // lane pitch in px
+export const COL_MIN_W = 160; // a card column never gets narrower than this; the card area scrolls sideways instead
 const fmtHour = (min) => {
   const h = Math.floor(min / 60) % 24;
   return `${h % 12 || 12} ${h >= 12 ? 'PM' : 'AM'}`;
@@ -141,6 +142,7 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
     nowY: nowMin != null && nowMin >= axisStart && nowMin <= axisEnd ? y(nowMin) : null,
     pxPerHour,
     step,
+    maxCols: cards.reduce((m, c) => Math.max(m, c.cols || 1), 1),
   };
 };
 

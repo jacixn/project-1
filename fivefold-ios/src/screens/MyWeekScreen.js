@@ -10,7 +10,7 @@ import {
   KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope,
 } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
-import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
+import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, COL_MIN_W, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { moveItem } from '../services/rescheduleItem';
 
@@ -53,6 +53,7 @@ const MyWeekScreen = ({ navigation }) => {
   const [status, setStatus] = useState(null);
   const [view, setView] = useState('timeline'); // timeline | list
   const [pxPerHour, setPxPerHour] = useState(PX_PER_HOUR);
+  const [timelineW, setTimelineW] = useState(0);
   const scrollRef = useRef(null);
   const scrollYRef = useRef(0);
   const timelineTopRef = useRef(0);
@@ -83,6 +84,12 @@ const MyWeekScreen = ({ navigation }) => {
   const isTodaySelected = sameDay(anchor, today);
   const nowMin = isTodaySelected ? new Date(nowTick).getHours() * 60 + new Date(nowTick).getMinutes() : null;
   const layout = useMemo(() => layoutDay(visible, { nowMin, pxPerHour }), [visible, nowMin, pxPerHour]);
+  // Card area: columns keep a readable width; if a slot has more columns than
+  // fit, the card area scrolls sideways (hours and rails stay put).
+  const cardAreaLeft = 56 + layout.railsWidth + 6;
+  const cardAreaW = Math.max(0, timelineW - cardAreaLeft);
+  const contentW = Math.max(cardAreaW, layout.maxCols * COL_MIN_W);
+  const sideScroll = contentW > cardAreaW + 1;
 
   // Zoom keeps the time under your fingers where it is: remember where the
   // pinch started inside the timeline, then scroll so that point stays put.
@@ -271,7 +278,7 @@ const MyWeekScreen = ({ navigation }) => {
         {view === 'timeline' && !loading && visible.length > 0 ? (
           <GestureHandlerRootView onLayout={(e) => { timelineTopRef.current = e.nativeEvent.layout.y; }}>
           <GestureDetector gesture={zoomGesture}>
-          <View style={[styles.timeline, { height: layout.height }]} accessibilityHint="Pinch to zoom the hours, double tap to reset">
+          <View style={[styles.timeline, { height: layout.height }]} onLayout={(e) => setTimelineW(e.nativeEvent.layout.width)} accessibilityHint="Pinch to zoom the hours, double tap to reset">
             {layout.hours.map((h) => (
               <View key={h.min} style={[styles.hourRow, { top: h.y }]} pointerEvents="none">
                 <Text style={[styles.hourLabel, { color: h.major ? theme.textSecondary : theme.textTertiary || theme.textSecondary, fontWeight: h.major ? '700' : '500', fontSize: h.major ? 11.5 : 10.5 }]}>{h.label}</Text>
@@ -289,12 +296,19 @@ const MyWeekScreen = ({ navigation }) => {
               ))}
             </View>
             {/* Cards */}
-            <View style={[styles.cardArea, { left: 56 + layout.railsWidth + 6 }]}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={sideScroll}
+              scrollEnabled={sideScroll}
+              style={[styles.cardArea, { left: cardAreaLeft }]}
+              contentContainerStyle={{ width: contentW, height: layout.height }}
+              nestedScrollEnabled
+            >
               {layout.cards.map((c) => {
                 const it = c.item;
                 const isMoving = moving && moving.id === it.id;
                 const tinyCard = c.h <= 44;
-                const narrowCard = c.cols > 1;
+                const narrowCard = c.cols > 1 && contentW / c.cols < 200;
                 return (
                   <TouchableOpacity
                     key={it.id}
@@ -303,8 +317,8 @@ const MyWeekScreen = ({ navigation }) => {
                     style={[styles.card, {
                       top: c.y,
                       height: c.h,
-                      left: `${c.left * 100}%`,
-                      width: `${c.width * 100}%`,
+                      left: Math.round(c.left * contentW),
+                      width: Math.max(0, Math.round(c.width * contentW) - (c.cols > 1 ? 6 : 0)),
                       backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile,
                       borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'),
                       alignItems: c.proportional ? 'flex-start' : 'center',
@@ -339,7 +353,7 @@ const MyWeekScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
             {layout.nowY != null ? (
               <View style={[styles.nowRow, { top: layout.nowY }]} pointerEvents="none">
                 <View style={[styles.nowDot, { backgroundColor: theme.error || '#EF4444' }]} />
@@ -351,7 +365,7 @@ const MyWeekScreen = ({ navigation }) => {
           </GestureHandlerRootView>
         ) : null}
         {view === 'timeline' && !loading && visible.length > 0 ? (
-          <Text style={[styles.zoomHint, { color: theme.textSecondary }]}>Pinch to zoom in to the minutes, or use − and +. Double tap to reset.</Text>
+          <Text style={[styles.zoomHint, { color: theme.textSecondary }]}>{sideScroll ? 'Swipe sideways where several things happen at once. ' : ''}Pinch to zoom in to the minutes, or use the − and + buttons. Double tap to reset.</Text>
         ) : null}
 
         {/* List */}
