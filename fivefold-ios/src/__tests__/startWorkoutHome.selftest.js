@@ -1,0 +1,24 @@
+// Start Workout home (TemplateSelectionModal main screen) design invariants.
+const fs = require('fs');
+const path = require('path');
+const src = fs.readFileSync(path.join(__dirname, '..', 'components', 'TemplateSelectionModal.js'), 'utf8');
+const home = src.slice(src.indexOf('const content = ('), src.indexOf('{/* Create Template Modal */}'));
+let failures = 0;
+const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
+check(!/borderRadius: 14,\s*backgroundColor: isDark \? 'rgba\(255,255,255,0\.08\)'/.test(home), 'back button has no tinted backing');
+check(/heroButton/.test(home) && /Start an empty workout/.test(home), 'hero start button');
+check(/scheduledOn\(await WorkoutService\.getScheduledWorkouts\(\)/.test(src) && /Nothing scheduled today/.test(home) && /todayPlan\.map/.test(home), 'Today block from the real schedule');
+check(!/chevron-right/.test(home), 'no chevrons on rows');
+check(!/styles\.templateCard\b/.test(home) && /renderTemplateRow\(template/.test(home), 'template cards replaced by rows');
+check(/templateHistory\(historyList, template\)/.test(src) && /Last done \$\{insights\.lastDoneLabel\}/.test(src) && /Not done yet/.test(src), 'rows show last done from history');
+check(/about \$\{summary\.estMinutes\} min/.test(src) && /muscleSplit\.slice\(0, 2\)/.test(src), 'rows show time estimate and top muscles');
+check((src.match(/handleStartTemplateWorkout\(template\)/g) || []).length >= 1 && /accessibilityLabel=\{`Start \$\{template\.name\}`\}/.test(src), 'one-tap Start on every row');
+check(!/styles\.folderHeader\b|folderIconContainer/.test(home) && /styles\.folderRow\b/.test(home), 'folders are plain rows, no icon box');
+check(!/styles\.smartCard\b|smartCardExPill|smartCardIconCircle/.test(home) && /smartExLine/.test(home), 'suggestion is an editorial block with numbered lines, no pills');
+check(!/numberOfLines/.test(home), 'nothing truncates on the home screen');
+check(/New folder/.test(home) && /New template/.test(home) && !/create-new-folder/.test(home), 'header actions are text links');
+check(/Suggest a workout for today/.test(home) && !/styles\.generateButton/.test(home), 'suggest action is a text row');
+check(/styles\.splitRow\b/.test(home) && !/styles\.splitBanner\b/.test(home), 'split setup is a text row');
+check(!/[—]/.test(home), 'no em dashes in the home screen');
+console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
+process.exit(failures ? 1 : 0);

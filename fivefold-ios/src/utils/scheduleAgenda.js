@@ -136,6 +136,17 @@ export const weeklySummary = (list, now = new Date()) => {
   return { workouts: Array.isArray(list) ? list.length : 0, sessionsPerWeek: sessions, minutesPerWeek: minutes };
 };
 
+// Schedules that fire on a given date, earliest first.
+export const scheduledOn = (list, date = new Date()) => {
+  const d = date instanceof Date ? date : new Date(date);
+  const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const dow = d.getDay();
+  const mins = (s) => { const { h, m } = parseTime(s.time); return h * 60 + m; };
+  return (Array.isArray(list) ? list : [])
+    .filter((s) => s && (s.type === 'one-time' ? s.date === key : (Array.isArray(s.days) && s.days.includes(dow))))
+    .sort((a, b) => mins(a) - mins(b));
+};
+
 export const hoursLabel = (mins) => {
   const n = Math.max(0, Number(mins) || 0);
   if (n < 60) return `${Math.round(n)} min`;

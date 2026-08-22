@@ -7,7 +7,7 @@ const src = fs.readFileSync(path.join(root, 'utils', 'scheduleAgenda.js'), 'utf8
 const screen = fs.readFileSync(path.join(root, 'screens', 'AllWorkoutsScreen.js'), 'utf8');
 const mod = {};
 new Function('exports', src.replace(/export const (\w+) =/g, 'const $1 = exports.$1 ='))(mod);
-const { nextOccurrence, whenLabel, sortByNext, patternLabel, reminderLabel, durationLabel, weekLoad, weeklySummary, hoursLabel } = mod;
+const { nextOccurrence, whenLabel, sortByNext, patternLabel, reminderLabel, durationLabel, weekLoad, weeklySummary, hoursLabel, scheduledOn } = mod;
 
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
@@ -47,6 +47,11 @@ check(sum.sessionsPerWeek === 7 + 1 + 2 + 1 + 1 + 1 && sum.minutesPerWeek === lo
 check(sum.workouts === 7, 'workout count');
 check(hoursLabel(90) === '1.5 hrs' && hoursLabel(60) === '1 hr' && hoursLabel(45) === '45 min' && hoursLabel(855) === '14.5 hrs', 'hours wording');
 check(weekLoad(null).every((v) => v === 0) && sortByNext(null).length === 0, 'null-safe');
+
+const today = scheduledOn(list, now).map((s) => s.id).join('');
+check(today === 'ag', `Saturday 22 Aug: abs (every day) then the one-time Trial, in time order (got ${today})`);
+check(scheduledOn(list, new Date(2026, 7, 24)).map((s) => s.templateName).join(',') === 'abs,Push', 'Monday: abs 7:10 then Push 5:35');
+check(scheduledOn(null).length === 0, 'scheduledOn null-safe');
 
 // screen invariants
 check(!/numberOfLines/.test(screen), 'nothing truncates');
