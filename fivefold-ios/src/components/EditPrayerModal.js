@@ -206,7 +206,8 @@ const EditPrayerModal = ({ navigation, route }) => {
 
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>REMINDER</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.notifyRow} keyboardShouldPersistTaps="handled">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }}
+          contentContainerStyle={styles.notifyRow} keyboardShouldPersistTaps="handled">
           {NOTIFY_OPTIONS.map((m) => {
             const on = notifyBefore === m;
             return (
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
   segmentText: { fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   typeHint: { marginTop: 10, marginLeft: 2, fontSize: 13, fontWeight: '500' },
 
-  notifyRow: { flexDirection: 'row', gap: 10, paddingRight: 4 },
+  notifyRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20 },
   notifyBtn: { paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
   notifyText: { fontSize: 14, fontWeight: '600' },
 
