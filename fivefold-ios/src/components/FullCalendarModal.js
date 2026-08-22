@@ -257,10 +257,11 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
           {/* Year Selector */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Select Year</Text>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.yearScroll}
+              contentContainerStyle={styles.yearRow}
             >
               {years.map((year) => (
                 <TouchableOpacity
@@ -638,8 +639,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
   },
+  // Cancels the section's 20pt padding so the chips run off the screen edge
   yearScroll: {
+    marginHorizontal: -20,
+  },
+  yearRow: {
     flexDirection: 'row',
+    paddingHorizontal: 20,
   },
   yearButton: {
     paddingHorizontal: 24,
