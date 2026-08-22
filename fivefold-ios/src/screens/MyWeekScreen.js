@@ -355,7 +355,7 @@ const MyWeekScreen = ({ navigation }) => {
 
       {/* Week strip: swipe left / right for the next / previous week */}
       <Text style={[styles.weekLabel, { color: theme.textSecondary }]}>{weekLabel}</Text>
-      <GestureHandlerRootView>
+      <GestureHandlerRootView style={styles.weekWrap}>
         <GestureDetector gesture={weekSwipe}>
           <Reanimated.View style={[styles.weekStrip, stripStyle]} onLayout={(e) => setStripW(e.nativeEvent.layout.width)}>
             {week.map((d, i) => {
@@ -623,7 +623,8 @@ const styles = StyleSheet.create({
   headerBtnText: { fontSize: 15, fontWeight: '800' },
   headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: 0.3 },
   weekLabel: { fontSize: 13, fontWeight: '600', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
-  weekStrip: { flexDirection: 'row', gap: 6, paddingHorizontal: 20 },
+  weekWrap: { flexGrow: 0, flexShrink: 0, height: 70, marginBottom: 4 },
+  weekStrip: { flexDirection: 'row', gap: 6, paddingHorizontal: 20, height: 62 },
   dayTile: { flex: 1, height: 62, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   dayLetter: { fontSize: 11, fontWeight: '700' },
   dayNum: { fontSize: 17, fontWeight: '800', marginTop: 1, fontVariant: ['tabular-nums'] },
