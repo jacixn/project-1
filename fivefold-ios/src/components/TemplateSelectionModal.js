@@ -33,6 +33,7 @@ import nutritionService from "../services/nutritionService";
 import bodyCompositionService from "../services/bodyCompositionService";
 import WorkoutSplitModal, { EQUIPMENT_FIELD_MAP } from "./WorkoutSplitModal";
 import { useNavigation } from "@react-navigation/native";
+import { summarizeTemplate, templateHistory, lastLiftFor, formatDuration } from "../utils/templateSummary";
 
 const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScreen = false }) => {
   const { theme, isDark } = useTheme();
@@ -42,7 +43,35 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   const [folders, setFolders] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTemplateDetail, setShowTemplateDetail] = useState(false);
+
+  useEffect(() => {
+    if (!showTemplateDetail || !selectedTemplate) { setDetailInsights(null); return; }
+    let alive = true;
+    WorkoutService.getWorkoutHistory()
+      .then((history) => { if (alive) setDetailInsights(templateHistory(history, selectedTemplate)); })
+      .catch(() => { if (alive) setDetailInsights(null); });
+    if (!exerciseLibraryRef.current) {
+      ExercisesService.getExercises().then((list) => { exerciseLibraryRef.current = list; }).catch(() => {});
+    }
+    return () => { alive = false; };
+  }, [showTemplateDetail, selectedTemplate?.id]);
+
+  // "How to" on a template row: open the library entry (instructions +
+  // images) for that exercise. The detail sheet is an RN modal, so it has
+  // to close before the native-stack screen can present.
+  const openExerciseHowTo = (exercise) => {
+    hapticFeedback.light();
+    const wanted = String(exercise?.name || '').toLowerCase();
+    const lib = exerciseLibraryRef.current || [];
+    const full = lib.find((e) => String(e?.name || '').toLowerCase() === wanted) || exercise;
+    setShowTemplateDetail(false);
+    setTimeout(() => navigation.navigate('ExerciseDetail', { exercise: full }), 280);
+  };
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  // Detail sheet: history-backed insights (last done, last lifted per
+  // exercise) and the exercise library for the How-to lookup.
+  const [detailInsights, setDetailInsights] = useState(null);
+  const exerciseLibraryRef = useRef(null);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -1565,146 +1594,183 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
             <Animated.View
               style={[
                 styles.detailModalContainer,
-                { 
+                {
                   backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
+                  paddingBottom: Math.max(insets.bottom, 14),
                   transform: [{ translateY: slideAnim }]
                 },
               ]}
             >
-              {/* Header */}
-              <View style={styles.detailModalHeader}>
-                <TouchableOpacity
-                  onPress={() => setShowTemplateDetail(false)}
-                  style={styles.detailCloseButton}
-                >
-                  <MaterialIcons name="close" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.detailModalTitle, { color: theme.text }]}>
-                  {selectedTemplate?.name}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    // Open template editor with existing template
-                    hapticFeedback.light();
-                    setEditorTemplate(selectedTemplate);
-                    setEditorExercises([...selectedTemplate.exercises]);
-                    setShowTemplateDetail(false);
-                    setShowTemplateEditor(true);
-                  }}
-                >
-                  <Text
-                    style={[styles.detailEditButton, { color: theme.primary }]}
-                  >
-                    Edit
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {selectedTemplate?.lastPerformed && (
-                <Text
-                  style={[
-                    styles.detailLastPerformed,
-                    { color: theme.textSecondary },
-                  ]}
-                >
-                  Last Performed: {selectedTemplate.lastPerformed}
-                </Text>
-              )}
-
-              {/* Exercise List */}
-              <ScrollView style={styles.detailExerciseList}>
-                {selectedTemplate?.exercises.map((exercise, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.detailExerciseItem,
-                      { borderBottomColor: theme.border },
-                    ]}
-                  >
-                    <View style={styles.detailExerciseIcon}>
-                      <MaterialIcons
-                        name="fitness-center"
-                        size={32}
-                        color={theme.primary}
-                      />
-                    </View>
-                    <View style={styles.detailExerciseInfo}>
-                      <Text
-                        style={[
-                          styles.detailExerciseName,
-                          { color: theme.text },
-                        ]}
+              {(() => {
+                const summary = summarizeTemplate(selectedTemplate);
+                const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
+                const segmentOpacity = [1, 0.62, 0.42, 0.3, 0.22, 0.16];
+                return (
+                  <>
+                    {/* Top bar */}
+                    <View style={styles.detailModalHeader}>
+                      <TouchableOpacity
+                        onPress={() => setShowTemplateDetail(false)}
+                        style={styles.detailCloseButton}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Close"
                       >
-                        {exercise.sets} × {exercise.reps ? `${exercise.reps} ` : ''}{exercise.name}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.detailExerciseTarget,
-                          { color: theme.textSecondary },
-                        ]}
+                        <MaterialIcons name="close" size={22} color={theme.text} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => {
+                          hapticFeedback.light();
+                          setEditorTemplate(selectedTemplate);
+                          setEditorExercises([...selectedTemplate.exercises]);
+                          setShowTemplateDetail(false);
+                          setShowTemplateEditor(true);
+                        }}
+                        style={styles.detailEditButton}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityRole="button"
                       >
-                        {exercise.bodyPart}{exercise.weight && exercise.weight !== '0' && exercise.weight !== '' ? ` · ${exercise.weight} kg` : ''}
-                      </Text>
+                        <Text style={[styles.detailEditText, { color: theme.primary }]}>Edit</Text>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={styles.detailExerciseHelp}>
-                      <MaterialIcons
-                        name="help-outline"
-                        size={24}
-                        color={theme.primary}
-                      />
+
+                    {/* Title block */}
+                    <Text style={[styles.detailModalTitle, { color: theme.text }]}>
+                      {selectedTemplate?.name}
+                    </Text>
+                    <Text style={[styles.detailStats, { color: theme.textSecondary }]}>
+                      {summary.exerciseCount} {summary.exerciseCount === 1 ? 'exercise' : 'exercises'}
+                      {'  ·  '}{summary.totalSets} {summary.totalSets === 1 ? 'set' : 'sets'}
+                      {summary.estMinutes ? `  ·  about ${summary.estMinutes} min` : ''}
+                    </Text>
+                    {detailInsights?.lastDoneLabel ? (
+                      <Text style={[styles.detailLastDone, { color: theme.textSecondary }]}>
+                        Last done <Text style={{ color: theme.text, fontWeight: '700' }}>{detailInsights.lastDoneLabel}</Text>
+                        {detailInsights.lastDurationSec ? ` in ${formatDuration(detailInsights.lastDurationSec)}` : ''}
+                        {detailInsights.timesDone > 1 ? `  ·  done ${detailInsights.timesDone} times` : ''}
+                      </Text>
+                    ) : (
+                      <Text style={[styles.detailLastDone, { color: theme.textSecondary }]}>Not done yet</Text>
+                    )}
+
+                    {/* Muscle split */}
+                    {summary.muscleSplit.length > 0 && (
+                      <View style={styles.detailSplit}>
+                        <View style={[styles.detailSplitBar, { backgroundColor: hairline }]}>
+                          {summary.muscleSplit.map((m, i) => (
+                            <View
+                              key={m.bodyPart}
+                              style={{
+                                flex: m.share,
+                                backgroundColor: theme.primary,
+                                opacity: segmentOpacity[Math.min(i, segmentOpacity.length - 1)],
+                                marginRight: i < summary.muscleSplit.length - 1 ? 2 : 0,
+                              }}
+                            />
+                          ))}
+                        </View>
+                        <View style={styles.detailSplitLegend}>
+                          {summary.muscleSplit.map((m, i) => (
+                            <Text
+                              key={m.bodyPart}
+                              style={[styles.detailSplitLabel, { color: i === 0 ? theme.text : theme.textSecondary }]}
+                            >
+                              {m.bodyPart} <Text style={{ color: theme.primary }}>{Math.round(m.share * 100)}%</Text>
+                            </Text>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Exercises */}
+                    <ScrollView style={styles.detailExerciseList} showsVerticalScrollIndicator={false}>
+                      {selectedTemplate?.exercises.map((exercise, index) => {
+                        const sets = Number(exercise.sets) || 0;
+                        const reps = exercise.reps ? String(exercise.reps).trim() : '';
+                        const weight = exercise.weight && exercise.weight !== '0' && exercise.weight !== '' ? `${exercise.weight} kg` : '';
+                        const last = lastLiftFor(detailInsights, exercise.name);
+                        const scheme = [sets ? `${sets} × ${reps || '?'}` : reps, weight, exercise.bodyPart].filter(Boolean).join('  ·  ');
+                        return (
+                          <View
+                            key={`${exercise.name}-${index}`}
+                            style={[
+                              styles.detailExerciseItem,
+                              { borderTopColor: hairline, borderTopWidth: index === 0 ? 0 : StyleSheet.hairlineWidth },
+                            ]}
+                          >
+                            <Text style={[styles.detailExerciseIndex, { color: theme.primary }]}>
+                              {String(index + 1).padStart(2, '0')}
+                            </Text>
+                            <View style={styles.detailExerciseInfo}>
+                              <Text style={[styles.detailExerciseName, { color: theme.text }]}>{exercise.name}</Text>
+                              <Text style={[styles.detailExerciseMeta, { color: theme.textSecondary }]}>
+                                {scheme}
+                                {last ? (
+                                  <Text style={{ color: theme.primary }}>{`  ·  last ${last.weight} kg × ${last.reps}`}</Text>
+                                ) : null}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              style={styles.detailExerciseHelp}
+                              onPress={() => openExerciseHowTo(exercise)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              accessibilityRole="button"
+                              accessibilityLabel={`How to do ${exercise.name}`}
+                            >
+                              <Text style={[styles.detailExerciseHelpText, { color: theme.primary }]}>How to</Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
+
+                    {/* Actions */}
+                    <View style={styles.detailActionButtons}>
+                      <TouchableOpacity
+                        style={[styles.detailScheduleButton, { borderColor: theme.primary }]}
+                        onPress={() => {
+                          hapticFeedback.medium();
+                          const templateToSched = selectedTemplate;
+                          setShowTemplateDetail(false);
+                          // Open the native pull-to-dismiss Schedule Workout modal screen.
+                          setTimeout(() => {
+                            navigation.navigate('ScheduleWorkout', { template: templateToSched });
+                          }, 300);
+                        }}
+                        accessibilityRole="button"
+                      >
+                        <MaterialIcons name="event" size={19} color={theme.primary} />
+                        <Text style={[styles.detailScheduleButtonText, { color: theme.primary }]}>Schedule</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.detailStartButton, { backgroundColor: theme.primary }]}
+                        onPress={() => handleStartTemplateWorkout(selectedTemplate)}
+                        activeOpacity={0.85}
+                        accessibilityRole="button"
+                      >
+                        <LinearGradient
+                          colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)', 'rgba(0,0,0,0.14)']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={StyleSheet.absoluteFill}
+                          pointerEvents="none"
+                        />
+                        <MaterialIcons name="play-arrow" size={22} color="#FFFFFF" />
+                        <Text style={styles.detailStartButtonText}>Start Now</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.detailDeleteButton}
+                      onPress={() => handleDeleteTemplate(selectedTemplate?.id)}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.detailDeleteButtonText}>Delete Template</Text>
                     </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
-
-              {/* Action Buttons Row */}
-              <View style={styles.detailActionButtons}>
-                {/* Schedule Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.detailScheduleButton,
-                    { backgroundColor: theme.card, borderColor: theme.primary },
-                  ]}
-                  onPress={() => {
-                    hapticFeedback.medium();
-                    console.log('📅 Schedule button pressed for:', selectedTemplate?.name);
-                    // Store template and close detail modal first
-                    const templateToSched = selectedTemplate;
-                    setShowTemplateDetail(false);
-                    // Open the native pull-to-dismiss Schedule Workout modal screen.
-                    setTimeout(() => {
-                      navigation.navigate('ScheduleWorkout', { template: templateToSched });
-                    }, 300);
-                  }}
-                >
-                  <MaterialIcons name="event" size={20} color={theme.primary} />
-                  <Text style={[styles.detailScheduleButtonText, { color: theme.primary }]}>
-                    Schedule
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Start Workout Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.detailStartButton,
-                    { backgroundColor: theme.primary, flex: 1 },
-                  ]}
-                  onPress={() => handleStartTemplateWorkout(selectedTemplate)}
-                >
-                  <MaterialIcons name="play-arrow" size={22} color="#FFF" />
-                  <Text style={styles.detailStartButtonText}>Start Now</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Delete Button */}
-              <TouchableOpacity
-                style={styles.detailDeleteButton}
-                onPress={() => handleDeleteTemplate(selectedTemplate?.id)}
-              >
-                <Text style={styles.detailDeleteButtonText}>
-                  Delete Template
-                </Text>
-              </TouchableOpacity>
+                  </>
+                );
+              })()}
             </Animated.View>
           </Animated.View>
         </Modal>
@@ -2612,90 +2678,144 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   detailCloseButton: {
-    padding: 8,
-  },
-  detailModalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    padding: 6,
+    marginLeft: -6,
   },
   detailEditButton: {
-    fontSize: 16,
-    fontWeight: "600",
+    paddingVertical: 6,
+    paddingLeft: 10,
   },
-  detailLastPerformed: {
+  detailEditText: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  detailModalTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+    lineHeight: 36,
+  },
+  detailStats: {
     fontSize: 14,
-    marginBottom: 20,
-    textAlign: "center",
+    fontWeight: "600",
+    marginTop: 6,
+    fontVariant: ["tabular-nums"],
+  },
+  detailLastDone: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginTop: 4,
+  },
+  detailSplit: {
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  detailSplitBar: {
+    flexDirection: "row",
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  detailSplitLegend: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    columnGap: 14,
+    rowGap: 2,
+  },
+  detailSplitLabel: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
   },
   detailExerciseList: {
-    maxHeight: "60%",
-    marginBottom: 16,
+    maxHeight: "52%",
+    marginTop: 8,
+    marginBottom: 14,
   },
   detailExerciseItem: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    alignItems: "flex-start",
+    paddingVertical: 14,
   },
-  detailExerciseIcon: {
-    marginRight: 12,
+  detailExerciseIndex: {
+    width: 30,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 21,
+    letterSpacing: 0.5,
+    fontVariant: ["tabular-nums"],
   },
   detailExerciseInfo: {
     flex: 1,
+    paddingRight: 10,
   },
   detailExerciseName: {
-    fontSize: 17,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: 16.5,
+    fontWeight: "700",
+    lineHeight: 21,
+    letterSpacing: -0.2,
   },
-  detailExerciseTarget: {
-    fontSize: 14,
+  detailExerciseMeta: {
+    fontSize: 13.5,
+    fontWeight: "500",
+    marginTop: 3,
+    fontVariant: ["tabular-nums"],
   },
   detailExerciseHelp: {
-    padding: 8,
+    paddingVertical: 2,
+    paddingLeft: 6,
+  },
+  detailExerciseHelpText: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 21,
   },
   detailActionButtons: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 4,
   },
   detailScheduleButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 2,
+    height: 54,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    borderWidth: 1.5,
   },
   detailScheduleButtonText: {
     fontSize: 15,
     fontWeight: "700",
   },
   detailStartButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 14,
-    borderRadius: 14,
+    gap: 4,
+    height: 54,
+    borderRadius: 16,
+    overflow: "hidden",
   },
   detailStartButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 16.5,
+    fontWeight: "800",
+    letterSpacing: -0.2,
   },
   detailDeleteButton: {
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: "center",
   },
   detailDeleteButtonText: {
-    color: "#FF3B30",
-    fontSize: 16,
+    color: "#FF453A",
+    fontSize: 14,
     fontWeight: "600",
   },
   // Sets Modal Styles
