@@ -109,8 +109,8 @@ const MyWeekScreen = ({ navigation }) => {
     const inset = (c.depth || 0) * Math.min(NEST_INSET, Math.round(colW * 0.1));
     // Host with something nested on top: keep the title to the room above it
     const room = c.labelRoom != null ? c.labelRoom - 8 : null;
-    const titleLines = room != null ? Math.max(1, Math.floor((room - 13) / 15)) : undefined;
-    const showMeta = room == null || room >= 15 + 13;
+    const titleLines = room != null ? Math.max(1, Math.floor((room - 12) / 13)) : undefined;
+    const showMeta = room == null || room >= 13 + 12;
     const width = c.strip ? (gw ? gw.contentW : cardAreaW) : Math.max(40, Math.round(colW) - (c.cols > 1 ? 4 : 0) - inset);
     const tinyCard = c.h <= 44;
     const narrowCard = width < 200;
@@ -558,12 +558,12 @@ const styles = StyleSheet.create({
   strip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, overflow: 'hidden' },
   stripFill: { ...StyleSheet.absoluteFillObject },
   stripDot: { width: 6, height: 12, borderRadius: 3, marginRight: 8 },
-  stripText: { fontSize: 11, fontWeight: '800' },
+  stripText: { fontSize: 10, fontWeight: '800' },
   cardArea: { position: 'absolute', right: 0, top: 0, bottom: 0 },
   card: { position: 'absolute', flexDirection: 'row', alignItems: 'flex-start', borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
   cardBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
-  cardTitle: { fontSize: 12.5, fontWeight: '700', letterSpacing: -0.2, lineHeight: 15 },
-  cardMeta: { fontSize: 11, fontWeight: '600', marginTop: 1, lineHeight: 13 },
+  cardTitle: { fontSize: 11, fontWeight: '700', letterSpacing: -0.1, lineHeight: 13 },
+  cardMeta: { fontSize: 10, fontWeight: '600', marginTop: 1, lineHeight: 12 },
   cardMove: { fontSize: 13, fontWeight: '800', marginLeft: 8 },
   nowRow: { position: 'absolute', left: 50, right: 0, flexDirection: 'row', alignItems: 'center' },
   nowDot: { width: 8, height: 8, borderRadius: 4 },
