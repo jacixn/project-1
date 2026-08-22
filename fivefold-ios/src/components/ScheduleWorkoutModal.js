@@ -336,6 +336,7 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
   const onLeft = step === 'setup' ? onClose : () => setStep('setup');
 
   const hairline = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
+  const tile = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
   const dim = isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.28)';
   const daysSorted = selectedDays.slice().sort((a, b) => a - b);
   const daysSentence = daysSorted.length === 7 ? 'Repeats every day'
@@ -347,8 +348,8 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
   const setDays = (days) => { hapticFeedback.light(); setSelectedDays(days); };
   const sameDays = (days) => daysSorted.join() === days.join();
 
-  // Text options with an accent underline under the active one. Replaces the
-  // tinted pill buttons for schedule type and reminder.
+  // Option tiles: the chosen one is filled with the accent, the rest sit on
+  // the soft tile tint, so every option reads as a button.
   const TextTabs = ({ options, value, onChange, scroll = false }) => {
     const items = options.map((o) => {
       const active = o.value === value;
@@ -356,13 +357,13 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
         <TouchableOpacity
           key={String(o.value)}
           onPress={() => { hapticFeedback.light(); onChange(o.value); }}
-          style={styles.tab}
+          style={[styles.tab, { backgroundColor: active ? theme.primary : tile, flex: scroll ? 0 : 1 }]}
+          activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityState={{ selected: active }}
         >
-          <Text style={[styles.tabText, { color: active ? theme.text : theme.textSecondary, fontWeight: active ? '800' : '600' }]}>{o.label}</Text>
-          {o.sub ? <Text style={[styles.tabSub, { color: active ? theme.primary : theme.textTertiary || theme.textSecondary }]}>{o.sub}</Text> : null}
-          <View style={[styles.tabBar, { backgroundColor: active ? theme.primary : 'transparent' }]} />
+          <Text style={[styles.tabText, { color: active ? '#FFFFFF' : theme.text }]}>{o.label}</Text>
+          {o.sub ? <Text style={[styles.tabSub, { color: active ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>{o.sub}</Text> : null}
         </TouchableOpacity>
       );
     });
@@ -373,7 +374,7 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
         </ScrollView>
       );
     }
-    return <View style={[styles.tabs, { borderBottomColor: hairline }]}>{items}</View>;
+    return <View style={styles.tabs}>{items}</View>;
   };
 
   const reminderHint = notifyBefore === 0
@@ -440,14 +441,14 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
                   return (
                     <TouchableOpacity
                       key={day.id}
-                      style={styles.day}
+                      style={[styles.day, { backgroundColor: on ? theme.primary : tile }]}
                       onPress={() => toggleDay(day.id)}
+                      activeOpacity={0.7}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: on }}
                       accessibilityLabel={day.name}
                     >
-                      <Text style={[styles.dayText, { color: on ? theme.primary : dim, fontWeight: on ? '800' : '600' }]}>{day.short}</Text>
-                      <View style={[styles.dayBar, { backgroundColor: on ? theme.primary : hairline }]} />
+                      <Text style={[styles.dayText, { color: on ? '#FFFFFF' : theme.textSecondary }]}>{day.short}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -461,8 +462,8 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
                 ].map((q) => {
                   const active = sameDays(q.days);
                   return (
-                    <TouchableOpacity key={q.label} onPress={() => setDays(active ? [] : q.days)} hitSlop={{ top: 8, bottom: 8 }} accessibilityRole="button">
-                      <Text style={[styles.quickText, { color: active ? theme.primary : theme.textSecondary }]}>{q.label}</Text>
+                    <TouchableOpacity key={q.label} onPress={() => setDays(active ? [] : q.days)} style={[styles.quickBtn, { borderColor: active ? theme.primary : hairline, backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button">
+                      <Text style={[styles.quickText, { color: active ? theme.primary : theme.text }]}>{q.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -527,20 +528,21 @@ const styles = StyleSheet.create({
   progressTrack: { height: 2, marginHorizontal: 20, marginTop: 12, borderRadius: 1, overflow: 'hidden' },
   progressFill: { height: 2, borderRadius: 1 },
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 6 },
-  sectionTitle: { fontSize: 13, fontWeight: '600', marginTop: 26, marginBottom: 10 },
-  tabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
-  tabsScroll: { flexDirection: 'row', paddingRight: 8 },
-  tab: { paddingTop: 6, paddingRight: 22 },
-  tabText: { fontSize: 16, letterSpacing: -0.2 },
-  tabSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
-  tabBar: { height: 2.5, borderRadius: 1.5, marginTop: 8 },
-  days: { flexDirection: 'row', marginTop: 2 },
-  day: { flex: 1, alignItems: 'center', paddingTop: 8, paddingBottom: 2 },
-  dayText: { fontSize: 16, letterSpacing: -0.2 },
-  dayBar: { height: 3, borderRadius: 1.5, alignSelf: 'stretch', marginTop: 8, marginHorizontal: 5 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', marginTop: 26, marginBottom: 10 },
+  tabs: { flexDirection: 'row', gap: 8 },
+  tabsScroll: { flexDirection: 'row', gap: 8, paddingRight: 8 },
+  tab: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, marginRight: 0 },
+  tabText: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
+  tabSub: { fontSize: 12.5, fontWeight: '500', marginTop: 2 },
+
+  days: { flexDirection: 'row', gap: 6, marginTop: 2 },
+  day: { flex: 1, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  dayText: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
+
   daysSentence: { fontSize: 15, fontWeight: '600', marginTop: 12, lineHeight: 21 },
-  quickRow: { flexDirection: 'row', gap: 18, marginTop: 8 },
-  quickText: { fontSize: 13.5, fontWeight: '700' },
+  quickRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  quickBtn: { height: 36, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, justifyContent: 'center' },
+  quickText: { fontSize: 14, fontWeight: '700' },
   hint: { fontSize: 13, lineHeight: 18, marginTop: 10 },
   timeBody: { flex: 1, paddingHorizontal: 20, paddingTop: 14 },
   bigValue: { fontSize: 34, fontWeight: '800', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },

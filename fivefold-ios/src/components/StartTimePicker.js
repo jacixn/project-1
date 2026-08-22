@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,7 +23,7 @@ export const TIME_PRESETS = [
   { label: 'Night', min: 20 * 60 + 30 },
 ];
 
-const FreeRow = ({ row, active, theme, accent, onPick }) => {
+const FreeRow = ({ row, active, theme, accent, tile, onPick }) => {
   const shakeX = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
   const shake = () => {
@@ -43,8 +44,8 @@ const FreeRow = ({ row, active, theme, accent, onPick }) => {
   };
   const ok = theme.success || '#10B981';
   const warn = theme.warning || '#F59E0B';
-  const barColor = active ? accent : row.fits ? ok : row.forcible ? warn : 'transparent';
   const fitColor = active ? accent : row.fits ? ok : row.forcible ? warn : theme.textSecondary;
+  const border = active ? accent : row.forcible ? warn : 'transparent';
   return (
     <Animated.View style={shakeStyle}>
       <TouchableOpacity
@@ -52,24 +53,28 @@ const FreeRow = ({ row, active, theme, accent, onPick }) => {
         onLongPress={longPress}
         delayLongPress={350}
         activeOpacity={row.fits ? 0.6 : 0.9}
-        style={[styles.row, { opacity: row.fits || row.forcible ? 1 : 0.55 }]}
+        style={[styles.row, { backgroundColor: tile, borderColor: border, opacity: row.fits || row.forcible ? 1 : 0.55 }]}
         accessibilityRole="button"
         accessibilityLabel={`${row.rangeLabel}. ${row.fitLabel}`}
       >
-        <View style={[styles.bar, { backgroundColor: barColor }]} />
         <View style={styles.rowText}>
           <Text style={[styles.range, { color: theme.text }]}>{row.rangeLabel}</Text>
           <Text style={[styles.fit, { color: fitColor }]}>{active ? 'Starts here' : row.fitLabel}</Text>
         </View>
-        {row.fits && !active ? <Text style={[styles.cta, { color: ok }]}>Pick</Text> : null}
+        {active ? (
+          <MaterialIcons name="check" size={22} color={accent} />
+        ) : row.fits ? (
+          <View style={[styles.pill, { backgroundColor: accent }]}>
+            <Text style={styles.pillText}>Pick</Text>
+          </View>
+        ) : null}
       </TouchableOpacity>
     </Animated.View>
   );
 };
 
-const BusyRow = ({ row, theme, hairline }) => (
-  <View style={styles.row}>
-    <View style={[styles.bar, { backgroundColor: hairline }]} />
+const BusyRow = ({ row, theme, tile }) => (
+  <View style={[styles.row, { backgroundColor: tile, borderColor: 'transparent', opacity: 0.7 }]}>
     <View style={styles.rowText}>
       <Text style={[styles.range, { color: theme.textSecondary }]}>{row.rangeLabel}</Text>
       <Text style={[styles.fit, { color: theme.textSecondary, fontWeight: '700' }]}>{row.label}</Text>
@@ -83,6 +88,7 @@ const StartTimePicker = ({
   const { theme, isDark } = useTheme();
   const accent = accentColor || theme.primary;
   const hairline = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
+  const tile = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
   const [busy, setBusy] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState('flow'); // flow | timeline
@@ -113,7 +119,7 @@ const StartTimePicker = ({
       <View style={styles.fill}>
         <View style={styles.switchRow}>
           <Text style={[styles.kicker, { color: theme.textSecondary }]}>Drag the block to move it</Text>
-          <TouchableOpacity onPress={() => { hapticFeedback.light(); setView('flow'); }} hitSlop={{ top: 8, bottom: 8 }} accessibilityRole="button">
+          <TouchableOpacity onPress={() => { hapticFeedback.light(); setView('flow'); }} style={[styles.smallBtn, { borderColor: accent, backgroundColor: tile }]} accessibilityRole="button">
             <Text style={[styles.link, { color: accent }]}>Back to free times</Text>
           </TouchableOpacity>
         </View>
@@ -143,20 +149,21 @@ const StartTimePicker = ({
             <TouchableOpacity
               key={p.label}
               onPress={() => { hapticFeedback.light(); pick(p.min); }}
-              style={styles.preset}
+              style={[styles.preset, { backgroundColor: active ? accent : tile }]}
+              activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`${p.label}, ${fmtFlowTime(p.min)}`}
             >
-              <Text style={[styles.presetLabel, { color: active ? theme.text : theme.textSecondary, fontWeight: active ? '800' : '600' }]}>{p.label}</Text>
-              <Text style={[styles.presetTime, { color: active ? accent : theme.textSecondary }]}>{fmtFlowTime(p.min)}</Text>
-              <View style={[styles.underline, { backgroundColor: active ? accent : 'transparent' }]} />
+              <Text style={[styles.presetLabel, { color: active ? '#FFFFFF' : theme.text }]}>{p.label}</Text>
+              <Text style={[styles.presetTime, { color: active ? 'rgba(255,255,255,0.9)' : theme.textSecondary }]}>{fmtFlowTime(p.min)}</Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} hitSlop={{ top: 8, bottom: 8 }} style={styles.exactRow} accessibilityRole="button">
+      <TouchableOpacity onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }} style={[styles.exactBtn, { borderColor: accent, backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button">
+        <MaterialIcons name="schedule" size={18} color={accent} />
         <Text style={[styles.link, { color: accent }]}>{showWheel ? 'Done' : 'Set an exact time'}</Text>
       </TouchableOpacity>
       {showWheel && Platform.OS === 'ios' ? (
@@ -175,23 +182,23 @@ const StartTimePicker = ({
 
       <View style={[styles.switchRow, { marginTop: 22 }]}>
         <Text style={[styles.kicker, { color: theme.textSecondary }]}>{`Your ${dayName}`}</Text>
-        <TouchableOpacity onPress={() => { hapticFeedback.light(); setView('timeline'); }} hitSlop={{ top: 8, bottom: 8 }} accessibilityRole="button">
+        <TouchableOpacity onPress={() => { hapticFeedback.light(); setView('timeline'); }} style={[styles.smallBtn, { borderColor: accent, backgroundColor: tile }]} accessibilityRole="button">
           <Text style={[styles.link, { color: accent }]}>Timeline</Text>
         </TouchableOpacity>
       </View>
-      <View style={[styles.list, { borderTopColor: hairline }]}>
+      <View style={styles.list}>
         {!loaded ? (
           <Text style={[styles.hint, { color: theme.textSecondary }]}>Checking your day...</Text>
         ) : rows.length === 0 ? (
           <Text style={[styles.hint, { color: theme.textSecondary }]}>Nothing left today. Pick another day or set an exact time.</Text>
         ) : rows.map((row, i) => (
           row.type === 'free'
-            ? <FreeRow key={`f${i}`} row={row} active={selMin != null && selMin >= row.startMin && selMin < row.endMin} theme={theme} accent={accent} onPick={pick} />
-            : <BusyRow key={`b${i}`} row={row} theme={theme} hairline={hairline} />
+            ? <FreeRow key={`f${i}`} row={row} active={selMin != null && selMin >= row.startMin && selMin < row.endMin} theme={theme} accent={accent} tile={tile} onPick={pick} />
+            : <BusyRow key={`b${i}`} row={row} theme={theme} tile={tile} />
         ))}
       </View>
       {loaded && rows.some((r) => r.type === 'free' && r.fits) ? (
-        <Text style={[styles.hint, { color: theme.textSecondary }]}>Tap a free time to start there. Green ones fit the whole workout.</Text>
+        <Text style={[styles.hint, { color: theme.textSecondary }]}>Tap Pick on a free time to start there. Greyed ones are already busy or too short.</Text>
       ) : null}
     </ScrollView>
   );
@@ -199,25 +206,25 @@ const StartTimePicker = ({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  kicker: { fontSize: 13, fontWeight: '600' },
-  clash: { fontSize: 13.5, fontWeight: '600', lineHeight: 19, marginBottom: 14 },
-  presets: { flexDirection: 'row', paddingRight: 8, marginTop: 8 },
-  preset: { marginRight: 20, paddingTop: 4 },
-  presetLabel: { fontSize: 15, letterSpacing: -0.2 },
-  presetTime: { fontSize: 12.5, fontWeight: '600', marginTop: 2, fontVariant: ['tabular-nums'] },
-  underline: { height: 2.5, borderRadius: 1.5, marginTop: 7 },
-  exactRow: { marginTop: 12, alignSelf: 'flex-start' },
-  link: { fontSize: 14, fontWeight: '700' },
+  kicker: { fontSize: 14, fontWeight: '600' },
+  clash: { fontSize: 14, fontWeight: '600', lineHeight: 20, marginBottom: 14 },
+  presets: { flexDirection: 'row', paddingRight: 8, marginTop: 10 },
+  preset: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, marginRight: 8, minWidth: 86 },
+  presetLabel: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
+  presetTime: { fontSize: 13, fontWeight: '600', marginTop: 2, fontVariant: ['tabular-nums'] },
+  exactBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1.5, marginTop: 14 },
+  smallBtn: { height: 36, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, justifyContent: 'center' },
+  link: { fontSize: 15, fontWeight: '800' },
   wheel: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, marginTop: 10, paddingVertical: 4 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  list: { borderTopWidth: StyleSheet.hairlineWidth },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  bar: { width: 3, alignSelf: 'stretch', borderRadius: 1.5, marginRight: 12 },
-  rowText: { flex: 1 },
-  range: { fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
-  fit: { fontSize: 13, fontWeight: '600', marginTop: 2, lineHeight: 18 },
-  cta: { fontSize: 14, fontWeight: '800', marginLeft: 10 },
-  hint: { fontSize: 12.5, lineHeight: 17, marginTop: 12 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  list: { gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1.5 },
+  rowText: { flex: 1, paddingRight: 10 },
+  range: { fontSize: 16.5, fontWeight: '800', letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
+  fit: { fontSize: 14, fontWeight: '600', marginTop: 3, lineHeight: 19 },
+  pill: { height: 36, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  pillText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  hint: { fontSize: 13.5, lineHeight: 19, marginTop: 14 },
 });
 
 export default StartTimePicker;

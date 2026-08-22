@@ -22,6 +22,7 @@ const AllWorkoutsScreen = ({ navigation }) => {
   const accent = theme.primary;
   const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
   const dim = isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.22)';
+  const tile = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
 
   const refresh = useCallback(async () => {
     setNow(new Date());
@@ -99,7 +100,7 @@ const AllWorkoutsScreen = ({ navigation }) => {
             </View>
 
             {/* Agenda */}
-            <View style={[styles.list, { borderTopColor: hairline }]}>
+            <View style={styles.list}>
               {sorted.map((s) => {
                 const next = nextOccurrence(s, now);
                 const when = whenLabel(next, now);
@@ -107,7 +108,7 @@ const AllWorkoutsScreen = ({ navigation }) => {
                 const days = new Set(s.type === 'one-time' ? [] : (s.days || []));
                 const meta = [durationLabel(s.duration), reminderLabel(s.notifyBefore)].filter(Boolean).join('  ·  ');
                 return (
-                  <View key={s.id} style={[styles.row, { borderBottomColor: hairline }]}>
+                  <View key={s.id} style={[styles.row, { backgroundColor: tile }]}>
                     <TouchableOpacity
                       style={styles.rowMain}
                       activeOpacity={0.6}
@@ -178,8 +179,8 @@ const styles = StyleSheet.create({
   weekMins: { fontSize: 10.5, fontWeight: '700', marginBottom: 4, fontVariant: ['tabular-nums'] },
   weekBarTrack: { width: 26, justifyContent: 'flex-end' },
   weekLetter: { fontSize: 12, marginTop: 6 },
-  list: { borderTopWidth: StyleSheet.hairlineWidth },
-  row: { flexDirection: 'row', alignItems: 'flex-start', borderBottomWidth: StyleSheet.hairlineWidth },
+  list: { gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', borderRadius: 16, paddingHorizontal: 14 },
   rowMain: { flex: 1, flexDirection: 'row', paddingVertical: 14 },
   timeCol: { width: 82, paddingRight: 8 },
   time: { fontSize: 16, fontWeight: '700', lineHeight: 21, fontVariant: ['tabular-nums'], letterSpacing: -0.2 },
@@ -187,12 +188,12 @@ const styles = StyleSheet.create({
   mainCol: { flex: 1 },
   name: { fontSize: 16.5, fontWeight: '700', lineHeight: 21, letterSpacing: -0.2 },
   dayStrip: { flexDirection: 'row', alignItems: 'center', marginTop: 5, flexWrap: 'wrap' },
-  dayLetter: { fontSize: 12, width: 15, textAlign: 'center' },
-  patternInline: { fontSize: 13, fontWeight: '500', marginLeft: 8 },
+  dayLetter: { fontSize: 13, width: 16, textAlign: 'center' },
+  patternInline: { fontSize: 14, fontWeight: '500', marginLeft: 8 },
   pattern: { fontSize: 13, fontWeight: '500', marginTop: 5 },
-  meta: { fontSize: 13, marginTop: 4, lineHeight: 18 },
+  meta: { fontSize: 14, marginTop: 4, lineHeight: 19 },
   deleteBtn: { paddingTop: 14, paddingLeft: 10, paddingBottom: 14 },
-  footnote: { fontSize: 12.5, marginTop: 14, lineHeight: 17 },
+  footnote: { fontSize: 13.5, marginTop: 16, lineHeight: 19 },
 });
 
 export default AllWorkoutsScreen;
