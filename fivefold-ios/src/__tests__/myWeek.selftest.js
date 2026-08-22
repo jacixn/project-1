@@ -103,7 +103,7 @@ check(/r\.skipDates\.includes\(dateStr\)\) return false;/.test(rem) && /export c
 const notif = read('services/notificationService.js');
 check(/if \(skipDates\.includes\(candidateKey\)\) continue;/.test(notif) && /offset <= 14/.test(notif), 'reminder notifications skip moved days and look two weeks out');
 const offer = read('services/fitOffer.js');
-check(/export const nextDateFor/.test(offer) && /Alert\.alert\(/.test(offer) && /todayOnly: !!\(line && line\.todayOnly\)/.test(offer) && /'Leave it', style: 'cancel'/.test(offer), 'fitOffer: one alert, moves only on tap, today-only carried through');
+check(/export const nextDateFor/.test(offer) && /Alert\.alert\(/.test(offer) && /await applyPlanRow\(it, line, key\)/.test(offer) && /'Leave it', style: 'cancel'/.test(offer), 'fitOffer: one alert, changes only on tap, rows applied by action');
 for (const [f, pat] of [['components/ScheduleReminderModal.js', /if \(offer\) offerFit\(offer\)/], ['screens/TodosTab.js', /offerFit\(\{ anchorId: `task:\$\{todo\.id\}`, date: todo\.scheduledDate/], ['screens/TasksOverviewScreen.js', /offerFit\(\{ anchorId: `task:\$\{editingTask\.id\}`, date: editDateTime/], ['components/ScheduleWorkoutModal.js', /if \(offer\) offerFit\(offer\)/]]) {
   check(pat.test(read(f)), `${f} offers the plan right after saving`);
 }

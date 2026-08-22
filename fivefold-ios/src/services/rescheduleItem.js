@@ -137,4 +137,38 @@ export const moveItem = async (item, to) => {
   return false;
 };
 
+// Shorten a calendar-sourced item (a show ending early or starting late).
+// Same read-then-full-write as a move.
+export const trimItem = async (item, { startMin, endMin }) => {
+  const raw = item.raw || {};
+  if (!CALENDAR_KINDS.has(item.kind) || !raw.eventId) return false;
+  const base = new Date(raw.startDate);
+  const at = (min) => { const d = new Date(base); d.setHours(Math.floor(min / 60), min % 60, 0, 0); return d; };
+  const options = calendarMoveOptions(item.kind, raw);
+  let ev = null;
+  try { ev = await Calendar.getEventAsync(raw.eventId, options && options.instanceStartDate ? { instanceStartDate: options.instanceStartDate } : undefined); } catch {}
+  if (!ev) throw new Error('That event is no longer in your Calendar.');
+  const details = calendarMoveDetails(ev, { startDate: at(startMin), endDate: at(endMin) }, !!(options && options.futureEvents));
+  await Calendar.updateEventAsync(raw.eventId, details, options);
+  return true;
+};
+
+// Skip a one-time EyeCandy show or game today: its calendar event goes,
+// and EyeCandy takes the slot off its schedule when it next opens.
+export const dropItem = async (item) => {
+  const raw = item.raw || {};
+  if (item.kind !== 'eyecandy' || !raw.eventId || raw.recurring) return false;
+  await Calendar.deleteEventAsync(raw.eventId);
+  return true;
+};
+
+const minToTime = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+// One preview row (from utils/fitPlan describePlan) -> the right write.
+export const applyPlanRow = async (item, row, dayKey) => {
+  if (row.action === 'drop') return dropItem(item);
+  if (row.action === 'trim') return trimItem(item, { startMin: row.to, endMin: row.endTo });
+  return moveItem(item, { time: minToTime(row.to), date: dayKey, from: dayKey, todayOnly: !!row.todayOnly });
+};
+
 export default moveItem;

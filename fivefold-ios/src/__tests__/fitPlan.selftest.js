@@ -1,5 +1,5 @@
-// Make it fit: the pure planner rules (model, conflicts, cascade, validation
-// of AI plans, prompt, parsing) plus the wiring in My Week.
+// Make it fit: tiers, anchor, the life optimiser, fun-item actions, the
+// validator for AI plans, prompt and parsing, and the wiring in My Week.
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
@@ -8,120 +8,123 @@ const src = read('utils/fitPlan.js');
 const pure = src.replace(/export const (\w+) =/g, 'const $1 = exports.$1 =');
 const mod = {};
 new Function('exports', pure)(mod);
-const { toModel, fixableOverlaps, allowedIds, cascadePlan, validatePlan, buildMessages, parsePlanText, describePlan, staysFor, freeGaps, hm } = mod;
+const { toModel, tierOf, pickAnchor, fixableOverlaps, lifeMovers, allowedIds, cascadePlan, validatePlan, buildMessages, parsePlanText, describePlan, staysFor, freeGaps, hm } = mod;
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
-const it = (id, kind, title, s, e, movable, type, color = '#000') => ({ id, kind, title, startMin: s, endMin: e, movable, color, raw: { type } });
+const it = (id, kind, title, s, e, movable, type, extra = {}) => ({ id, kind, title, startMin: s, endMin: e, movable, color: '#000', raw: { type, ...extra } });
+const T = (h, m = 0) => h * 60 + m;
 
-// The Sunday from the screenshots, plus an urgent errand dropped on 4 PM.
+// The real Sunday from the screenshots, haircut just added at 2 PM.
 const day = [
-  it('cal:t', 'eyecandy', 'Trinity Seven', 540, 615, true, 'recurring'),
-  it('reminder:e', 'reminder', 'Errand', 960, 1005, true, 'one-time'),
-  it('gym:p', 'gym', 'Pull', 960, 1020, true, 'one-time'),
-  it('cal:n', 'eyecandySports', 'Newcastle United vs Liverpool', 990, 1110, false, 'one-time'),
-  it('prayer:4', 'prayer', '4th Prayer', 1050, 1055, true, 'recurring'),
-  it('cal:s', 'eyecandy', 'Solo Leveling', 1065, 1165, true, 'one-time'),
-  it('reminder:d', 'reminder', 'eat dinner', 1165, 1185, true, 'recurring'),
-  it('reminder:sh', 'reminder', 'take shower', 1185, 1215, true, 'one-time'),
+  it('reminder:bf', 'reminder', 'Eat breakfast', T(8, 10), T(8, 30), true, 'recurring', { createdAt: '2026-06-01T00:00:00Z' }),
+  it('prayer:1', 'prayer', '1st Prayer', T(8, 25), T(8, 30), true, 'recurring'),
+  it('cal:tr', 'eyecandy', 'Trinity Seven', T(9), T(10, 15), true, 'recurring'),
+  it('prayer:2', 'prayer', '2nd Prayer', T(11), T(11, 5), true, 'recurring'),
+  it('cal:lnd', 'eyecandy', 'Love Next Door', T(11, 5), T(12, 5), true, 'one-time'),
+  it('cal:fc', 'eyecandy', 'EA SPORTS FC 26', T(12, 5), T(14, 5), true, 'one-time'),
+  it('prayer:3', 'prayer', '3rd Prayer', T(13), T(13, 5), true, 'recurring'),
+  it('reminder:hc', 'reminder', 'Haircut', T(14), T(15), true, 'one-time', { createdAt: '2026-08-23T11:50:00Z' }),
+  it('reminder:l', 'reminder', 'eat lunch', T(14), T(14, 20), true, 'recurring', { createdAt: '2026-06-01T00:00:00Z' }),
+  it('cal:mc', 'eyecandySports', 'Manchester City vs AFC Bournemouth', T(14), T(16), false, 'one-time'),
+  it('cal:fp', 'eyecandy', 'FragPunk', T(14, 20), T(15, 50), true, 'one-time'),
+  it('gym:p', 'gym', 'Pull', T(16), T(17), true, 'one-time', { createdAt: '2026-08-20T00:00:00Z' }),
+  it('cal:nl', 'eyecandySports', 'Newcastle United vs Liverpool', T(16, 30), T(18, 30), false, 'one-time'),
+  it('prayer:4', 'prayer', '4th Prayer', T(17, 30), T(17, 35), true, 'recurring'),
+  it('cal:sl', 'eyecandy', 'Solo Leveling', T(17, 45), T(19, 25), true, 'one-time'),
+  it('reminder:d', 'reminder', 'eat dinner', T(19, 25), T(19, 45), true, 'recurring', { createdAt: '2026-06-01T00:00:00Z' }),
+  it('cal:st', 'eyecandySports', 'Stade Rennais vs Paris Saint-Germain', T(19, 45), T(21, 45), false, 'one-time'),
+  it('cal:to', 'eyecandySports', 'Torino vs AC Milan', T(19, 45), T(21, 45), false, 'one-time'),
+  it('reminder:sh', 'reminder', 'take shower', T(19, 45), T(20, 15), true, 'one-time', { createdAt: '2026-08-21T00:00:00Z' }),
+  it('reminder:sm', 'reminder', 'Social Media time', T(20), T(21), true, 'one-time', { createdAt: '2026-08-21T00:00:00Z' }),
+  it('cal:cj', 'eyecandy', 'Candy Jar', T(20, 15), T(21, 50), true, 'one-time'),
+  it('cal:el', 'eyecandySports', 'Elche vs Barcelona', T(20, 30), T(22, 30), false, 'one-time'),
+  it('prayer:5', 'prayer', '5th Prayer', T(22), T(22, 5), true, 'recurring'),
 ];
-const ANCHOR = 'reminder:e';
 const model = toModel(day);
 const byId = Object.fromEntries(model.map((m) => [m.id, m]));
+const tiers = (ids) => ids.map((id) => byId[id].tier).join(',');
 
-check(byId['cal:n'].movable === false && byId['cal:n'].why === 'kick-off is fixed', 'fixture is fixed, with the reason');
-check(byId['cal:t'].movable === false && byId['cal:t'].why === 'repeats every week', 'weekly EyeCandy slot is fixed for a one-day plan');
-check(byId['prayer:4'].movable === false && byId['prayer:4'].why === 'daily prayer' && byId['prayer:4'].soft, 'daily prayer is fixed and short');
-check(byId['gym:p'].movable && byId['cal:s'].movable && byId['reminder:sh'].movable, 'one-time things can move');
-check(model.every((m, i) => m.key === `k${i + 1}`) && byId['reminder:d'].movable && byId['reminder:d'].todayOnly && byId['reminder:d'].why === null, 'short keys for the prompt; a daily reminder can move for this day only');
+check(tiers(['cal:mc', 'cal:tr', 'prayer:1']) === 'fixed,fixed,fixed', 'fixtures, weekly shows and prayers are fixed');
+check(tiers(['reminder:hc', 'reminder:l', 'gym:p', 'reminder:sh']) === 'life,life,life,life' && byId['reminder:l'].todayOnly && !byId['reminder:hc'].todayOnly, 'tasks, reminders (repeats this day only) and one-time workouts are life');
+check(tiers(['cal:fc', 'cal:fp', 'cal:sl', 'cal:cj']) === 'fun,fun,fun,fun' && byId['cal:fp'].droppable, 'one-time shows and games are fun and can be skipped');
+check(tierOf({ kind: 'gym', movable: true, raw: { type: 'recurring' } }) === 'fixed' && tierOf({ kind: 'calendar', movable: true, raw: { type: 'one-time' } }) === 'life', 'weekly workouts fixed, your own calendar events are life');
 
-const pairs = fixableOverlaps(model, ANCHOR);
-const pk = pairs.map(([a, b]) => `${a.id}+${b.id}`).sort();
-check(pk.join(' ') === 'cal:n+cal:s gym:p+cal:n reminder:e+gym:p', `fixable overlaps found (${pk.join(' ')})`);
-check(fixableOverlaps(model, ANCHOR).every(([a, b]) => a.id !== 'prayer:4' && b.id !== 'prayer:4'), 'a 5-minute prayer inside a match is not a problem to fix');
-const allowed = [...allowedIds(model, ANCHOR)].sort();
-check(allowed.join(' ') === 'cal:s gym:p', `only items in the overlap cluster may move (${allowed.join(' ')}), the shower is left alone`);
+check(pickAnchor(model) === 'reminder:hc', 'with no anchor given, the newest life item in a conflict (the haircut) is what stays');
+check(pickAnchor(model, 'gym:p') === 'gym:p' && pickAnchor(model, 'nope') === 'reminder:hc', 'an explicit anchor wins; an unknown one falls back');
 
-const plan = cascadePlan(model, ANCHOR);
-const mv = Object.fromEntries(plan.moves.map((m) => [m.id, m.startMin]));
-check(mv['gym:p'] === 900 && mv['cal:s'] === 1215 && plan.moves.length === 2 && !plan.overflow.length, `nearest gap wins: Pull slips to 3 PM just before the errand, Solo goes after the shower (Pull ${hm(mv['gym:p'] || 0)}, Solo ${hm(mv['cal:s'] || 0)})`);
-check(validatePlan(model, plan, ANCHOR).ok, 'cascade output passes validation');
-check(cascadePlan(toModel([it('a', 'reminder', 'A', 600, 660, true, 'one-time'), it('b', 'reminder', 'B', 700, 760, true, 'one-time')])).moves.length === 0, 'a clean day needs no moves');
+const movers = [...lifeMovers(model, 'reminder:hc')].sort().join(' ');
+check(movers === 'gym:p reminder:l reminder:sh reminder:sm', `life movers: lunch (under the haircut), Pull (under Newcastle), shower and social (under the evening matches); dinner under a show is not a life problem (${movers})`);
 
-// Tolerance: a 5-minute tail is not a conflict
-const tail = toModel([
-  it('cal:fc', 'eyecandy', 'EA SPORTS FC 26', 725, 845, true, 'one-time'),
-  it('task:h', 'task', 'haircut', 840, 870, true, 'one-time'),
-  it('reminder:l', 'reminder', 'eat lunch', 840, 860, true, 'recurring'),
-  it('cal:mc', 'eyecandySports', 'Manchester City vs AFC Bournemouth', 840, 960, false, 'one-time'),
-  it('cal:fp', 'eyecandy', 'FragPunk', 860, 950, true, 'one-time'),
+const plan = cascadePlan(model);
+const rows = describePlan(model, plan);
+console.log('  plan:', rows.map((r) => `${r.title}: ${r.action === 'drop' ? 'skip' : r.action === 'trim' ? `${hm(r.to)}-${hm(r.endTo)}` : hm(r.to)}`).join(' | '), '| left:', plan.overflow.join(', ') || 'none');
+const act = Object.fromEntries(rows.map((r) => [r.id, r]));
+check(plan.anchorId === 'reminder:hc' && !act['reminder:hc'], 'the haircut stays at 2 PM');
+check(act['reminder:l'] && act['reminder:l'].action === 'move' && act['reminder:l'].to === T(13, 40) && act['reminder:l'].todayOnly, `lunch slides to 1:40 PM, this day only, not to the morning (${act['reminder:l'] ? hm(act['reminder:l'].to) : 'untouched'})`);
+check(act['cal:fp'] && act['cal:fp'].action === 'drop', 'FragPunk (under the haircut and the match, no room near) is skipped today');
+check(act['reminder:sh'] && act['reminder:sh'].action === 'move' && act['reminder:sh'].to === T(18, 55), `shower moves to 6:55 PM, before dinner, not 11:30 PM (${act['reminder:sh'] ? hm(act['reminder:sh'].to) : 'untouched'})`);
+check(act['cal:sl'] && act['cal:sl'].action === 'drop', 'Solo Leveling (already under Newcastle, then the shower) is skipped today');
+check(act['cal:fc'] && act['cal:fc'].action === 'trim' && act['cal:fc'].to === T(12, 5) && act['cal:fc'].endTo === T(13, 40), `EA Sports FC just ends early for lunch (${act['cal:fc'] ? `${hm(act['cal:fc'].to)}-${hm(act['cal:fc'].endTo)}` : 'untouched'})`);
+check(!act['gym:p'] && plan.overflow.includes('Pull'), 'Pull under Newcastle has nothing within 2 hours: left as is and said so');
+check(!act['reminder:sm'] && plan.overflow.includes('Social Media time'), 'Social Media time has nothing within 2 hours either');
+check(act['cal:cj'] && act['cal:cj'].action === 'drop', 'Candy Jar under three matches is skipped today');
+check(rows.every((r) => r.action !== 'move' || r.tier !== 'life' || r.to >= T(8)), 'no life item lands before 8 AM');
+check(validatePlan(model, plan).ok, 'the rules plan passes its own validator');
+const stays = staysFor(model).map((s) => `${s.title}:${s.why}`);
+check(stays.includes('Haircut:just added') && stays.includes('Manchester City vs AFC Bournemouth:kick-off is fixed'), `stays list explains the haircut and the match (${stays.join(' | ')})`);
+
+// Simple day: an errand on a workout slides the workout next door.
+const simple = toModel([
+  it('reminder:e', 'reminder', 'Errand', T(16), T(16, 45), true, 'one-time', { createdAt: '2026-08-23T12:00:00Z' }),
+  it('gym:w', 'gym', 'Push', T(16), T(17), true, 'one-time', { createdAt: '2026-08-20T00:00:00Z' }),
+  it('reminder:d', 'reminder', 'eat dinner', T(19), T(19, 20), true, 'recurring'),
 ]);
-const tailPairs = fixableOverlaps(tail, 'task:h').map(([a, b]) => `${a.id}+${b.id}`).sort().join(' ');
-check(tailPairs === 'cal:mc+cal:fp reminder:l+cal:mc task:h+cal:fp task:h+reminder:l', `the 5-minute game tail under the haircut is left alone; FragPunk and lunch are the conflicts (${tailPairs})`);
-check(validatePlan(tail, { moves: [{ id: 'cal:fp', startMin: 960 }, { id: 'reminder:l', startMin: 705 }] }, 'task:h').ok, 'a plan that leaves the 5-minute tail and has lunch at 11:45 (this day only, before the game) is accepted');
-check(tail.find((m) => m.id === 'reminder:l').todayOnly && /eat lunch \| .* \| movable \(this day only, other days keep their time\)/.test(buildMessages(tail, 'task:h')[1].content), 'lunch is offered as a this-day-only move');
-const tailPlan = cascadePlan(tail, 'task:h');
-const tailMv = Object.fromEntries(tailPlan.moves.map((m) => [m.id, m.startMin]));
-check(tailMv['reminder:l'] === 960 && tailMv['cal:fp'] === 980, `cascade: lunch to the nearest gap after the match, FragPunk right after it (${hm(tailMv['reminder:l'] || 0)}, ${hm(tailMv['cal:fp'] || 0)})`);
-check(toModel([it('gym:w', 'gym', 'Push', 600, 660, true, 'recurring')])[0].why === 'repeats every day', 'a daily workout still says so (no per-day exception yet)');
-const tailStays = staysFor(tail, 'task:h').map((s) => s.title).sort().join('|');
-check(tailStays === 'Manchester City vs AFC Bournemouth|haircut', `stays list names the match and the haircut (${tailStays})`);
-
-// Full evening: slide earlier instead of giving up
-const full = toModel([
-  it('fix', 'eyecandySports', 'All evening', 1000, 1440, false, 'one-time'),
-  it('anchor', 'task', 'Errand', 900, 960, true, 'one-time'),
-  it('x', 'reminder', 'X', 930, 990, true, 'one-time'),
-]);
-const fullPlan = cascadePlan(full, 'anchor');
-check(fullPlan.moves.length === 1 && fullPlan.moves[0].id === 'x' && fullPlan.moves[0].startMin === 840 && !fullPlan.overflow.length, `forward is full, so X slides earlier to ${hm(fullPlan.moves[0] ? fullPlan.moves[0].startMin : 0)}`);
-check(validatePlan(full, fullPlan, 'anchor').ok, 'the earlier placement validates');
-const dawn = toModel([
-  it('fix', 'eyecandySports', 'All day', 480, 1440, false, 'one-time'),
-  it('anchor', 'task', 'Errand', 420, 480, true, 'one-time'),
-  it('x', 'reminder', 'X', 450, 510, true, 'one-time'),
-]);
-const dawnPlan = cascadePlan(dawn, 'anchor');
-check(dawnPlan.overflow.length === 1 && dawnPlan.overflow[0] === 'X' && !dawnPlan.moves.length, 'never plans before 8 AM: X is reported as not fitting');
+const sp = cascadePlan(simple);
+check(sp.anchorId === 'reminder:e' && sp.moves.length === 1 && sp.moves[0].id === 'gym:w' && sp.moves[0].startMin === T(16, 45) && !sp.drops.length, `workout slides to right after the errand (${sp.moves[0] ? hm(sp.moves[0].startMin) : 'none'})`);
+check(cascadePlan(toModel([it('a', 'reminder', 'A', T(10), T(11), true, 'one-time'), it('b', 'reminder', 'B', T(12), T(13), true, 'one-time')])).moves.length === 0, 'a clean day needs no moves');
+const tail = toModel([it('cal:fc', 'eyecandy', 'Game', T(12), T(14, 5), true, 'one-time'), it('task:h', 'task', 'haircut', T(14), T(15), true, 'one-time', { createdAt: '2026-08-23T12:00:00Z' })]);
+check(fixableOverlaps(tail).length === 0 && cascadePlan(tail).drops.length === 0, 'a 5-minute tail is not a conflict');
+const cut = toModel([it('cal:g', 'eyecandy', 'Game', T(12), T(14), true, 'one-time'), it('task:h', 'task', 'haircut', T(13, 40), T(14, 40), true, 'one-time', { createdAt: '2026-08-23T12:00:00Z' })]);
+const cp = cascadePlan(cut);
+check(cp.trims.length === 1 && cp.trims[0].startMin === T(12) && cp.trims[0].endMin === T(13, 40) && !cp.moves.length, 'a game mostly clear of the new thing just ends early');
 
 // AI plans: accept the good, refuse the rest
 const K = (id) => byId[id].key;
-const good = parsePlanText('Here you go:\n```json\n{"moves":[{"id":"' + K('gym:p') + '","start":"20:15"},{"id":"' + K('cal:s') + '","start":"21:15"}],"note":"Pull and Solo Leveling move after the shower."}\n```', model);
-check(good && good.moves.length === 2 && good.moves[0].id === 'gym:p' && good.moves[0].startMin === 1215 && good.note.startsWith('Pull and'), 'parses fenced JSON and maps keys back to ids');
-check(validatePlan(model, good, ANCHOR).ok, 'a sound AI plan is accepted');
-const earlier = parsePlanText('{"moves":[{"id":"gym:p","start":"14:30"},{"id":"' + K('cal:s') + '","start":"20:15"}],"note":"x"}', model);
-check(validatePlan(model, earlier, ANCHOR).ok, 'moving into a free gap earlier in the day is fine (raw ids accepted too)');
-check(!validatePlan(model, { moves: [{ id: 'cal:n', startMin: 1200 }] }, ANCHOR).ok, 'refuses to move the fixture');
-check(!validatePlan(model, { moves: [{ id: ANCHOR, startMin: 1200 }] }, ANCHOR).ok, 'refuses to move the thing just added');
-check(!validatePlan(model, { moves: [{ id: 'reminder:sh', startMin: 1300 }, { id: 'gym:p', startMin: 1215 }, { id: 'cal:s', startMin: 1275 }] }, ANCHOR).ok, 'refuses to touch something outside the conflict');
-check(!validatePlan(model, { moves: [{ id: 'gym:p', startMin: 1217 }, { id: 'cal:s', startMin: 1275 }] }, ANCHOR).ok, 'refuses times off the 5-minute grid');
-check(!validatePlan(model, { moves: [{ id: 'gym:p', startMin: 1020 }, { id: 'cal:s', startMin: 1275 }] }, ANCHOR).ok, 'refuses a plan that still overlaps the match');
-check(!validatePlan(model, { moves: [{ id: 'gym:p', startMin: 1215 }] }, ANCHOR).ok, 'refuses a half plan (Solo Leveling still on the match)');
-check(!validatePlan(model, { moves: [{ id: 'gym:p', startMin: 1215 }, { id: 'cal:s', startMin: 1400 }] }, ANCHOR).ok, 'refuses running past midnight');
-check(parsePlanText('no json here', model) === null && parsePlanText('{"moves":[{"id":"zzz","start":"10:00"}]}', model) === null && parsePlanText('{"moves":[{"id":"gym:p","start":"25:00"}]}', model) === null, 'garbage, unknown ids and bad times are rejected at parse');
+const good = parsePlanText('```json\n{"moves":[{"id":"' + K('reminder:l') + '","start":"13:40"},{"id":"' + K('reminder:sh') + '","start":"18:55"}],"trims":[{"id":"' + K('cal:fc') + '","start":"12:05","end":"13:40"}],"skip":["' + K('cal:fp') + '","' + K('cal:cj') + '","' + K('cal:sl') + '"],"note":"Lunch a bit earlier, shower before dinner, three games skipped."}\n```', model);
+check(good && good.moves.length === 2 && good.trims.length === 1 && good.drops.length === 3 && good.moves[0].id === 'reminder:l', 'parses fenced JSON with moves, trims and skips');
+check(validatePlan(model, good, null, plan).ok, 'the rules plan restated by the AI is accepted');
+check(!validatePlan(model, { moves: [{ id: 'reminder:hc', startMin: T(22, 30) }] }, null, plan).ok, 'refuses to move the haircut (the anchor)');
+check(validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(10, 45) }] }, null, plan).reason === 'eat lunch: moved too far', 'refuses lunch at 10:45 AM: more than 2 hours');
+check(!validatePlan(model, { moves: [{ id: 'reminder:sh', startMin: T(23, 30) }] }, null, plan).ok, 'refuses the shower at 11:30 PM');
+check(!validatePlan(model, { moves: [{ id: 'reminder:d', startMin: T(20) }] }, null, plan).ok, 'refuses moving dinner (its only overlap is a show)');
+check(!validatePlan(model, { moves: [], trims: [{ id: 'reminder:l', startMin: T(14), endMin: T(14, 10) }] }, null, plan).ok, 'refuses cutting a meal short');
+check(!validatePlan(model, { moves: [], trims: [{ id: 'cal:sl', startMin: T(17, 45), endMin: T(18) }] }, null, plan).ok, 'refuses cutting a show below half');
+check(!validatePlan(model, { moves: [], drops: ['cal:lnd'] }, null, plan).ok, 'refuses skipping a show that is not in the way');
+check(validatePlan(model, { moves: [], drops: ['cal:fp', 'cal:cj'] }, null, { moves: [], drops: ['cal:fp'], lifeCost: 0 }).reason === 'skips more than needed', 'refuses skipping more than the rules would');
+check(!validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(13, 42) }] }, null, plan).ok, 'refuses times off the 5-minute grid');
+check(!validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(13, 40) }] }, null, plan).ok, 'refuses a half plan that leaves FragPunk on the haircut');
+check(parsePlanText('no json', model) === null && parsePlanText('{"moves":[{"id":"zzz","start":"10:00"}]}', model) === null && parsePlanText('{"skip":["zzz"]}', model) === null, 'garbage and unknown ids are rejected at parse');
 
-const gaps = freeGaps(model, ANCHOR).map((g) => `${hm(g.startMin)}-${hm(g.endMin)}`).join(' ');
-check(gaps === '05:00-09:00 10:15-16:00 18:30-19:25 20:15-24:00', `free gaps around everything that stays (${gaps})`);
-const msgs = buildMessages(model, ANCHOR, 'today');
+// prompt
+const msgs = buildMessages(model, null, 'today');
 const u = msgs[1].content;
-check(msgs[0].role === 'system' && /ONE JSON object/.test(msgs[0].content) && /5-minute steps/.test(msgs[0].content) && /plan that already works/.test(msgs[0].content), 'system prompt demands JSON on the grid and offers a working baseline');
-check(/Errand \| 16:00-16:45 \| 45 min \| JUST ADDED, must stay/.test(u) && /Newcastle United vs Liverpool \| 16:30-18:30 \| 120 min \| FIXED \(kick-off is fixed\)/.test(u) && /Pull \| 16:00-17:00 \| 60 min \| movable/.test(u) && /take shower \| .* \| not involved, leave it/.test(u) && /4th Prayer \| .* \| short, ignore/.test(u) && /eat dinner \| .* \| not involved, leave it/.test(u), 'every item is labelled honestly for the model');
-check(/Overlaps to solve: Errand \(k2\) with Pull \(k3\); Pull \(k3\) with Newcastle United vs Liverpool \(k4\); Newcastle United vs Liverpool \(k4\) with Solo Leveling \(k6\)\./.test(u) && /Free gaps you may use \(nothing else is free\): 05:00-09:00, 10:15-16:00, 18:30-19:25, 20:15-24:00\./.test(u) && /A plan that already works: k3 -> 15:00, k6 -> 20:15\./.test(u), 'the model gets the conflicts, the real free gaps and the cascade as a baseline');
-
-const lines = describePlan(model, plan);
-check(lines.length === 2 && lines[0].title === 'Pull' && lines[0].from === 960 && lines[0].to === 900 && lines[0].color === '#000' && lines[0].todayOnly === false, 'preview rows carry title, colour, from, to and the this-day-only flag');
-const stays = staysFor(model, ANCHOR).map((s) => `${s.title}:${s.why}`).sort();
-check(stays.join('|') === 'Errand:just added|Newcastle United vs Liverpool:kick-off is fixed', `stays-put list explains itself (${stays.join('|')})`);
+check(/ONE JSON object/.test(msgs[0].content) && /"trims"/.test(msgs[0].content) && /"skip"/.test(msgs[0].content) && /at most 2 hours/.test(msgs[0].content), 'system prompt explains actions and limits');
+check(/Haircut \| 14:00-15:00 \| 60 min \| JUST ADDED, must stay/.test(u) && /eat lunch \| 14:00-14:20 \| 20 min \| life, movable \(this day only\)/.test(u) && /FragPunk \| .* \| show or game, in the way: move a little, cut, or skip today/.test(u) && /Love Next Door \| .* \| show or game, leave as is/.test(u) && /eat dinner \| .* \| life, leave as is/.test(u) && /Manchester City vs AFC Bournemouth \| .* \| FIXED \(kick-off is fixed\)/.test(u) && /3rd Prayer \| .* \| short, ignore/.test(u), 'every item is labelled by tier and role');
+check(/A plan that already works: .*k\d+ -> 13:40/.test(u) && /skipped today/.test(u) && /cut to 12:05-13:40/.test(u), 'the baseline plan is spelled out with moves, cuts and skips');
+const gaps = freeGaps(model).map((g) => `${hm(g.startMin)}-${hm(g.endMin)}`).join(' ');
+check(gaps.startsWith('05:00-08:10') && gaps.includes('10:15-14:00'), `free room ignores shows (${gaps})`);
 
 // wiring
 const planner = read('services/schedulePlanner.js');
-check(/validatePlan\(model, parsed, anchorId\)\.ok/.test(planner) && /cascadePlan\(model, anchorId\)/.test(planner) && /source: 'ai'/.test(planner) && /source: 'rules'/.test(planner), 'planner: AI plan only when it validates, cascade otherwise');
-check(/rawChat\(messages, \{ temperature: 0\.2/.test(planner) && /async rawChat\(messages, \{ temperature = 0\.2/.test(read('services/productionAiService.js')), 'planner runs the app AI chain at low temperature');
+check(/validatePlan\(model, parsed, anchor, base\)\.ok/.test(planner) && /pickAnchor\(model, anchorId\)/.test(planner) && /source: 'ai'/.test(planner) && /source: 'rules'/.test(planner), 'planner: AI plan only when it validates against the rules plan');
+const resrc = read('services/rescheduleItem.js');
+check(/export const trimItem/.test(resrc) && /export const dropItem/.test(resrc) && /Calendar\.deleteEventAsync\(raw\.eventId\)/.test(resrc) && /export const applyPlanRow/.test(resrc) && /row\.action === 'drop'/.test(resrc), 'trim and skip write through the Calendar; applyPlanRow routes each row');
 const screen = read('screens/MyWeekScreen.js');
-check(/fixableOverlaps\(toModel\(dayItems\), lastMovedRef\.current\)/.test(screen) && /fixableCount > 0 \?/.test(screen) && /'Make it fit'/.test(screen), 'My Week shows Make it fit only when something fixable overlaps');
-check(/lastMovedRef\.current = movedId;/.test(screen) && /planDay\(dayItems, \{ anchorId: lastMovedRef\.current/.test(screen), 'the thing just moved is the anchor that stays put');
-check(/const applyFit = async/.test(screen) && /await moveItem\(it, \{ time: minToTime\(mv\.startMin\), date: key, from: key, todayOnly/.test(screen) && /Apply \$\{fitCount\} moves/.test(screen) && /Stays put/.test(screen), 'plan is shown first and applied through moveItem on Apply');
-check(/const toggleFitRow = \(id\)/.test(screen) && /fitPlan\.moves\.filter\(\(mv\) => !fitSkipped\.has\(mv\.id\)\)/.test(screen) && /accessibilityRole="checkbox"/.test(screen) && /tap one to leave it where it is/.test(screen), 'each move can be unticked before Apply');
-check(!/numberOfLines/.test(screen.slice(screen.indexOf('Make it fit: the plan in words'), screen.indexOf('Move panel: dims'))), 'plan rows never truncate titles');
+check(/if \(await applyPlanRow\(it, line, key\)\) n\+\+;/.test(screen) && /rowText\(l\)/.test(screen) && /Apply \$\{fitCount\} changes/.test(screen) && /Left as is, nothing close enough/.test(screen), 'My Week applies rows by action and shows what was left');
+const offer = read('services/fitOffer.js');
+check(/export const rowText/.test(offer) && /await applyPlanRow\(it, line, key\)/.test(offer) && /skipped today/.test(offer), 'fitOffer alert lists moves, cuts and skips and applies by action');
+const ec = fs.readFileSync(path.join(root, '..', '..', '..', 'eyecandy', 'src', 'services', 'calendarSync.js'), 'utf8');
+check(/const endChanged = entry\.end != null/.test(ec) && /export const removeSlotForKey/.test(ec), 'EyeCandy adopts cut-short shows and skipped ones');
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

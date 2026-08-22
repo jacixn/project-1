@@ -3,10 +3,10 @@
 // in utils/fitPlan verify). One alert, plain words, nothing moves without a
 // tap. My Week has its own richer panel; this is for every other editor.
 import { Alert } from 'react-native';
-import { loadDayItems, fmtClock, minToTime } from '../utils/dayItems';
+import { loadDayItems, fmtClock } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
 import { planDay } from './schedulePlanner';
-import { moveItem } from './rescheduleItem';
+import { applyPlanRow } from './rescheduleItem';
 
 const parseKey = (k) => {
   const [y, m, d] = String(k).split('-').map(Number);
@@ -27,11 +27,19 @@ export const nextDateFor = (days, time, from = new Date()) => {
   return dateKeyOf(from);
 };
 
-// The alert body: each move on its own line, then what stays and why.
+// One preview row in words.
+export const rowText = (l) => {
+  if (l.action === 'drop') return 'skipped today';
+  if (l.action === 'trim') return l.to !== l.from && l.endTo !== l.endFrom ? `${fmtClock(l.to)} to ${fmtClock(l.endTo)}` : l.to !== l.from ? `starts at ${fmtClock(l.to)}` : `ends at ${fmtClock(l.endTo)}`;
+  return `${fmtClock(l.from)} to ${fmtClock(l.to)}${l.todayOnly ? ' (this day only)' : ''}`;
+};
+
+// The alert body: each change on its own line, then what stays and why.
 export const offerText = (plan, anchorId) => {
-  const moves = plan.lines.map((l) => `${l.title}: ${fmtClock(l.from)} to ${fmtClock(l.to)}${l.todayOnly ? ' (this day only)' : ''}`);
+  const moves = plan.lines.map((l) => `${l.title}: ${rowText(l)}`);
   const stays = plan.stays.filter((s) => s.id !== anchorId).map((s) => `${s.title} stays, ${s.why}`);
-  return [plan.note, '', ...moves, ...(stays.length ? ['', ...stays] : [])].join('\n');
+  const left = (plan.overflow || []).length ? [`Left as is, nothing close enough: ${plan.overflow.join(', ')}`] : [];
+  return [plan.note, '', ...moves, ...(stays.length ? ['', ...stays] : []), ...(left.length ? ['', ...left] : [])].join('\n');
 };
 
 // anchorId: dayItems id of the thing just saved ('reminder:<id>', 'task:<id>',
@@ -53,16 +61,13 @@ export const offerFit = async ({ anchorId, date, onDone }) => {
         [
           { text: 'Leave it', style: 'cancel', onPress: () => resolve(0) },
           {
-            text: plan.lines.length === 1 ? 'Move it' : `Move ${plan.lines.length}`,
+            text: plan.lines.length === 1 ? 'Do it' : `Do all ${plan.lines.length}`,
             onPress: async () => {
               let n = 0;
-              for (const mv of plan.moves) {
-                const it = items.find((i) => i.id === mv.id);
-                const line = plan.lines.find((l) => l.id === mv.id);
+              for (const line of plan.lines) {
+                const it = items.find((i) => i.id === line.id);
                 if (!it) continue;
-                try {
-                  if (await moveItem(it, { time: minToTime(mv.startMin), date: key, from: key, todayOnly: !!(line && line.todayOnly) })) n++;
-                } catch {}
+                try { if (await applyPlanRow(it, line, key)) n++; } catch {}
               }
               try { onDone && onDone(n); } catch {}
               resolve(n);

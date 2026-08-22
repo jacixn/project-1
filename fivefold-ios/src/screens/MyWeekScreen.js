@@ -14,7 +14,8 @@ import { dateKeyOf } from '../utils/dayBusy';
 import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS, Easing } from 'react-native-reanimated';
-import { moveItem } from '../services/rescheduleItem';
+import { moveItem, applyPlanRow } from '../services/rescheduleItem';
+import { rowText } from '../services/fitOffer';
 import { planDay } from '../services/schedulePlanner';
 import { toModel, fixableOverlaps } from '../utils/fitPlan';
 
@@ -362,18 +363,17 @@ const MyWeekScreen = ({ navigation }) => {
     if (!fitPlan || saving || !fitCount) return;
     setSaving(true);
     let n = 0;
-    const chosen = fitPlan.moves.filter((mv) => !fitSkipped.has(mv.id));
+    const chosen = fitPlan.lines.filter((l) => !fitSkipped.has(l.id));
     const key = dateKeyOf(anchor);
-    for (const mv of chosen) {
-      const it = dayItems.find((i) => i.id === mv.id);
-      const line = fitPlan.lines.find((l) => l.id === mv.id);
+    for (const line of chosen) {
+      const it = dayItems.find((i) => i.id === line.id);
       if (!it) continue;
-      try { if (await moveItem(it, { time: minToTime(mv.startMin), date: key, from: key, todayOnly: !!(line && line.todayOnly) })) n++; } catch {}
+      try { if (await applyPlanRow(it, line, key)) n++; } catch {}
     }
     hapticFeedback.success();
     setStatus(n === chosen.length
-      ? `${n === 1 ? '1 thing' : `${n} things`} moved.`
-      : `${n} of ${chosen.length} moved. Check the rest.`);
+      ? `${n === 1 ? '1 thing' : `${n} things`} changed.`
+      : `${n} of ${chosen.length} changed. Check the rest.`);
     setFitPlan(null);
     const keepY = scrollYRef.current;
     await loadWeek();
@@ -650,8 +650,8 @@ const MyWeekScreen = ({ navigation }) => {
                 <View style={[styles.fitBar, { backgroundColor: l.color }]} />
                 <Text style={[styles.fitRowTitle, { color: theme.text }]}>{l.title}</Text>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={[styles.fitRowTime, { color: l.color }]}>{fmtClock(l.from)} to {fmtClock(l.to)}</Text>
-                  {l.todayOnly ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>this day only</Text> : null}
+                  <Text style={[styles.fitRowTime, { color: l.action === 'drop' ? theme.textSecondary : l.color }]}>{l.action === 'move' ? `${fmtClock(l.from)} to ${fmtClock(l.to)}` : rowText(l)}</Text>
+                  {l.todayOnly ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>this day only</Text> : l.action === 'trim' ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>was {fmtClock(l.from)} to {fmtClock(l.endFrom)}</Text> : null}
                 </View>
                 <MaterialIcons name={off ? 'check-box-outline-blank' : 'check-box'} size={22} color={off ? theme.textSecondary : accent} />
               </TouchableOpacity>
@@ -666,12 +666,12 @@ const MyWeekScreen = ({ navigation }) => {
             </>
           ) : null}
           {fitPlan.overflow.length ? (
-            <Text style={[styles.fitStay, { color: theme.warning || '#F59E0B' }]}>Could not fit before midnight: {fitPlan.overflow.join(', ')}</Text>
+            <Text style={[styles.fitStay, { color: theme.warning || '#F59E0B' }]}>Left as is, nothing close enough: {fitPlan.overflow.join(', ')}</Text>
           ) : null}
 
           <TouchableOpacity onPress={applyFit} disabled={saving || !fitCount} style={[styles.saveBtn, { backgroundColor: accent, opacity: saving || !fitCount ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
             <MaterialIcons name="check" size={20} color="#fff" />
-            <Text style={styles.saveBtnText}>{saving ? 'Moving' : fitCount === 1 ? 'Apply 1 move' : `Apply ${fitCount} moves`}</Text>
+            <Text style={styles.saveBtnText}>{saving ? 'Working' : fitCount === 1 ? 'Apply 1 change' : `Apply ${fitCount} changes`}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
