@@ -10,7 +10,7 @@ import {
   KINDS, KIND_ORDER, fmtClock, fmtDur, minToTime, moveScope,
 } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
-import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, COL_MIN_W, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
+import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, COL_MIN_W, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { moveItem } from '../services/rescheduleItem';
 
@@ -88,7 +88,7 @@ const MyWeekScreen = ({ navigation }) => {
   // width, two things share it, and only a band with more columns than fit
   // at a readable width scrolls sideways, just that band, everything else
   // stays put.
-  const cardAreaLeft = 56 + layout.railsWidth + 6;
+  const cardAreaLeft = 56;
   const cardAreaW = Math.max(0, timelineW - cardAreaLeft);
   const groupWidths = useMemo(() => {
     const out = {};
@@ -105,8 +105,26 @@ const MyWeekScreen = ({ navigation }) => {
     const isMoving = moving && moving.id === it.id;
     const gw = c.group != null ? groupWidths[c.group] : null;
     const colW = gw ? gw.colW : cardAreaW;
+    const inset = (c.depth || 0) * NEST_INSET;
+    const width = c.strip ? (gw ? gw.contentW : cardAreaW) : Math.max(60, Math.round(colW) - (c.cols > 1 ? 6 : 0) - inset);
     const tinyCard = c.h <= 44;
-    const narrowCard = c.cols > 1 && colW < 200;
+    const narrowCard = c.cols > 1 && width < 200;
+    if (c.strip) {
+      return (
+        <TouchableOpacity
+          key={it.id}
+          onPress={() => (it.movable ? startMove(it) : explainExternal(it))}
+          activeOpacity={0.7}
+          style={[styles.strip, { top: c.y - originY, height: c.h, left: 0, width, backgroundColor: theme.background, borderColor: isMoving ? accent : it.color + '88' }]}
+          accessibilityRole="button"
+          accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)}, ${KINDS[it.kind].label}`}
+        >
+          <View style={[styles.stripFill, { backgroundColor: it.color + (isDark ? '30' : '24') }]} />
+          <View style={[styles.stripDot, { backgroundColor: it.color }]} />
+          <Text style={[styles.stripText, { color: theme.text }]}>{it.title}<Text style={{ color: theme.textSecondary, fontWeight: '600' }}>{`  ${fmtClock(it.startMin)}`}</Text></Text>
+        </TouchableOpacity>
+      );
+    }
     return (
       <TouchableOpacity
         key={it.id}
@@ -115,19 +133,20 @@ const MyWeekScreen = ({ navigation }) => {
         style={[styles.card, {
           top: c.y - originY,
           height: c.h,
-          left: Math.round(c.col * colW),
-          width: Math.max(0, Math.round(colW) - (c.cols > 1 ? 6 : 0)),
-          backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile,
-          borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'),
+          left: Math.round(c.col * colW) + inset,
+          width,
+          backgroundColor: c.proportional ? theme.background : tile,
+          borderColor: isMoving ? accent : (c.proportional ? it.color + '55' : 'transparent'),
           alignItems: c.proportional ? 'flex-start' : 'center',
           paddingTop: c.proportional ? 8 : 0,
-          paddingLeft: c.cols > 1 ? 10 : 12,
+          paddingLeft: c.cols > 1 || inset ? 10 : 12,
           paddingRight: c.cols > 1 ? 8 : 12,
         }]}
         accessibilityRole="button"
         accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
         accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
       >
+        {c.proportional ? <View style={[styles.cardFill, { backgroundColor: it.color + (isDark ? '3A' : '2A') }]} /> : null}
         <View style={[styles.cardBar, { backgroundColor: it.color }]} />
         <View style={{ flex: 1 }}>
           {tinyCard ? (
@@ -346,16 +365,6 @@ const MyWeekScreen = ({ navigation }) => {
                 <View style={[styles.hourLine, { backgroundColor: hairline, opacity: h.major ? 1 : 0.5 }]} />
               </View>
             ))}
-            {/* Rails */}
-            <View style={[styles.railArea, { width: layout.railsWidth }]} pointerEvents="none">
-              {layout.rails.map((r) => (
-                r.dot ? (
-                  <View key={r.item.id} style={[styles.railDot, { left: r.lane * 10, top: r.y - 1, backgroundColor: r.item.color }]} />
-                ) : (
-                  <View key={r.item.id} style={[styles.rail, { left: r.lane * 10 + 1, top: r.y, height: r.h, backgroundColor: r.item.color, borderBottomLeftRadius: r.clipped ? 0 : 3, borderBottomRightRadius: r.clipped ? 0 : 3 }]} />
-                )
-              ))}
-            </View>
             {/* Cards: fixed ones directly, crowded bands in their own sideways scroller */}
             <View style={[styles.cardArea, { left: cardAreaLeft }]}>
               {layout.cards.filter((c) => c.group == null || !groupWidths[c.group]?.scroll).map((c) => renderCard(c, 0))}
@@ -549,9 +558,11 @@ const styles = StyleSheet.create({
   hourRow: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center' },
   hourLabel: { width: 52, fontSize: 11.5, fontWeight: '700', fontVariant: ['tabular-nums'], marginTop: -7 },
   hourLine: { flex: 1, height: StyleSheet.hairlineWidth },
-  railArea: { position: 'absolute', left: 56, top: 0, bottom: 0 },
-  rail: { position: 'absolute', width: 4, borderRadius: 3 },
-  railDot: { position: 'absolute', width: 8, height: 8, borderRadius: 4, marginLeft: -1 },
+  cardFill: { ...StyleSheet.absoluteFillObject },
+  strip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, overflow: 'hidden' },
+  stripFill: { ...StyleSheet.absoluteFillObject },
+  stripDot: { width: 6, height: 12, borderRadius: 3, marginRight: 8 },
+  stripText: { fontSize: 12, fontWeight: '800' },
   cardArea: { position: 'absolute', right: 0, top: 0, bottom: 0 },
   card: { position: 'absolute', flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, overflow: 'hidden' },
   cardBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
