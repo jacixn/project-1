@@ -17,6 +17,8 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import Reanimated from 'react-native-reanimated';
+import { useCollapsingSearch } from '../hooks/useCollapsingSearch';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -85,10 +87,9 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false
   const searchRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
-  // Header visibility — simple boolean avoids JS-thread animated layout
-  const [headerExpanded, setHeaderExpanded] = useState(true);
-  const lastScrollY = useRef(0);
-  const isScrollingDown = useRef(false);
+  // Search + chips collapse on the UI thread (hooks/useCollapsingSearch); the
+  // header container sizes to its content so it shrinks with them.
+  const { onScroll: handleScroll, searchStyle } = useCollapsingSearch({ height: EXPANDED_HEADER_HEIGHT - COLLAPSED_HEADER_HEIGHT });
   
   // Random fact animation refs
   const randomSpinAnim = useRef(new Animated.Value(0)).current;
@@ -308,26 +309,6 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false
     }
   }, [selectedFact]);
 
-  const handleScroll = (event) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const diff = currentScrollY - lastScrollY.current;
-    
-    if (Math.abs(diff) > 5) {
-      if (diff > 0 && currentScrollY > 50) {
-        if (!isScrollingDown.current) {
-          isScrollingDown.current = true;
-          setHeaderExpanded(false);
-        }
-      } else if (diff < 0) {
-        if (isScrollingDown.current) {
-          isScrollingDown.current = false;
-          setHeaderExpanded(true);
-        }
-      }
-    }
-    
-    lastScrollY.current = currentScrollY;
-  };
 
   const loadFavorites = async () => {
     try {
@@ -1083,14 +1064,13 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false
   // Get current category theme
   const currentCategoryTheme = CATEGORY_THEMES[selectedCategory] || CATEGORY_THEMES.all;
   
-  const headerHeight = headerExpanded ? EXPANDED_HEADER_HEIGHT : COLLAPSED_HEADER_HEIGHT;
 
   const content = detailMode ? renderFactDetail() : (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
         {/* Collapsible Header */}
-        <View style={[styles.headerContainer, { height: headerHeight }]}>
+        <View style={styles.headerContainer}>
           <LinearGradient
             colors={isDark 
               ? ['rgba(30,30,40,0.98)', 'rgba(30,30,40,0.95)']
@@ -1140,9 +1120,8 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false
               </View>
             </View>
 
-            {/* Expandable Section */}
-            {headerExpanded && (
-            <View>
+            {/* Expandable Section: collapses with the scroll */}
+            <Reanimated.View style={[{ overflow: 'hidden' }, searchStyle]}>
               {/* Search Bar */}
               <View style={[styles.searchBar, { 
                 backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -1255,8 +1234,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false
                   </View>
                 </View>
               </View>
-            </View>
-            )}
+            </Reanimated.View>
           </LinearGradient>
           
           {/* Bottom border accent */}
@@ -1269,7 +1247,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false
         </View>
 
         {/* Main Content — FlatList for virtualization */}
-        <FlatList
+        <Reanimated.FlatList
           ref={scrollViewRef}
           data={filteredFacts}
           keyExtractor={(item) => item.id}
@@ -1285,7 +1263,7 @@ const BibleFastFacts = ({ visible, onClose, asScreen = false, detailMode = false
             viewMode === 'list' && { paddingHorizontal: 16, gap: 10 },
           ]}
           onScroll={handleScroll}
-          scrollEventThrottle={32}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

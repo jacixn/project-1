@@ -18,6 +18,8 @@ import {
   DeviceEventEmitter,
   InteractionManager,
 } from 'react-native';
+import Reanimated from 'react-native-reanimated';
+import { useCollapsingSearch } from '../hooks/useCollapsingSearch';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -72,26 +74,10 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false,
   // Search
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Search bar visibility — simple boolean avoids JS-thread animated layout
-  const [searchBarVisible, setSearchBarVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef('up');
-
-  const handleScroll = (event) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
-
-    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
-      scrollDirection.current = direction;
-      setSearchBarVisible(direction !== 'down');
-    }
-
-    lastScrollY.current = currentScrollY;
-  };
-
-  const headerSpacerHeight = searchBarVisible
-    ? (Platform.OS === 'ios' ? 177 : 182)
-    : (Platform.OS === 'ios' ? 117 : 122);
+  // Search bar collapses on the UI thread (hooks/useCollapsingSearch); the
+  // list spacer stays at the expanded height so content never jumps.
+  const { onScroll: handleScroll, searchStyle } = useCollapsingSearch({ height: 60 });
+  const headerSpacerHeight = Platform.OS === 'ios' ? 177 : 182;
 
   // Modal animation refs for guide detail view
   const guideSlideAnim = useRef(new Animated.Value(0)).current;
@@ -1375,13 +1361,13 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false,
 
         {/* Scrollable content — FlatList for virtualization */}
         {!loading && !error && (
-          <FlatList
+          <Reanimated.FlatList
             ref={scrollViewRef}
             data={filteredGuides}
             keyExtractor={(item) => item.id}
             renderItem={({ item, index }) => renderGuideCard(item, index)}
             onScroll={handleScroll}
-            scrollEventThrottle={32}
+            scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}
             ListHeaderComponent={<View style={{ height: headerSpacerHeight }} />}
@@ -1452,7 +1438,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false,
             </View>
 
             {/* Collapsible Search bar */}
-            {searchBarVisible && (
+            <Reanimated.View style={[{ overflow: 'hidden' }, searchStyle]}>
               <View
                 style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -1497,7 +1483,7 @@ const ThematicGuides = ({ visible, onClose, onNavigateToVerse, asScreen = false,
                   </TouchableOpacity>
                 )}
               </View>
-            )}
+            </Reanimated.View>
           </View>
 
           {/* Category filter chips */}

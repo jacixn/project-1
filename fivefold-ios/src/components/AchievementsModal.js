@@ -11,6 +11,8 @@ import {
   Animated,
   DeviceEventEmitter,
 } from 'react-native';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
+import { useCollapsingSearch } from '../hooks/useCollapsingSearch';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
@@ -90,26 +92,10 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
   const celebrationGlow = useRef(new Animated.Value(0)).current;
   const celebrationLoopRef = useRef(null);
 
-  // Collapsible search bar animation
-  const searchBarAnim = useRef(new Animated.Value(1)).current;
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef('up');
-
-  const handleScroll = (event) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
-
-    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
-      scrollDirection.current = direction;
-      Animated.timing(searchBarAnim, {
-        toValue: direction === 'down' ? 0 : 1,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-
-    lastScrollY.current = currentScrollY;
-  };
+  // Search bar + category chips collapse on the UI thread (hooks/useCollapsingSearch)
+  const { onScroll: handleScroll, searchStyle, progress: collapseProgress, reset: resetSearchCollapse } = useCollapsingSearch({ height: 58 });
+  // The category chip bar rides the same progress as the search bar
+  const chipsStyle = useAnimatedStyle(() => ({ height: collapseProgress.value * 44, opacity: collapseProgress.value }));
 
   // Load prestige count on mount
   useEffect(() => {
@@ -148,9 +134,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
 
   useEffect(() => {
     if (visible) {
-      searchBarAnim.setValue(1);
-      lastScrollY.current = 0;
-      scrollDirection.current = 'up';
+      resetSearchCollapse();
 
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -320,16 +304,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
     ];
 
     return (
-      <Animated.View
-        style={{
-          height: searchBarAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 44],
-          }),
-          opacity: searchBarAnim,
-          overflow: 'hidden',
-        }}
-      >
+      <Reanimated.View style={[{ overflow: 'hidden' }, chipsStyle]}>
         <Animated.ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -369,7 +344,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
             );
           })}
         </Animated.ScrollView>
-      </Animated.View>
+      </Reanimated.View>
     );
   };
 
@@ -384,7 +359,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
         style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
       >
         {/* Content */}
-        <Animated.FlatList
+        <Reanimated.FlatList
           data={filteredAchievements}
           renderItem={renderAchievement}
           keyExtractor={(item) => item.id}
@@ -400,16 +375,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
           }
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          ListHeaderComponent={
-            <Animated.View
-              style={{
-                height: searchBarAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [Platform.OS === 'ios' ? 100 : 80, Platform.OS === 'ios' ? 210 : 180],
-                }),
-              }}
-            />
-          }
+          ListHeaderComponent={<View style={{ height: Platform.OS === 'ios' ? 210 : 180 }} />}
           ListEmptyComponent={
             <View
               style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 }}
@@ -536,16 +502,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
             </View>
 
             {/* Collapsible Search bar */}
-            <Animated.View
-              style={{
-                height: searchBarAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 58],
-                }),
-                opacity: searchBarAnim,
-                overflow: 'hidden',
-              }}
-            >
+            <Reanimated.View style={[{ overflow: 'hidden' }, searchStyle]}>
               <View
                 style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -590,7 +547,7 @@ const AchievementsModal = ({ visible, onClose, userStats, asScreen = false }) =>
                   </TouchableOpacity>
                 )}
               </View>
-            </Animated.View>
+            </Reanimated.View>
           </Animated.View>
 
           {/* Category filter chips */}

@@ -16,6 +16,8 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
+import Reanimated from 'react-native-reanimated';
+import { useCollapsingSearch } from '../hooks/useCollapsingSearch';
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -92,33 +94,10 @@ const AudioLearning = ({ visible, onClose, asScreen = false, detailMode = false,
   // Search
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Collapsible search bar animation (matches Achievements pattern)
-  const searchBarAnim = useRef(new Animated.Value(1)).current;
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef('up');
+  // Search bar collapses on the UI thread (hooks/useCollapsingSearch)
   const storyListRef = useRef(null);
-
-  const handleListScroll = (event) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
-
-    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
-      scrollDirection.current = direction;
-      Animated.timing(searchBarAnim, {
-        toValue: direction === 'down' ? 0 : 1,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-
-    lastScrollY.current = currentScrollY;
-  };
-
-  // Header spacer height adapts to search bar visibility
-  const headerSpacerHeight = searchBarAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [Platform.OS === 'ios' ? 77 : 82, Platform.OS === 'ios' ? 137 : 142],
-  });
+  const { onScroll: handleListScroll, searchStyle } = useCollapsingSearch({ height: 58 });
+  const headerSpacerHeight = Platform.OS === 'ios' ? 137 : 142;
 
   // Refs for callback access (to avoid stale closure issues)
   const playbackModeRef = useRef(playbackMode);
@@ -718,15 +697,15 @@ const AudioLearning = ({ visible, onClose, asScreen = false, detailMode = false,
         />
 
         {/* Scrollable content */}
-        <ScrollView
+        <Reanimated.ScrollView
           ref={storyListRef}
           onScroll={handleListScroll}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.storiesGridContainer, { paddingTop: 0 }]}
         >
-          {/* Dynamic spacer that responds to search bar collapse */}
-          <Animated.View style={{ height: headerSpacerHeight }} />
+          {/* Fixed spacer: the header collapses over the content */}
+          <View style={{ height: headerSpacerHeight }} />
 
           {filteredStories.map((story) => (
             <TouchableOpacity
@@ -814,7 +793,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false, detailMode = false,
 
           {/* Bottom spacing */}
           <View style={{ height: 40 }} />
-        </ScrollView>
+        </Reanimated.ScrollView>
 
         {/* Premium Transparent Header — hidden when player is open */}
         {!playerVisible && <BlurView
@@ -888,16 +867,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false, detailMode = false,
             </View>
 
             {/* Collapsible Search bar */}
-            <Animated.View
-              style={{
-                height: searchBarAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 58],
-                }),
-                opacity: searchBarAnim,
-                overflow: 'hidden',
-              }}
-            >
+            <Reanimated.View style={[{ overflow: 'hidden' }, searchStyle]}>
               <View
                 style={{
                   backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -942,7 +912,7 @@ const AudioLearning = ({ visible, onClose, asScreen = false, detailMode = false,
                   </TouchableOpacity>
                 )}
               </View>
-            </Animated.View>
+            </Reanimated.View>
           </Animated.View>
         </BlurView>}
       </View>

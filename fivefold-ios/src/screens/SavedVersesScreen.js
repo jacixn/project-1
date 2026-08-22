@@ -17,6 +17,8 @@ import {
   Animated,
   StyleSheet,
 } from 'react-native';
+import Reanimated from 'react-native-reanimated';
+import { useCollapsingSearch } from '../hooks/useCollapsingSearch';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
@@ -38,27 +40,8 @@ const SavedVersesScreen = ({ navigation }) => {
   const modalTextSecondaryColor = isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)';
   const modalTextTertiaryColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
 
-  // Scroll animation for search bar
-  const savedVersesSearchAnim = useRef(new Animated.Value(1)).current;
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef('up');
-
-  const handleSavedVersesScroll = (event) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
-    
-    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
-      scrollDirection.current = direction;
-      
-      Animated.timing(savedVersesSearchAnim, {
-        toValue: direction === 'down' ? 0 : 1,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-    
-    lastScrollY.current = currentScrollY;
-  };
+  // Search bar collapses on the UI thread (see hooks/useCollapsingSearch)
+  const { onScroll: handleSavedVersesScroll, searchStyle } = useCollapsingSearch({ height: 58 });
 
   const loadSavedVersesQuick = async () => {
     try {
@@ -154,23 +137,18 @@ const SavedVersesScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Content - ScrollView starts from top */}
-      <ScrollView 
-        style={{ flex: 1 }} 
+      <Reanimated.ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ 
+        contentContainerStyle={{
           paddingHorizontal: 16,
           paddingBottom: 40,
         }}
         onScroll={handleSavedVersesScroll}
         scrollEventThrottle={16}
       >
-        {/* Animated spacer that shrinks with search bar */}
-        <Animated.View style={{
-          height: savedVersesSearchAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [Platform.OS === 'ios' ? 115 : 95, Platform.OS === 'ios' ? 173 : 143],
-          }),
-        }} />
+        {/* Fixed spacer: the header collapses over the content, the content never reflows */}
+        <View style={{ height: Platform.OS === 'ios' ? 173 : 143 }} />
 
         {savedVersesList.length === 0 ? (
           <View style={{
@@ -427,7 +405,7 @@ const SavedVersesScreen = ({ navigation }) => {
             ));
           })()
         )}
-      </ScrollView>
+      </Reanimated.ScrollView>
 
       {/* Premium Transparent Header — matches Achievements */}
       <BlurView 
@@ -510,14 +488,7 @@ const SavedVersesScreen = ({ navigation }) => {
           </View>
           
           {/* Collapsible Search bar */}
-          <Animated.View style={{
-            height: savedVersesSearchAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 58],
-            }),
-            opacity: savedVersesSearchAnim,
-            overflow: 'hidden',
-          }}>
+          <Reanimated.View style={[{ overflow: 'hidden' }, searchStyle]}>
             <View style={{
               backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
               borderRadius: 14,
@@ -560,7 +531,7 @@ const SavedVersesScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
             </View>
-          </Animated.View>
+          </Reanimated.View>
         </Animated.View>
       </BlurView>
     </View>

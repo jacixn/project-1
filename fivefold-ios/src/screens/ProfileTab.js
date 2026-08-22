@@ -30,6 +30,8 @@ import {
   Dimensions,
   Easing,
 } from 'react-native';
+import Reanimated from 'react-native-reanimated';
+import { useCollapsingSearch } from '../hooks/useCollapsingSearch';
 import AboutBiblelyModal from '../components/AboutBiblelyModal';
 import { logoSpin, logoPulse, logoFloat } from '../utils/sharedHeaderLogoAnim';
 
@@ -454,28 +456,8 @@ const ProfileTab = () => {
   const journalFadeAnim = useRef(new Animated.Value(0)).current;
   const highlightsFadeAnim = useRef(new Animated.Value(0)).current;
   
-  // Collapsible search bar animation for Saved Verses
-  const savedVersesSearchAnim = useRef(new Animated.Value(1)).current;
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef('up');
-  
-  const handleSavedVersesScroll = (event) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const direction = currentScrollY > lastScrollY.current ? 'down' : 'up';
-    
-    // Only animate if direction changed and scrolled enough
-    if (direction !== scrollDirection.current && Math.abs(currentScrollY - lastScrollY.current) > 10) {
-      scrollDirection.current = direction;
-      
-      Animated.timing(savedVersesSearchAnim, {
-        toValue: direction === 'down' ? 0 : 1,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-    
-    lastScrollY.current = currentScrollY;
-  };
+  // Saved Verses search bar collapses on the UI thread (hooks/useCollapsingSearch)
+  const { onScroll: handleSavedVersesScroll, searchStyle } = useCollapsingSearch({ height: 58 });
 
   // Admin Analytics - check if current user is admin
   const ADMIN_EMAILS = ['biblelyios@gmail.com'];
@@ -4041,11 +4023,11 @@ const ProfileTab = () => {
           backgroundColor: theme.background
         }}>
             {/* Content - ScrollView starts from top */}
-            <Animated.ScrollView 
-              style={{ flex: 1 }} 
+            <Reanimated.ScrollView
+              style={{ flex: 1 }}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ 
-              paddingHorizontal: 16,
+              contentContainerStyle={{
+                paddingHorizontal: 16,
                 paddingBottom: 40,
               }}
               onScroll={handleSavedVersesScroll}
@@ -4056,13 +4038,8 @@ const ProfileTab = () => {
                 }
               }}
             >
-              {/* Animated spacer that shrinks with search bar */}
-              <Animated.View style={{
-                height: savedVersesSearchAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [Platform.OS === 'ios' ? 115 : 95, Platform.OS === 'ios' ? 173 : 143],
-                }),
-              }} />
+              {/* Fixed spacer: the header collapses over the content */}
+              <View style={{ height: Platform.OS === 'ios' ? 173 : 143 }} />
               {/* Stats Row */}
               {savedVersesList.length > 0 && (
                 <View style={{
@@ -4357,7 +4334,7 @@ const ProfileTab = () => {
                   ));
                 })()
               )}
-            </Animated.ScrollView>
+            </Reanimated.ScrollView>
 
             {/* Premium Transparent Header */}
             <BlurView 
@@ -4454,14 +4431,7 @@ const ProfileTab = () => {
                 </View>
                 
                 {/* Collapsible Search bar */}
-                <Animated.View style={{
-                  height: savedVersesSearchAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 58],
-                  }),
-                  opacity: savedVersesSearchAnim,
-                  overflow: 'hidden',
-                }}>
+                <Reanimated.View style={[{ overflow: 'hidden' }, searchStyle]}>
                   <View style={{
                     backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                     borderRadius: 14,
@@ -4504,7 +4474,7 @@ const ProfileTab = () => {
                       </TouchableOpacity>
                     )}
                   </View>
-                </Animated.View>
+                </Reanimated.View>
               </View>
             </BlurView>
         </View>
