@@ -10,7 +10,7 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { resetAllFitness } from '../services/fitnessReset';
+import { resetFitness, RESET_OPTIONS, defaultResetPicks } from '../services/fitnessReset';
 import { useWorkout } from '../contexts/WorkoutContext';
 import * as StoreReview from 'expo-store-review';
 import { useTheme } from '../contexts/ThemeContext';
@@ -214,21 +214,32 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const { endWorkout } = useWorkout() || {};
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPicks, setResetPicks] = useState(defaultResetPicks);
+  const pickedCount = RESET_OPTIONS.filter((o) => resetPicks[o.key]).length;
+  const toggleResetPick = (key) => {
+    hapticFeedback.light();
+    setResetPicks((p) => ({ ...p, [key]: !p[key] }));
+  };
   const handleResetFitness = () => {
+    if (!pickedCount) return;
     hapticFeedback.medium();
+    const names = RESET_OPTIONS.filter((o) => resetPicks[o.key]).map((o) => o.label.toLowerCase()).join(', ');
     Alert.alert(
-      'Reset Fitness Data?',
-      'This wipes your workout history, templates, scheduled workouts (and their calendar events), split plan, custom exercises, physique progress and any workout in progress. Prayers, Bible, todos and nutrition are untouched. This cannot be undone.',
+      'Reset selected fitness data?',
+      `This clears: ${names}. Everything else stays. This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset Fitness',
+          text: 'Reset',
           style: 'destructive',
           onPress: async () => {
             try {
-              await resetAllFitness({ endActiveWorkout: endWorkout });
+              await resetFitness(resetPicks, { endActiveWorkout: endWorkout });
               hapticFeedback.success?.();
-              Alert.alert('Fitness reset', 'Your fitness data is back to a fresh start.');
+              setResetOpen(false);
+              setResetPicks(defaultResetPicks());
+              Alert.alert('Done', 'Selected fitness data has been reset.');
             } catch (e) {
               Alert.alert('Reset failed', e?.message || 'Please try again.');
             }
@@ -1265,10 +1276,11 @@ const SettingsScreen = ({ navigation }) => {
               justifyContent: 'space-between',
               padding: 16,
             }}
-            onPress={handleResetFitness}
+            onPress={() => { hapticFeedback.light(); setResetOpen((v) => !v); }}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Reset fitness data"
+            accessibilityHint="Expands a checklist of what to clear"
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
               <View style={{
@@ -1283,11 +1295,47 @@ const SettingsScreen = ({ navigation }) => {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 16, fontWeight: '500', color: '#FF9500' }}>Reset Fitness Data</Text>
-                <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>Workouts, templates, calendar, physique, custom exercises</Text>
+                <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>Pick what to clear — keep templates and custom exercises if you like</Text>
               </View>
             </View>
-            <MaterialIcons name="chevron-right" size={20} color="#FF9500" />
+            <MaterialIcons name={resetOpen ? 'expand-less' : 'chevron-right'} size={20} color="#FF9500" />
           </TouchableOpacity>
+          {resetOpen && (
+            <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+              {RESET_OPTIONS.map((o) => {
+                const on = !!resetPicks[o.key];
+                return (
+                  <TouchableOpacity
+                    key={o.key}
+                    onPress={() => toggleResetPick(o.key)}
+                    activeOpacity={0.7}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 }}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={o.label}
+                  >
+                    <MaterialIcons name={on ? 'check-box' : 'check-box-outline-blank'} size={22} color={on ? '#FF9500' : theme.textSecondary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: theme.text }}>{o.label}</Text>
+                      <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 1 }}>{o.hint}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                onPress={handleResetFitness}
+                disabled={!pickedCount}
+                activeOpacity={0.8}
+                style={{ marginTop: 8, paddingVertical: 13, borderRadius: 14, alignItems: 'center', backgroundColor: pickedCount ? 'rgba(255, 149, 0, 0.22)' : 'rgba(255,149,0,0.08)', borderWidth: 1, borderColor: pickedCount ? '#FF9500AA' : '#FF950040' }}
+                accessibilityRole="button"
+                accessibilityLabel="Reset selected fitness data"
+              >
+                <Text style={{ fontSize: 15, fontWeight: '800', color: pickedCount ? '#FF9500' : theme.textSecondary }}>
+                  {pickedCount ? `Reset ${pickedCount} selected` : 'Pick something to reset'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Delete Account */}
           <TouchableOpacity

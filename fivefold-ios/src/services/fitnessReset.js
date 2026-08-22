@@ -15,59 +15,72 @@ import physiqueService from './physiqueService';
 
 export const FITNESS_RESET_EVENT = 'fitnessReset';
 
-const LOCAL_KEYS = [
-  '@workout_history',
-  '@workout_templates',
-  '@workout_folders',
-  '@scheduled_workouts',
-  '@workout_split_plan',
-  '@workout_exercise_count',
-  '@custom_exercises',
-  '@active_workout_state',
+// What can be cleared, independently. Defaults = "progress" only: history,
+// the in-progress workout, the fitness calendar and physique. Templates,
+// folders, split plan and custom exercises are kept unless asked.
+export const RESET_OPTIONS = [
+  { key: 'history', label: 'Workout history', hint: 'Every finished workout and its sets', default: true },
+  { key: 'active', label: 'Workout in progress', hint: 'Ends and discards the current workout', default: true },
+  { key: 'scheduled', label: 'Fitness calendar', hint: 'Scheduled workouts and their iPhone Calendar events', default: true },
+  { key: 'physique', label: 'Physique progress', hint: 'Muscle scores back to untrained', default: true },
+  { key: 'templates', label: 'Templates and folders', hint: 'Your saved workout templates', default: false },
+  { key: 'split', label: 'Split plan', hint: 'Your weekly training split', default: false },
+  { key: 'customExercises', label: 'Custom exercises', hint: 'Exercises you created (the built-in library always stays)', default: false },
 ];
 
-const CLOUD_EMPTIES = [
-  ['workoutHistory', []],
-  ['workoutTemplates', []],
-  ['workoutFolders', []],
-  ['scheduledWorkouts', []],
-  ['splitPlan', null],
-];
+export const defaultResetPicks = () => Object.fromEntries(RESET_OPTIONS.map((o) => [o.key, o.default]));
 
-// `endActiveWorkout` is WorkoutContext's endWorkout (so the mini player and
-// timer drop immediately, not just the persisted state).
-export const resetAllFitness = async ({ endActiveWorkout } = {}) => {
-  // 1. Live workout first — it would otherwise re-persist itself.
-  try { if (typeof endActiveWorkout === 'function') endActiveWorkout(); } catch {}
+// `picks` = { history, active, scheduled, physique, templates, split,
+// customExercises } booleans. `endActiveWorkout` is WorkoutContext's
+// endWorkout (so the mini player and timer drop immediately).
+export const resetFitness = async (picks = defaultResetPicks(), { endActiveWorkout } = {}) => {
+  const rm = async (key) => { try { await userStorage.remove(key); } catch {} };
+  const cloud = (field, value) => { try { pushToCloud(field, value, 0); } catch {} };
 
-  // 2. Mirrored calendar events (must run while the scheduled list is known
-  //    to the sync — an empty desired set deletes every gym event).
-  try { await require('./calendarSync').syncGym([]); } catch {}
-
-  // 3. Local stores.
-  for (const key of LOCAL_KEYS) {
-    try { await userStorage.remove(key); } catch {}
+  if (picks.active) {
+    try { if (typeof endActiveWorkout === 'function') endActiveWorkout(); } catch {}
+    await rm('@active_workout_state');
+  }
+  if (picks.scheduled) {
+    // Empty desired set deletes every mirrored gym event.
+    try { await require('./calendarSync').syncGym([]); } catch {}
+    await rm('@scheduled_workouts');
+    cloud('scheduledWorkouts', []);
+    try {
+      const ns = require('./notificationService').default || require('./notificationService');
+      await ns.cancelNotificationsByType?.('workout_reminder');
+      await ns.cancelNotificationsByType?.('workout_overdue');
+    } catch {}
+  }
+  if (picks.history) {
+    await rm('@workout_history');
+    await rm('@workout_exercise_count');
+    cloud('workoutHistory', []);
+  }
+  if (picks.physique) {
+    try { await physiqueService.resetAll(); } catch {}
+  }
+  if (picks.templates) {
+    await rm('@workout_templates');
+    await rm('@workout_folders');
+    cloud('workoutTemplates', []);
+    cloud('workoutFolders', []);
+  }
+  if (picks.split) {
+    await rm('@workout_split_plan');
+    cloud('splitPlan', null);
+  }
+  if (picks.customExercises) {
+    await rm('@custom_exercises');
   }
 
-  // 4. Physique (memory + storage + cloud).
-  try { await physiqueService.resetAll(); } catch {}
-
-  // 5. Cloud copies.
-  for (const [field, value] of CLOUD_EMPTIES) {
-    try { pushToCloud(field, value, 0); } catch {}
-  }
-
-  // 6. Workout notifications.
-  try {
-    const ns = require('./notificationService').default || require('./notificationService');
-    await ns.cancelNotificationsByType?.('workout_reminder');
-    await ns.cancelNotificationsByType?.('workout_overdue');
-  } catch {}
-
-  // 7. Tell every fitness screen to reload.
-  DeviceEventEmitter.emit(FITNESS_RESET_EVENT);
+  DeviceEventEmitter.emit(FITNESS_RESET_EVENT, picks);
   DeviceEventEmitter.emit('workoutScheduled'); // GymTab's existing calendar refresh hook
   return true;
 };
 
-export default resetAllFitness;
+// Everything at once (kept for callers that want the full wipe).
+export const resetAllFitness = (opts) =>
+  resetFitness(Object.fromEntries(RESET_OPTIONS.map((o) => [o.key, true])), opts);
+
+export default resetFitness;
