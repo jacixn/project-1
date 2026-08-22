@@ -811,7 +811,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
             </ScrollView>
 
             {/* A-Z strip: tap or press-and-slide */}
-            <View style={styles.alphabetNav} pointerEvents="box-none">
+            <GestureHandlerRootView style={styles.alphabetNav} pointerEvents="box-none">
               <GestureDetector gesture={indexGesture}>
                 <View
                   style={[styles.alphabetStrip, { backgroundColor: tileColor }]}
@@ -829,7 +829,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
                   ))}
                 </View>
               </GestureDetector>
-            </View>
+            </GestureHandlerRootView>
             {scrubLetter ? (
               <View style={[styles.scrubBubble, { backgroundColor: theme.primary }]} pointerEvents="none">
                 <Text style={styles.scrubBubbleText}>{scrubLetter}</Text>
