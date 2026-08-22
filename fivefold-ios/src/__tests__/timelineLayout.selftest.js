@@ -54,6 +54,7 @@ const busyEvening = layoutDay([it('a', 1170, 1320), it('b', 1170, 1320), it('c',
 check(busyEvening.maxCols === 5, 'five things at once report five columns');
 check(busyEvening.groups.length === 1 && busyEvening.groups[0].cols === 5 && busyEvening.cards.every((c) => c.group === 0), 'they form one overlap group');
 const twoGroups = layoutDay([it('solo', 420, 480), it('a', 1170, 1320), it('b', 1170, 1320), it('c', 1180, 1260), it('d', 1185, 1300), it('e', 1200, 1260)], { pxPerHour: 160 });
+check(mod.COL_MIN_W * 2 <= 250, 'two columns fit a phone-width card area (no sideways scroll for pairs)');
 check(twoGroups.groups.length === 2 && twoGroups.groups[0].cols === 1 && twoGroups.groups[1].cols === 5 && twoGroups.cards.find((c) => c.item.id === 'solo').group === 0, 'a lone morning item is its own 1-column group, untouched by the crowded evening');
 const screen3 = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
 check(/g\.cols \* COL_MIN_W > cardAreaW/.test(screen3) && /scrollGroups\.map\(\(g\) =>/.test(screen3) && /left: Math\.round\(c\.col \* colW\)/.test(screen3) && /colW: scroll \? COL_MIN_W : cardAreaW \/ g\.cols/.test(screen3), 'each group sizes itself; only crowded bands scroll sideways');

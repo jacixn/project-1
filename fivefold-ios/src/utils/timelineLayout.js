@@ -21,7 +21,7 @@ export const CARD_H = 52;
 export const CARD_H_TINY = 40;
 export const CARD_GAP = 6;
 export const RAIL_W = 10; // lane pitch in px
-export const COL_MIN_W = 160; // a card column never gets narrower than this; the card area scrolls sideways instead
+export const COL_MIN_W = 110; // narrowest readable column; two columns always fit a phone, three or more scroll sideways
 const fmtHour = (min) => {
   const h = Math.floor(min / 60) % 24;
   return `${h % 12 || 12} ${h >= 12 ? 'PM' : 'AM'}`;
