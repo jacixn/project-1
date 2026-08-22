@@ -8,7 +8,6 @@
  */
 
 import {
-import { mergePrayerFromCloud } from '../utils/prayerVerses';
   doc,
   collection,
   getDoc,
@@ -25,6 +24,7 @@ import { db, auth } from '../config/firebase';
 import userStorage from '../utils/userStorage';
 import { getStoredData, saveData } from '../utils/localStorage';
 
+import { mergePrayerFromCloud } from '../utils/prayerVerses';
 // Returns true only if the Firebase auth user matches the requested userId.
 // Sync functions write to users/{userId}; the Firestore rule requires
 // request.auth.uid == userId. After sign-out / account deletion, queued
