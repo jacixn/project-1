@@ -10,6 +10,8 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { resetAllFitness } from '../services/fitnessReset';
+import { useWorkout } from '../contexts/WorkoutContext';
 import * as StoreReview from 'expo-store-review';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -208,6 +210,31 @@ const SettingsScreen = ({ navigation }) => {
           },
         },
       ]
+    );
+  };
+
+  const { endWorkout } = useWorkout() || {};
+  const handleResetFitness = () => {
+    hapticFeedback.medium();
+    Alert.alert(
+      'Reset Fitness Data?',
+      'This wipes your workout history, templates, scheduled workouts (and their calendar events), split plan, custom exercises, physique progress and any workout in progress. Prayers, Bible, todos and nutrition are untouched. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Fitness',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await resetAllFitness({ endActiveWorkout: endWorkout });
+              hapticFeedback.success?.();
+              Alert.alert('Fitness reset', 'Your fitness data is back to a fresh start.');
+            } catch (e) {
+              Alert.alert('Reset failed', e?.message || 'Please try again.');
+            }
+          },
+        },
+      ],
     );
   };
 
@@ -1230,6 +1257,38 @@ const SettingsScreen = ({ navigation }) => {
           borderWidth: 1,
           borderColor: 'rgba(255, 59, 48, 0.2)',
         }}>
+          {/* Reset Fitness Data — fitness only, nothing else */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 16,
+            }}
+            onPress={handleResetFitness}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Reset fitness data"
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
+              <View style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: 'rgba(255, 149, 0, 0.2)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <MaterialIcons name="fitness-center" size={20} color="#FF9500" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: '#FF9500' }}>Reset Fitness Data</Text>
+                <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>Workouts, templates, calendar, physique, custom exercises</Text>
+              </View>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color="#FF9500" />
+          </TouchableOpacity>
+
           {/* Delete Account */}
           <TouchableOpacity
             style={{

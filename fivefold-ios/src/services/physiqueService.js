@@ -64,6 +64,18 @@ class PhysiqueService {
   /**
    * Save current scores to storage
    */
+  /**
+   * Wipe every muscle score (Reset Fitness). Clears the in-memory cache so
+   * the body map redraws untrained immediately, the stored scores, and the
+   * cloud copy (otherwise a later restore would resurrect them).
+   */
+  async resetAll() {
+    this._scores = {};
+    this._lastCalculated = null;
+    try { await userStorage.remove(STORAGE_KEY); } catch {}
+    pushToCloud('physiqueScores', { muscles: {}, lastCalculated: null });
+  }
+
   async _save() {
     try {
       const data = {
