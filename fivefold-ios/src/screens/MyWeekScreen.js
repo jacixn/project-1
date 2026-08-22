@@ -84,12 +84,73 @@ const MyWeekScreen = ({ navigation }) => {
   const isTodaySelected = sameDay(anchor, today);
   const nowMin = isTodaySelected ? new Date(nowTick).getHours() * 60 + new Date(nowTick).getMinutes() : null;
   const layout = useMemo(() => layoutDay(visible, { nowMin, pxPerHour }), [visible, nowMin, pxPerHour]);
-  // Card area: columns keep a readable width; if a slot has more columns than
-  // fit, the card area scrolls sideways (hours and rails stay put).
+  // Card area. Each overlap group sizes itself: a lone item takes the whole
+  // width, two things share it, and only a band with more columns than fit
+  // at a readable width scrolls sideways, just that band, everything else
+  // stays put.
   const cardAreaLeft = 56 + layout.railsWidth + 6;
   const cardAreaW = Math.max(0, timelineW - cardAreaLeft);
-  const contentW = Math.max(cardAreaW, layout.maxCols * COL_MIN_W);
-  const sideScroll = contentW > cardAreaW + 1;
+  const groupWidths = useMemo(() => {
+    const out = {};
+    for (const g of layout.groups || []) {
+      const scroll = g.cols * COL_MIN_W > cardAreaW;
+      out[g.index] = { scroll, colW: scroll ? COL_MIN_W : cardAreaW / g.cols, contentW: scroll ? g.cols * COL_MIN_W : cardAreaW };
+    }
+    return out;
+  }, [layout.groups, cardAreaW]);
+  const scrollGroups = (layout.groups || []).filter((g) => groupWidths[g.index]?.scroll);
+  const sideScroll = scrollGroups.length > 0;
+  const renderCard = (c, originY) => {
+    const it = c.item;
+    const isMoving = moving && moving.id === it.id;
+    const gw = c.group != null ? groupWidths[c.group] : null;
+    const colW = gw ? gw.colW : cardAreaW;
+    const tinyCard = c.h <= 44;
+    const narrowCard = c.cols > 1 && colW < 200;
+    return (
+      <TouchableOpacity
+        key={it.id}
+        onPress={() => (it.movable ? startMove(it) : explainExternal(it))}
+        activeOpacity={0.7}
+        style={[styles.card, {
+          top: c.y - originY,
+          height: c.h,
+          left: Math.round(c.col * colW),
+          width: Math.max(0, Math.round(colW) - (c.cols > 1 ? 6 : 0)),
+          backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile,
+          borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'),
+          alignItems: c.proportional ? 'flex-start' : 'center',
+          paddingTop: c.proportional ? 8 : 0,
+          paddingLeft: c.cols > 1 ? 10 : 12,
+          paddingRight: c.cols > 1 ? 8 : 12,
+        }]}
+        accessibilityRole="button"
+        accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
+        accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
+      >
+        <View style={[styles.cardBar, { backgroundColor: it.color }]} />
+        <View style={{ flex: 1 }}>
+          {tinyCard ? (
+            <Text style={[styles.cardTitle, { color: theme.text }]}>
+              {narrowCard ? it.title : <><Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}</>}
+            </Text>
+          ) : (
+            <>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{it.title}</Text>
+              <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
+                <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{narrowCard ? ` to ${fmtClock(it.endMin)}` : ` to ${fmtClock(it.endMin)}  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
+              </Text>
+            </>
+          )}
+        </View>
+        {it.movable ? (
+          narrowCard ? null : <Text style={[styles.cardMove, { color: accent }]}>Move</Text>
+        ) : (
+          <MaterialIcons name="lock-outline" size={16} color={theme.textSecondary} />
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   // Zoom keeps the time under your fingers where it is: remember where the
   // pinch started inside the timeline, then scroll so that point stays put.
@@ -295,65 +356,22 @@ const MyWeekScreen = ({ navigation }) => {
                 )
               ))}
             </View>
-            {/* Cards */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={sideScroll}
-              scrollEnabled={sideScroll}
-              style={[styles.cardArea, { left: cardAreaLeft }]}
-              contentContainerStyle={{ width: contentW, height: layout.height }}
-              nestedScrollEnabled
-            >
-              {layout.cards.map((c) => {
-                const it = c.item;
-                const isMoving = moving && moving.id === it.id;
-                const tinyCard = c.h <= 44;
-                const narrowCard = c.cols > 1 && contentW / c.cols < 200;
-                return (
-                  <TouchableOpacity
-                    key={it.id}
-                    onPress={() => (it.movable ? startMove(it) : explainExternal(it))}
-                    activeOpacity={0.7}
-                    style={[styles.card, {
-                      top: c.y,
-                      height: c.h,
-                      left: Math.round(c.left * contentW),
-                      width: Math.max(0, Math.round(c.width * contentW) - (c.cols > 1 ? 6 : 0)),
-                      backgroundColor: c.proportional ? it.color + (isDark ? '2E' : '22') : tile,
-                      borderColor: isMoving ? accent : (c.proportional ? it.color + '66' : 'transparent'),
-                      alignItems: c.proportional ? 'flex-start' : 'center',
-                      paddingTop: c.proportional ? 8 : 0,
-                      paddingLeft: c.cols > 1 ? 10 : 12,
-                      paddingRight: c.cols > 1 ? 8 : 12,
-                    }]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${it.title}, ${fmtClock(it.startMin)} to ${fmtClock(it.endMin)}, ${KINDS[it.kind].label}`}
-                    accessibilityHint={it.movable ? 'Opens move options' : 'Explains where to change it'}
-                  >
-                    <View style={[styles.cardBar, { backgroundColor: it.color }]} />
-                    <View style={{ flex: 1 }}>
-                      {tinyCard ? (
-                        <Text style={[styles.cardTitle, { color: theme.text }]}>
-                          {narrowCard ? it.title : <><Text style={{ color: it.color }}>{fmtClock(it.startMin)}</Text>{`  ${it.title}`}</>}
-                        </Text>
-                      ) : (
-                        <>
-                          <Text style={[styles.cardTitle, { color: theme.text }]}>{it.title}</Text>
-                          <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                            <Text style={{ color: it.color, fontWeight: '700' }}>{fmtClock(it.startMin)}</Text>{narrowCard ? ` to ${fmtClock(it.endMin)}` : ` to ${fmtClock(it.endMin)}  ·  ${fmtDur(it.endMin - it.startMin)}  ·  ${KINDS[it.kind].label}`}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                    {it.movable ? (
-                      narrowCard ? null : <Text style={[styles.cardMove, { color: accent }]}>Move</Text>
-                    ) : (
-                      <MaterialIcons name="lock-outline" size={16} color={theme.textSecondary} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            {/* Cards: fixed ones directly, crowded bands in their own sideways scroller */}
+            <View style={[styles.cardArea, { left: cardAreaLeft }]}>
+              {layout.cards.filter((c) => c.group == null || !groupWidths[c.group]?.scroll).map((c) => renderCard(c, 0))}
+              {scrollGroups.map((g) => (
+                <ScrollView
+                  key={`g${g.index}`}
+                  horizontal
+                  showsHorizontalScrollIndicator
+                  nestedScrollEnabled
+                  style={{ position: 'absolute', left: 0, right: 0, top: g.y, height: g.h }}
+                  contentContainerStyle={{ width: groupWidths[g.index].contentW, height: g.h }}
+                >
+                  {layout.cards.filter((c) => c.group === g.index).map((c) => renderCard(c, g.y))}
+                </ScrollView>
+              ))}
+            </View>
             {layout.nowY != null ? (
               <View style={[styles.nowRow, { top: layout.nowY }]} pointerEvents="none">
                 <View style={[styles.nowDot, { backgroundColor: theme.error || '#EF4444' }]} />

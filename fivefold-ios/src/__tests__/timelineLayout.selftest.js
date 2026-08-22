@@ -52,8 +52,11 @@ check(zPush.cols === 2 && zShower.cols === 2 && zPush.left !== zShower.left && z
 check(zoomed.cards.find((c) => c.item.id === 'dinner').cols === 1, 'dinner alone keeps the full width');
 const busyEvening = layoutDay([it('a', 1170, 1320), it('b', 1170, 1320), it('c', 1180, 1260), it('d', 1185, 1300), it('e', 1200, 1260)], { pxPerHour: 160 });
 check(busyEvening.maxCols === 5, 'five things at once report five columns');
+check(busyEvening.groups.length === 1 && busyEvening.groups[0].cols === 5 && busyEvening.cards.every((c) => c.group === 0), 'they form one overlap group');
+const twoGroups = layoutDay([it('solo', 420, 480), it('a', 1170, 1320), it('b', 1170, 1320), it('c', 1180, 1260), it('d', 1185, 1300), it('e', 1200, 1260)], { pxPerHour: 160 });
+check(twoGroups.groups.length === 2 && twoGroups.groups[0].cols === 1 && twoGroups.groups[1].cols === 5 && twoGroups.cards.find((c) => c.item.id === 'solo').group === 0, 'a lone morning item is its own 1-column group, untouched by the crowded evening');
 const screen3 = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
-check(/layout\.maxCols \* COL_MIN_W/.test(screen3) && /horizontal[\s\S]{0,200}scrollEnabled=\{sideScroll\}/.test(screen3) && /left: Math\.round\(c\.left \* contentW\)/.test(screen3), 'columns keep a minimum width and the card area scrolls sideways when needed');
+check(/g\.cols \* COL_MIN_W > cardAreaW/.test(screen3) && /scrollGroups\.map\(\(g\) =>/.test(screen3) && /left: Math\.round\(c\.col \* colW\)/.test(screen3) && /colW: scroll \? COL_MIN_W : cardAreaW \/ g\.cols/.test(screen3), 'each group sizes itself; only crowded bands scroll sideways');
 const zMatch = zoomed.cards.find((c) => c.item.id === 'match'), zSocial = zoomed.cards.find((c) => c.item.id === 'social');
 check(zMatch.y === zSocial.y && zMatch.h === 2 * zSocial.h && zMatch.left !== zSocial.left, 'the match (2 hr) and Social Media (1 hr) start together, side by side, match twice as tall');
 const out = layoutDay(day, { pxPerHour: 40 });
@@ -62,7 +65,7 @@ const screen2 = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScr
 check(/Gesture\.Pinch\(\)/.test(screen2) && /numberOfTaps\(2\)/.test(screen2) && /zoomStep\(-1\)/.test(screen2) && /zoomStep\(1\)/.test(screen2), 'pinch, double tap and - / + buttons all zoom');
 check(/scrollRef\.current\?\.scrollTo\(\{ y: target, animated: false \}\)/.test(screen2), 'zoom keeps the focal time in place');
 const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');
-check(/layout\.rails\.map/.test(screen) && /layout\.cards\.map/.test(screen) && /styles\.railDot/.test(screen), 'screen draws rails and cards from the engine');
+check(/layout\.rails\.map/.test(screen) && /layout\.cards\.filter/.test(screen) && /styles\.railDot/.test(screen), 'screen draws rails and cards from the engine');
 check(!/container/.test(screen.slice(screen.indexOf('{/* Timeline'), screen.indexOf('{/* List */}'))), 'no container boxes left in the timeline');
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

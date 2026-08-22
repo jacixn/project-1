@@ -83,6 +83,7 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
   //    block at 11 AM instead of under it.
   const proportional = pxPerHour >= PROPORTIONAL_FROM;
   let cards = [];
+  const groups = []; // overlap groups: { index, y, h, cols } (proportional mode only)
   let prevBottom = -Infinity;
   if (!proportional) {
     cards = list.map((i) => {
@@ -90,7 +91,7 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
       const wanted = y(i.startMin);
       const top = Math.max(wanted, prevBottom + CARD_GAP);
       prevBottom = top + h;
-      return { item: i, y: top, h, pushed: top - wanted > 1, proportional: false, left: 0, width: 1, col: 0, cols: 1 };
+      return { item: i, y: top, h, pushed: top - wanted > 1, proportional: false, left: 0, width: 1, col: 0, cols: 1, group: null };
     });
   } else {
     const minH = (i) => ((i.endMin - i.startMin) <= 15 ? CARD_H_TINY : CARD_H);
@@ -109,10 +110,14 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
         return { i, col };
       });
       const cols = colBottom.length;
+      const gTop = Math.min(...placed.map(({ i }) => topOf(i)));
+      const gBottom = Math.max(...placed.map(({ i }) => bottomOf(i)));
+      const index = groups.length;
+      groups.push({ index, y: gTop, h: gBottom - gTop, cols });
       for (const { i, col } of placed) {
-        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, left: col / cols, width: 1 / cols });
+        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, left: col / cols, width: 1 / cols, group: index });
       }
-      prevBottom = Math.max(prevBottom, ...placed.map(({ i }) => bottomOf(i)));
+      prevBottom = Math.max(prevBottom, gBottom);
       group = [];
       groupBottom = -Infinity;
     };
@@ -143,6 +148,7 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
     pxPerHour,
     step,
     maxCols: cards.reduce((m, c) => Math.max(m, c.cols || 1), 1),
+    groups,
   };
 };
 
