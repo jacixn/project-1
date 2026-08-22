@@ -39,11 +39,11 @@ const BLUETICK_ENABLED_KEY = 'fivefold_bluetick_enabled';
 // ── Referral gates ────────────────────────────────────────────
 // null = free (0 referrals), number = referrals needed to unlock
 const ANIM_REFERRAL_GATES = {
-  fire1:     null,   // Holy Fire — free
-  bulb:      2,      // Bright Idea — 2 referrals
-  lightning: 4,      // Lightning — 4 referrals
-  redcar:    5,      // Red Car — 5 referrals
-  fire2:    5,      // Inferno — 5 referrals
+  fire1:     null,   // Holy Fire, free
+  bulb:      2,      // Bright Idea, 2 referrals
+  lightning: 4,      // Lightning, 4 referrals
+  redcar:    5,      // Red Car, 5 referrals
+  fire2:    5,      // Inferno, 5 referrals
 };
 
 const THEME_REFERRAL_GATES = {
@@ -80,12 +80,12 @@ const THEME_REFERRAL_GATES = {
 };
 
 const BADGE_REFERRAL_GATES = {
-  country:  null,  // Country flag — free
-  verified: 1,     // Blue Tick — 1 referral
-  biblely:  5,     // Biblely Badge — 5 referrals
+  country:  null,  // Country flag, free
+  verified: 1,     // Blue Tick, 1 referral
+  biblely:  5,     // Biblely Badge, 5 referrals
 };
 
-// Voice referral gate — 6 referrals unlock Studio voices
+// Voice referral gate, 6 referrals unlock Studio voices
 const VOICE_REFERRAL_REQUIRED = 6;
 
 // ── Rarity tier helper ──────────────────────────────────────
@@ -96,6 +96,8 @@ const getTier = (required) => {
   if (required <= 50) return { label: 'EPIC', color: '#F472B6', bg: 'rgba(244,114,182,0.12)', glow: '#F472B630' };
   return { label: 'LEGENDARY', color: '#FBBF24', bg: 'rgba(251,191,36,0.15)', glow: '#FBBF2440' };
 };
+
+const tierName = (tier) => (tier?.label ? tier.label.charAt(0) + tier.label.slice(1).toLowerCase() : '');
 
 // ── Badge definitions (sorted by referral cost) ─────────────
 const BADGES = [
@@ -122,9 +124,9 @@ const LOADING_ANIMS = [
 ];
 
 const LOADING_ANIM_REFERRAL_GATES = {
-  default:  null,   // Default spinner — free
-  cat:      1,      // Running Cat — 1 referral
-  hamster:  3,      // Run Hamster — 3 referrals
+  default:  null,   // Default spinner, free
+  cat:      1,      // Running Cat, 1 referral
+  hamster:  3,      // Run Hamster, 3 referrals
 };
 
 // ── App icon definitions ─────────────────────────────────────
@@ -177,7 +179,7 @@ const CustomisationScreen = () => {
   const sharePopupScale = useRef(new Animated.Value(0)).current;
   const sharePopupOpacity = useRef(new Animated.Value(0)).current;
 
-  // Entrance animations — staggered sections
+  // Entrance animations, staggered sections
   const headerFade = useRef(new Animated.Value(0)).current;
   const sections = useRef([...Array(8)].map(() => new Animated.Value(0))).current;
 
@@ -224,7 +226,7 @@ const CustomisationScreen = () => {
         } catch (_) {}
       }
 
-      // Validate stored streak animation — reset to free default if locked
+      // Validate stored streak animation, reset to free default if locked
       if (animId) {
         const streakReq = ANIM_REFERRAL_GATES[animId];
         if (streakReq !== null && streakReq !== undefined && count < streakReq) {
@@ -275,7 +277,7 @@ const CustomisationScreen = () => {
   const handleShareApp = async () => {
     try {
       await Share.share({
-        message: 'I\'ve been using Biblely — a beautiful app for reading the Bible, prayer, journaling, and more. Check it out and let\'s grow in faith together!',
+        message: 'I\'ve been using Biblely, a beautiful app for reading the Bible, prayer, journaling, and more. Check it out and let\'s grow in faith together!',
       });
     } catch (_) {}
   };
@@ -411,6 +413,8 @@ const CustomisationScreen = () => {
   const bg = theme.background;
   const cardBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.025)';
   const bdr = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
+  const gold = '#FBBF24';
 
   const shimmerTranslate = shimmer.interpolate({
     inputRange: [0, 1],
@@ -425,20 +429,27 @@ const CustomisationScreen = () => {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <ScrollingTitle title="Customisation" />
 
-        {/* ── Referral count banner with shimmer ─────── */}
+        {/* ── Referrals ─────────────────────────────── */}
         <AnimSection anim={sections[0]}>
-          <View style={[st.referralBanner, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: bdr }]}>
-            <Animated.View style={[st.shimmerStripe, { transform: [{ translateX: shimmerTranslate }], backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.5)' }]} />
-            <View style={[st.referralIcon, { backgroundColor: `${theme.primary}15` }]}>
-              <MaterialIcons name="person-add" size={22} color={theme.primary} />
+          <View style={[st.referralTile, { backgroundColor: tileColor }]}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={[st.referralKicker, { color: tx2 }]}>Your referrals</Text>
+              <Text style={[st.referralCount, { color: tx }]}>
+                {isDataLoaded ? referralCount : '-'}
+                <Text style={[st.referralCountUnit, { color: tx2 }]}>{isDataLoaded && referralCount === 1 ? '  friend joined' : '  friends joined'}</Text>
+              </Text>
+              <Text style={[st.referralSub, { color: tx2 }]}>Invite friends to unlock themes, animations and badges.</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: tx }}>Your Referrals</Text>
-              <Text style={{ fontSize: 12, color: tx2, marginTop: 2 }}>Refer friends to unlock customisations</Text>
-            </View>
-            <View style={[st.referralCountBadge, { backgroundColor: theme.primary }]}>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>{isDataLoaded ? referralCount : '–'}</Text>
-            </View>
+            <TouchableOpacity
+              onPress={() => { handleShareApp(); }}
+              style={[st.invitePill, { backgroundColor: theme.primary }]}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Invite friends"
+            >
+              <MaterialIcons name="person-add" size={18} color="#fff" />
+              <Text style={st.invitePillText}>Invite</Text>
+            </TouchableOpacity>
           </View>
         </AnimSection>
 
@@ -458,50 +469,33 @@ const CustomisationScreen = () => {
                   key={a.id}
                   activeOpacity={0.8}
                   onPress={() => pickAnim(a.id)}
-                  style={[st.animCard, {
-                    borderColor: active && unlocked ? a.colors[0] : bdr,
-                    borderWidth: active && unlocked ? 2.5 : 1,
-                    backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
-                  }]}
+                  style={[st.animCard, { borderColor: active && unlocked ? theme.primary : 'transparent', backgroundColor: tileColor }]}
                 >
-                  {/* Top gradient strip */}
-                  <LinearGradient colors={active && unlocked ? a.colors : [bdr, bdr]} style={st.animStrip} />
 
-                  {/* Lottie preview — larger */}
-                  <View style={st.animLottie}>
+                  {/* Lottie preview, larger */}
+                  <View style={[st.animLottie, !unlocked && { opacity: 0.35 }]}>
                     <LottieView source={a.source} autoPlay loop style={{ width: 90, height: 90 }} />
                   </View>
 
                   {/* Name */}
-                  <Text style={[st.animName, { color: tx }]} numberOfLines={1}>{a.name}</Text>
+                  <Text style={[st.animName, { color: tx }]}>{a.name}</Text>
 
                   {/* Tier badge */}
-                  <View style={[st.tierBadge, { backgroundColor: tier.bg }]}>
-                    <Text style={[st.tierText, { color: tier.color }]}>{tier.label}</Text>
-                  </View>
+                  <Text style={[st.animStatus, { color: !unlocked ? gold : active ? theme.primary : tx2 }]}>
+                    {!unlocked ? `${tierName(tier)} · ${required} ${required === 1 ? 'referral' : 'referrals'} to unlock` : active ? 'Active' : `${tierName(tier)} · tap to use`}
+                  </Text>
 
                   {/* Lock overlay */}
                   {!unlocked && (
-                    <View style={st.animLockWrap}>
-                      <LinearGradient colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.35)']} style={st.animLockOverlay}>
-                        <View style={st.lockIconCircle}>
-                          <MaterialIcons name="lock" size={20} color="#fff" />
-                        </View>
-                      </LinearGradient>
-                      <View style={st.animGateBadge}>
-                        <MaterialIcons name="person-add" size={10} color="#FFD700" />
-                        <Text style={st.animGateText}>{required} referrals</Text>
-                      </View>
+                    <View style={st.animLockMark}>
+                      <MaterialIcons name="lock" size={15} color="#fff" />
                     </View>
                   )}
 
                   {/* Active checkmark */}
                   {active && unlocked && (
-                    <View style={st.animActiveWrap}>
-                      <LinearGradient colors={a.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.activeBadge}>
-                        <MaterialIcons name="check" size={12} color="#fff" />
-                        <Text style={st.activeText}>Active</Text>
-                      </LinearGradient>
+                    <View style={[st.animActiveWrap, { backgroundColor: theme.primary }]}>
+                      <MaterialIcons name="check" size={15} color="#fff" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -526,17 +520,11 @@ const CustomisationScreen = () => {
                   key={a.id}
                   activeOpacity={0.8}
                   onPress={() => pickLoadingAnim(a.id)}
-                  style={[st.animCard, {
-                    borderColor: active && unlocked ? a.colors[0] : bdr,
-                    borderWidth: active && unlocked ? 2.5 : 1,
-                    backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
-                  }]}
+                  style={[st.animCard, { borderColor: active && unlocked ? theme.primary : 'transparent', backgroundColor: tileColor }]}
                 >
-                  {/* Top gradient strip */}
-                  <LinearGradient colors={active && unlocked ? a.colors : [bdr, bdr]} style={st.animStrip} />
 
-                  {/* Preview — Lottie or spinner icon */}
-                  <View style={st.animLottie}>
+                  {/* Preview, Lottie or spinner icon */}
+                  <View style={[st.animLottie, !unlocked && { opacity: 0.35 }]}>
                     {a.source ? (
                       <LottieView source={a.source} autoPlay loop style={{ width: 90, height: 90 }} />
                     ) : (
@@ -563,35 +551,24 @@ const CustomisationScreen = () => {
                   </View>
 
                   {/* Name */}
-                  <Text style={[st.animName, { color: tx }]} numberOfLines={1}>{a.name}</Text>
+                  <Text style={[st.animName, { color: tx }]}>{a.name}</Text>
 
                   {/* Tier badge */}
-                  <View style={[st.tierBadge, { backgroundColor: tier.bg }]}>
-                    <Text style={[st.tierText, { color: tier.color }]}>{tier.label}</Text>
-                  </View>
+                  <Text style={[st.animStatus, { color: !unlocked ? gold : active ? theme.primary : tx2 }]}>
+                    {!unlocked ? `${tierName(tier)} · ${required} ${required === 1 ? 'referral' : 'referrals'} to unlock` : active ? 'Active' : `${tierName(tier)} · tap to use`}
+                  </Text>
 
                   {/* Lock overlay */}
                   {!unlocked && (
-                    <View style={st.animLockWrap}>
-                      <LinearGradient colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.35)']} style={st.animLockOverlay}>
-                        <View style={st.lockIconCircle}>
-                          <MaterialIcons name="lock" size={20} color="#fff" />
-                        </View>
-                      </LinearGradient>
-                      <View style={st.animGateBadge}>
-                        <MaterialIcons name="person-add" size={10} color="#FFD700" />
-                        <Text style={st.animGateText}>{required} referrals</Text>
-                      </View>
+                    <View style={st.animLockMark}>
+                      <MaterialIcons name="lock" size={15} color="#fff" />
                     </View>
                   )}
 
                   {/* Active checkmark */}
                   {active && unlocked && (
-                    <View style={st.animActiveWrap}>
-                      <LinearGradient colors={a.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.activeBadge}>
-                        <MaterialIcons name="check" size={12} color="#fff" />
-                        <Text style={st.activeText}>Active</Text>
-                      </LinearGradient>
+                    <View style={[st.animActiveWrap, { backgroundColor: theme.primary }]}>
+                      <MaterialIcons name="check" size={15} color="#fff" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -617,7 +594,7 @@ const CustomisationScreen = () => {
                     key={badge.id}
                     activeOpacity={0.8}
                     onPress={() => showLockedPopup(badge.name, required)}
-                    style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: bdr }]}
+                    style={[st.badgeCard, { backgroundColor: tileColor, borderColor: bdr }]}
                   >
                     <LinearGradient colors={['rgba(80,80,80,0.4)', 'rgba(60,60,60,0.4)']} style={st.badgeIconGrad}>
                       <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.7)" />
@@ -637,7 +614,7 @@ const CustomisationScreen = () => {
               return (
                 <View
                   key={badge.id}
-                  style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: badge.color + '25' }]}
+                  style={[st.badgeCard, { backgroundColor: tileColor, borderColor: badge.color + '25' }]}
                 >
                   <LinearGradient colors={badge.gradient} style={st.badgeIconGrad}>
                     {badge.lottie ? (
@@ -651,9 +628,7 @@ const CustomisationScreen = () => {
                   <View style={{ flex: 1, marginLeft: 16 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={[st.badgeName, { color: tx }]}>{badge.name}</Text>
-                      <View style={[st.tierBadgeSmall, { backgroundColor: tier.bg }]}>
-                        <Text style={[st.tierTextSmall, { color: tier.color }]}>{tier.label}</Text>
-                      </View>
+                      <Text style={[st.tierInline, { color: tier.color }]}>{tierName(tier)}</Text>
                     </View>
                     <Text style={[st.badgeDesc, { color: tx2 }]}>
                       {toggledOn ? 'Visible on your profile' : 'Hidden from your profile'}
@@ -683,16 +658,14 @@ const CustomisationScreen = () => {
             return (
               <View style={{ gap: 12 }}>
                 {/* Free voices card */}
-                <View style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: '#10B98125' }]}>
+                <View style={[st.badgeCard, { backgroundColor: tileColor, borderColor: '#10B98125' }]}>
                   <LinearGradient colors={['#10B981', '#059669']} style={st.badgeIconGrad}>
                     <MaterialIcons name="mic" size={24} color="#fff" />
                   </LinearGradient>
                   <View style={{ flex: 1, marginLeft: 16 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={[st.badgeName, { color: tx }]}>All Voices</Text>
-                      <View style={[st.tierBadgeSmall, { backgroundColor: freeTier.bg }]}>
-                        <Text style={[st.tierTextSmall, { color: freeTier.color }]}>FREE</Text>
-                      </View>
+                      <Text style={[st.tierInline, { color: freeTier.color }]}>{tierName(freeTier)}</Text>
                     </View>
                     <Text style={[st.badgeDesc, { color: tx2 }]}>
                       Neural, WaveNet, Standard & Device voices
@@ -706,7 +679,7 @@ const CustomisationScreen = () => {
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => showLockedPopup('All Voices', VOICE_REFERRAL_REQUIRED)}
-                    style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: bdr }]}
+                    style={[st.badgeCard, { backgroundColor: tileColor, borderColor: bdr }]}
                   >
                     <LinearGradient colors={['rgba(80,80,80,0.4)', 'rgba(60,60,60,0.4)']} style={st.badgeIconGrad}>
                       <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.7)" />
@@ -723,16 +696,14 @@ const CustomisationScreen = () => {
                     </View>
                   </TouchableOpacity>
                 ) : (
-                  <View style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: '#60A5FA25' }]}>
+                  <View style={[st.badgeCard, { backgroundColor: tileColor, borderColor: '#60A5FA25' }]}>
                     <LinearGradient colors={['#60A5FA', '#3B82F6']} style={st.badgeIconGrad}>
                       <MaterialIcons name="graphic-eq" size={24} color="#fff" />
                     </LinearGradient>
                     <View style={{ flex: 1, marginLeft: 16 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={[st.badgeName, { color: tx }]}>Studio Voices</Text>
-                        <View style={[st.tierBadgeSmall, { backgroundColor: vTier.bg }]}>
-                          <Text style={[st.tierTextSmall, { color: vTier.color }]}>{vTier.label}</Text>
-                        </View>
+                        <Text style={[st.tierInline, { color: vTier.color }]}>{tierName(vTier)}</Text>
                       </View>
                       <Text style={[st.badgeDesc, { color: tx2 }]}>
                         2 premium studio voices unlocked
@@ -760,7 +731,7 @@ const CustomisationScreen = () => {
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => showLockedPopup('Premium Backgrounds', PREMIUM_BG_REFERRAL_REQUIRED)}
-                    style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: bdr }]}
+                    style={[st.badgeCard, { backgroundColor: tileColor, borderColor: bdr }]}
                   >
                     <LinearGradient colors={['rgba(80,80,80,0.4)', 'rgba(60,60,60,0.4)']} style={st.badgeIconGrad}>
                       <MaterialIcons name="lock" size={22} color="rgba(255,255,255,0.7)" />
@@ -777,19 +748,17 @@ const CustomisationScreen = () => {
                     </View>
                   </TouchableOpacity>
                 ) : (
-                  <View style={[st.badgeCard, { backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff', borderColor: '#E91E6325' }]}>
+                  <View style={[st.badgeCard, { backgroundColor: tileColor, borderColor: '#E91E6325' }]}>
                     <LinearGradient colors={['#E91E63', '#C2185B']} style={st.badgeIconGrad}>
                       <MaterialIcons name="photo-library" size={24} color="#fff" />
                     </LinearGradient>
                     <View style={{ flex: 1, marginLeft: 16 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={[st.badgeName, { color: tx }]}>68 Premium Backgrounds</Text>
-                        <View style={[st.tierBadgeSmall, { backgroundColor: bgTier.bg }]}>
-                          <Text style={[st.tierTextSmall, { color: bgTier.color }]}>{bgTier.label}</Text>
-                        </View>
+                        <Text style={[st.tierInline, { color: bgTier.color }]}>{tierName(bgTier)}</Text>
                       </View>
                       <Text style={[st.badgeDesc, { color: tx2 }]}>
-                        Curated images unlocked — select in share card
+                        Curated images unlocked, select in share card
                       </Text>
                     </View>
                     <MaterialIcons name="check-circle" size={24} color="#E91E63" />
@@ -832,12 +801,10 @@ const CustomisationScreen = () => {
 
                   {!unlocked && (
                     <View style={st.themeLock}>
-                      <View style={st.themeLockCircle}>
-                        <MaterialIcons name="lock" size={20} color="#fff" />
-                      </View>
+                      <MaterialIcons name="lock" size={26} color="#fff" />
                       <View style={st.themeGateBadge}>
                         <MaterialIcons name="person-add" size={10} color="#FFD700" />
-                        <Text style={st.themeGateText}>{required} referrals</Text>
+                        <Text style={st.themeGateText}>{required} {required === 1 ? 'referral' : 'referrals'} to unlock</Text>
                       </View>
                     </View>
                   )}
@@ -852,9 +819,7 @@ const CustomisationScreen = () => {
                     <Text style={st.themeName}>{t.name}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
                       <Text style={st.themeMode}>{t.mode}</Text>
-                      <View style={[st.themeTierBadge, { backgroundColor: tier.bg }]}>
-                        <Text style={[st.themeTierText, { color: tier.color }]}>{tier.label}</Text>
-                      </View>
+                      <Text style={[st.themeTierText, { color: tier.color }]}>{tierName(tier)}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -879,15 +844,10 @@ const CustomisationScreen = () => {
                   key={icon.id}
                   activeOpacity={0.8}
                   onPress={() => pickAppIcon(icon.id)}
-                  style={[st.animCard, {
-                    borderColor: active && unlocked ? icon.colors[0] : bdr,
-                    borderWidth: active && unlocked ? 2.5 : 1,
-                    backgroundColor: isDark ? 'rgba(15,15,25,0.95)' : '#fff',
-                  }]}
+                  style={[st.animCard, { borderColor: active && unlocked ? theme.primary : 'transparent', backgroundColor: tileColor }]}
                 >
-                  <LinearGradient colors={active && unlocked ? icon.colors : [bdr, bdr]} style={st.animStrip} />
 
-                  <View style={{ paddingTop: 16, paddingBottom: 8, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={[st.animLottie, !unlocked && { opacity: 0.35 }]}>
                     <Image
                       source={icon.source}
                       style={{ width: 80, height: 80, borderRadius: 20 }}
@@ -895,32 +855,21 @@ const CustomisationScreen = () => {
                     />
                   </View>
 
-                  <Text style={[st.animName, { color: tx }]} numberOfLines={1}>{icon.name}</Text>
+                  <Text style={[st.animName, { color: tx }]}>{icon.name}</Text>
 
-                  <View style={[st.tierBadge, { backgroundColor: tier.bg }]}>
-                    <Text style={[st.tierText, { color: tier.color }]}>{tier.label}</Text>
-                  </View>
+                  <Text style={[st.animStatus, { color: !unlocked ? gold : active ? theme.primary : tx2 }]}>
+                    {!unlocked ? `${tierName(tier)} · ${required} ${required === 1 ? 'referral' : 'referrals'} to unlock` : active ? 'Active' : `${tierName(tier)} · tap to use`}
+                  </Text>
 
                   {!unlocked && (
-                    <View style={st.animLockWrap}>
-                      <LinearGradient colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.35)']} style={st.animLockOverlay}>
-                        <View style={st.lockIconCircle}>
-                          <MaterialIcons name="lock" size={20} color="#fff" />
-                        </View>
-                      </LinearGradient>
-                      <View style={st.animGateBadge}>
-                        <MaterialIcons name="person-add" size={10} color="#FFD700" />
-                        <Text style={st.animGateText}>{required} referrals</Text>
-                      </View>
+                    <View style={st.animLockMark}>
+                      <MaterialIcons name="lock" size={15} color="#fff" />
                     </View>
                   )}
 
                   {active && unlocked && (
-                    <View style={st.animActiveWrap}>
-                      <LinearGradient colors={icon.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.activeBadge}>
-                        <MaterialIcons name="check" size={12} color="#fff" />
-                        <Text style={st.activeText}>Active</Text>
-                      </LinearGradient>
+                    <View style={[st.animActiveWrap, { backgroundColor: theme.primary }]}>
+                      <MaterialIcons name="check" size={15} color="#fff" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -968,7 +917,7 @@ const CustomisationScreen = () => {
               fontSize: 12, fontWeight: '600', color: theme.primary,
               textAlign: 'center', marginBottom: 16,
             }}>
-              — Matthew 28:19
+             , Matthew 28:19
             </Text>
 
             {/* Message */}
@@ -1047,7 +996,7 @@ const CustomisationScreen = () => {
 
             <View style={[st.popupDivider, { backgroundColor: bdr }]} />
 
-            <Text style={[st.popupUnlockLabel, { color: tx2 }]}>UNLOCK BY REFERRING</Text>
+            <Text style={[st.popupUnlockLabel, { color: tx2 }]}>Unlock by inviting friends</Text>
 
             <View style={[st.popupReqCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: bdr }]}>
               <View style={[st.popupReqIcon, { backgroundColor: theme.primary + '20' }]}>
@@ -1058,7 +1007,7 @@ const CustomisationScreen = () => {
                   {lockedPopup?.required} {lockedPopup?.required === 1 ? 'Referral' : 'Referrals'} Needed
                 </Text>
                 <Text style={[st.popupReqDesc, { color: tx2 }]}>
-                  You have {referralCount} — {lockedPopup?.required - referralCount > 0 ? `${lockedPopup?.required - referralCount} more to go` : 'almost there!'}
+                  You have {referralCount}, {lockedPopup?.required - referralCount > 0 ? `${lockedPopup?.required - referralCount} more to go` : 'almost there!'}
                 </Text>
               </View>
             </View>
@@ -1102,15 +1051,10 @@ const AnimSection = ({ anim, children }) => {
   );
 };
 
-const SectionHeader = ({ icon, iconBg, iconColor, title, subtitle, textColor, subtitleColor }) => (
+const SectionHeader = ({ title, subtitle, textColor, subtitleColor }) => (
   <View style={st.secHead}>
-    <View style={[st.secIcon, { backgroundColor: iconBg }]}>
-      <MaterialIcons name={icon} size={22} color={iconColor} />
-    </View>
-    <View>
-      <Text style={[st.secTitle, { color: textColor }]}>{title}</Text>
-      <Text style={[st.secSub, { color: subtitleColor }]}>{subtitle}</Text>
-    </View>
+    <Text style={[st.secTitle, { color: textColor }]}>{title}</Text>
+    <Text style={[st.secSub, { color: subtitleColor }]}>{subtitle}</Text>
   </View>
 );
 
@@ -1123,96 +1067,66 @@ const st = StyleSheet.create({
 
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
 
-  // Referral banner
-  referralBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 16, borderRadius: 18, borderWidth: 1, marginTop: 8, marginBottom: 4,
-    overflow: 'hidden',
-  },
-  shimmerStripe: {
-    position: 'absolute', top: 0, bottom: 0, width: SW,
-    opacity: 0.6,
-  },
-  referralIcon: {
-    width: 44, height: 44, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  referralCountBadge: {
-    width: 42, height: 42, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center',
-  },
-
+  // Referrals
+  referralTile: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 18, marginTop: 8, marginBottom: 4 },
+  referralKicker: { fontSize: 14, fontWeight: '600' },
+  referralCount: { fontSize: 34, fontWeight: '800', letterSpacing: -0.8, marginTop: 2, fontVariant: ['tabular-nums'] },
+  referralCountUnit: { fontSize: 15, fontWeight: '600', letterSpacing: 0 },
+  referralSub: { fontSize: 13.5, lineHeight: 19, marginTop: 6 },
+  invitePill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingLeft: 14, paddingRight: 18, borderRadius: 14 },
+  invitePillText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   // Section header
-  secHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 28, gap: 14 },
-  secIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  secTitle: { fontSize: 19, fontWeight: '800', letterSpacing: -0.3 },
-  secSub: { fontSize: 12, fontWeight: '500', marginTop: 2, opacity: 0.7 },
-
-  // Streak animations — 2-column grid
-  animGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 12,
-  },
+  secHead: { marginBottom: 14, marginTop: 30 },
+  secTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4 },
+  secSub: { fontSize: 14, fontWeight: '500', marginTop: 3 },
+  // 2-column grid cards
+  animGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   animCard: {
     width: (SW - 44) / 2,
-    borderRadius: 20,
+    borderRadius: 18,
+    borderWidth: 2,
     overflow: 'hidden',
-    paddingBottom: 14,
+    paddingTop: 8,
+    paddingBottom: 16,
+    paddingHorizontal: 12,
     alignItems: 'center',
   },
-  animStrip: { width: '100%', height: 3 },
-  animLottie: { paddingTop: 16, paddingBottom: 8, alignItems: 'center', justifyContent: 'center' },
-  animName: { fontSize: 14, fontWeight: '700', marginBottom: 6 },
-
-  tierBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
-  tierText: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  tierBadgeSmall: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  tierTextSmall: { fontSize: 8, fontWeight: '800', letterSpacing: 0.8 },
-
-  animLockWrap: { ...StyleSheet.absoluteFillObject, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  animLockOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  lockIconCircle: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
-  },
-  animGateBadge: { position: 'absolute', bottom: 10, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.55)' },
-  animGateText: { fontSize: 10, fontWeight: '700', color: '#FFD700' },
-
-  animActiveWrap: { position: 'absolute', top: 10, right: 10 },
-  activeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  activeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-
+  animLottie: { paddingTop: 10, paddingBottom: 8, alignItems: 'center', justifyContent: 'center' },
+  animName: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, textAlign: 'center' },
+  animStatus: { fontSize: 13, fontWeight: '700', marginTop: 4, textAlign: 'center', lineHeight: 18 },
+  tierInline: { fontSize: 12.5, fontWeight: '700' },
+  animLockMark: { position: 'absolute', top: 10, right: 10, width: 28, height: 28, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
+  animActiveWrap: { position: 'absolute', top: 10, right: 10, width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   // Badges
   badgeCard: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 16, borderRadius: 18, borderWidth: 1, overflow: 'hidden',
+    padding: 16, borderRadius: 18, borderWidth: 0, overflow: 'hidden',
   },
   badgeIconGrad: {
     width: 50, height: 50, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
   },
-  badgeName: { fontSize: 16, fontWeight: '700' },
-  badgeDesc: { fontSize: 12, fontWeight: '400', marginTop: 3 },
+  badgeName: { fontSize: 16.5, fontWeight: '800', letterSpacing: -0.2 },
+  badgeDesc: { fontSize: 13.5, fontWeight: '500', marginTop: 3, lineHeight: 18 },
   badgeGateChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
   },
-  badgeGateChipText: { fontSize: 10, fontWeight: '700' },
+  badgeGateChipText: { fontSize: 12, fontWeight: '800' },
 
   // Themes grid
   themeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   themeCard: { borderRadius: 18, overflow: 'hidden' },
   themeImg: { width: '100%', height: '100%' },
   themeGrad: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%' },
-  themeLock: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  themeLockCircle: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)' },
+  themeLock: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   themeGateBadge: { position: 'absolute', bottom: 42, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  themeGateText: { fontSize: 10, fontWeight: '700', color: '#FFD700' },
-  themeCheck: { position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
+  themeGateText: { fontSize: 12, fontWeight: '800', color: '#FBBF24' },
+  themeCheck: { position: 'absolute', top: 10, right: 10, width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   themeMeta: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 },
-  themeName: { fontSize: 14, fontWeight: '700', color: '#fff', textShadowColor: 'rgba(0,0,0,0.7)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-  themeMode: { fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
-  themeTierBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  themeTierText: { fontSize: 8, fontWeight: '800', letterSpacing: 0.8 },
+  themeName: { fontSize: 15, fontWeight: '800', color: '#fff', textShadowColor: 'rgba(0,0,0,0.7)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  themeMode: { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '600' },
+  themeTierText: { fontSize: 12, fontWeight: '700' },
 
   // ── Locked popup ────────────────────────────────────────────
   popupBackdrop: {
@@ -1236,7 +1150,7 @@ const st = StyleSheet.create({
 
   popupDivider: { width: '80%', height: 1, marginBottom: 16 },
 
-  popupUnlockLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 10 },
+  popupUnlockLabel: { fontSize: 13, fontWeight: '600', marginBottom: 10 },
 
   popupReqCard: {
     flexDirection: 'row', alignItems: 'center', width: '100%',

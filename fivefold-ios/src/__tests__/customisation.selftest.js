@@ -1,0 +1,20 @@
+// Customisation screen design invariants after the tile/pill pass.
+const fs = require('fs');
+const path = require('path');
+const src = fs.readFileSync(path.join(__dirname, '..', 'screens', 'CustomisationScreen.js'), 'utf8');
+let failures = 0;
+const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
+check(/st\.referralTile/.test(src) && /st\.invitePill/.test(src) && /handleShareApp\(\)/.test(src), 'referral tile with a solid Invite pill');
+check(!/shimmerStripe/.test(src), 'no shimmer stripe splitting the referral tile');
+check(!/lockIconCircle|themeLockCircle/.test(src), 'no circular lock badges');
+check(!/st\.tierBadge\b|st\.tierBadgeSmall|st\.themeTierBadge/.test(src), 'no caps rarity pills');
+check((src.match(/st\.animStatus/g) || []).length === 3 && /to unlock` : active \? 'Active' : `\$\{tierName\(tier\)\} · tap to use`/.test(src), 'one status line per grid item: locked / active / tap to use');
+check(!/animGateBadge/.test(src), 'no second badge overlapping the rarity label');
+check(/!unlocked && \{ opacity: 0\.35 \}/.test(src) && (src.match(/st\.animLockMark/g) || []).length === 3, 'locked previews dim with a plain lock mark');
+check(!/numberOfLines=\{1\}>\{a\.name\}|numberOfLines=\{1\}>\{icon\.name\}/.test(src), 'item names never truncate');
+check(/const SectionHeader = \(\{ title, subtitle, textColor, subtitleColor \}\)/.test(src) && !/st\.secIcon/.test(src), 'section headers without icon boxes');
+check(/tierName\(tier\)/.test(src) && /const tierName = /.test(src), 'rarity shown in sentence case');
+check(/Unlock by inviting friends/.test(src), 'popup label sentence case');
+check(!/[—]/.test(src), 'no em dashes anywhere in the screen');
+console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
+process.exit(failures ? 1 : 0);
