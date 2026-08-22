@@ -15,6 +15,8 @@ import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, NEST_INSET, clampZoom, zoom
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS, Easing } from 'react-native-reanimated';
 import { moveItem } from '../services/rescheduleItem';
+import { planDay } from '../services/schedulePlanner';
+import { toModel, fixableOverlaps } from '../utils/fitPlan';
 
 // My Week: everything scheduled, from every source, on one screen. Prayers,
 // reminders, workouts, EyeCandy events and your own calendar events can all
@@ -56,6 +58,10 @@ const MyWeekScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+  // Make it fit: plan (AI proposes, rules verify) shown before anything moves
+  const [fitting, setFitting] = useState(false);
+  const [fitPlan, setFitPlan] = useState(null);
+  const lastMovedRef = useRef(null); // the thing just added/moved stays put when planning
   const [view, setView] = useState('timeline'); // timeline | list
   const [pxPerHour, setPxPerHour] = useState(PX_PER_HOUR);
   const [timelineW, setTimelineW] = useState(0);
@@ -90,6 +96,8 @@ const MyWeekScreen = ({ navigation }) => {
 
   const dayItems = itemsByDay[dateKeyOf(anchor)] || [];
   const counts = useMemo(() => countByKind(dayItems), [dayItems]);
+  // Overlaps a plan could fix (a 5-min prayer inside a show does not count)
+  const fixableCount = useMemo(() => fixableOverlaps(toModel(dayItems), lastMovedRef.current).length, [dayItems]);
   const visible = useMemo(() => dayItems.filter((i) => !hidden.has(i.kind)), [dayItems, hidden]);
   const rows = useMemo(() => buildAgenda(visible), [visible]);
   const today = new Date();
@@ -293,6 +301,7 @@ const MyWeekScreen = ({ navigation }) => {
       hapticFeedback.success();
       const movedDay = draftDate && draftDate !== dateKeyOf(anchor);
       setStatus(`${moving.title} moved to ${fmtClock(draftMin)}${movedDay ? ` on ${draftDate}` : ''}.`);
+      lastMovedRef.current = moving.id;
       setMoving(null);
       setShowWheel(false);
       // Keep the user where they were: the refresh swaps data in place, and
@@ -304,6 +313,43 @@ const MyWeekScreen = ({ navigation }) => {
       hapticFeedback.error();
       Alert.alert('Could not move it', e?.message || 'Please try again.');
     }
+    setSaving(false);
+  };
+
+  // Make it fit: the AI plans, the rules check, the user approves.
+  const makeItFit = async () => {
+    if (fitting) return;
+    hapticFeedback.light();
+    setFitting(true);
+    try {
+      const dayLabel = isTodaySelected ? 'today' : anchor.toLocaleDateString('en', { weekday: 'long' });
+      const plan = await planDay(dayItems, { anchorId: lastMovedRef.current, dayLabel });
+      if (!plan) setStatus('Nothing overlaps today.');
+      else { hapticFeedback.selection(); setFitPlan(plan); }
+    } catch (e) {
+      hapticFeedback.error();
+      Alert.alert('Could not plan the day', e?.message || 'Please try again.');
+    }
+    setFitting(false);
+  };
+  const cancelFit = () => { hapticFeedback.light(); setFitPlan(null); };
+  const applyFit = async () => {
+    if (!fitPlan || saving) return;
+    setSaving(true);
+    let n = 0;
+    for (const mv of fitPlan.moves) {
+      const it = dayItems.find((i) => i.id === mv.id);
+      if (!it) continue;
+      try { if (await moveItem(it, { time: minToTime(mv.startMin) })) n++; } catch {}
+    }
+    hapticFeedback.success();
+    setStatus(n === fitPlan.moves.length
+      ? `Day fits now. ${n === 1 ? '1 thing' : `${n} things`} moved.`
+      : `${n} of ${fitPlan.moves.length} moved. Check the rest.`);
+    setFitPlan(null);
+    const keepY = scrollYRef.current;
+    await loadWeek();
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: keepY, animated: false }));
     setSaving(false);
   };
 
@@ -434,6 +480,14 @@ const MyWeekScreen = ({ navigation }) => {
 
         {status ? <Text style={[styles.status, { color: accent }]}>{status}</Text> : null}
 
+        {!loading && fixableCount > 0 ? (
+          <TouchableOpacity onPress={makeItFit} disabled={fitting} style={[styles.fitBtn, { backgroundColor: accent, opacity: fitting ? 0.75 : 1 }]} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Make it fit" accessibilityHint="Plans moves so nothing overlaps. You approve before anything changes">
+            {fitting ? <ActivityIndicator color="#fff" /> : null}
+            <Text style={styles.fitBtnText}>{fitting ? 'Working it out' : 'Make it fit'}</Text>
+            <Text style={styles.fitBtnSub}>{fixableCount === 1 ? '1 overlap' : `${fixableCount} overlaps`}</Text>
+          </TouchableOpacity>
+        ) : null}
+
         <View style={styles.viewRow}>
           {view === 'timeline' ? (
             <View style={[styles.zoomCtl, { backgroundColor: tile }]}>
@@ -538,10 +592,54 @@ const MyWeekScreen = ({ navigation }) => {
           })}
         </View>
         {!loading && dayItems.length > 0 ? (
-          <Text style={[styles.footnote, { color: theme.textSecondary }]}>Tap Move on a prayer, reminder or workout to change its time. EyeCandy and Calendar items are changed in their own apps.</Text>
+          <Text style={[styles.footnote, { color: theme.textSecondary }]}>Tap Move on anything to change its time. Fixtures keep their kick-off. When things overlap, Make it fit plans the moves and you approve them first.</Text>
         ) : null}
         {loading ? <ActivityIndicator style={{ marginTop: 24 }} color={accent} /> : null}
       </ScrollView>
+
+      {/* Make it fit: the plan in words, before anything moves */}
+      {fitPlan ? (
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={cancelFit} accessibilityRole="button" accessibilityLabel="Close plan" />
+      ) : null}
+      {fitPlan ? (
+        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: accent + '55' }]}>
+          <View style={[styles.panelSurface, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} pointerEvents="none" />
+          <View style={styles.panelHead}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={[styles.panelTitle, { color: theme.text }]}>Make it fit</Text>
+              <Text style={[styles.panelSub, { color: theme.textSecondary }]}>{fitPlan.note}</Text>
+            </View>
+            <TouchableOpacity onPress={cancelFit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close plan">
+              <MaterialIcons name="close" size={22} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          {fitPlan.lines.length ? <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Moves</Text> : null}
+          {fitPlan.lines.map((l) => (
+            <View key={l.id} style={styles.fitRow}>
+              <View style={[styles.fitBar, { backgroundColor: l.color }]} />
+              <Text style={[styles.fitRowTitle, { color: theme.text }]}>{l.title}</Text>
+              <Text style={[styles.fitRowTime, { color: l.color }]}>{fmtClock(l.from)} to {fmtClock(l.to)}</Text>
+            </View>
+          ))}
+          {fitPlan.stays.length ? (
+            <>
+              <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Stays put</Text>
+              {fitPlan.stays.map((st) => (
+                <Text key={st.id} style={[styles.fitStay, { color: theme.textSecondary }]}>{st.title}, {st.why}</Text>
+              ))}
+            </>
+          ) : null}
+          {fitPlan.overflow.length ? (
+            <Text style={[styles.fitStay, { color: theme.warning || '#F59E0B' }]}>Could not fit before midnight: {fitPlan.overflow.join(', ')}</Text>
+          ) : null}
+
+          <TouchableOpacity onPress={applyFit} disabled={saving || !fitPlan.lines.length} style={[styles.saveBtn, { backgroundColor: accent, opacity: saving || !fitPlan.lines.length ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
+            <MaterialIcons name="check" size={20} color="#fff" />
+            <Text style={styles.saveBtnText}>{saving ? 'Moving' : fitPlan.lines.length === 1 ? 'Apply 1 move' : `Apply ${fitPlan.lines.length} moves`}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* Move panel: dims the day behind it and sits on its own lighter surface */}
       {moving ? (
@@ -727,6 +825,14 @@ const styles = StyleSheet.create({
   freeChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, minWidth: 96 },
   freeChipTime: { fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
   freeChipSub: { fontSize: 11.5, fontWeight: '600', marginTop: 1 },
+  fitBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, borderRadius: 14, paddingHorizontal: 16, marginTop: 12 },
+  fitBtnText: { color: '#fff', fontSize: 15.5, fontWeight: '800', flex: 1 },
+  fitBtnSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '700' },
+  fitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  fitBar: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
+  fitRowTitle: { flex: 1, flexShrink: 1, fontSize: 15, fontWeight: '700' },
+  fitRowTime: { fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  fitStay: { fontSize: 13.5, fontWeight: '600', lineHeight: 19, marginTop: 4 },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, borderRadius: 16, marginTop: 18 },
   saveBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
 });

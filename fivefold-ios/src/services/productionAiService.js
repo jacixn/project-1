@@ -184,6 +184,18 @@ class ProductionSmartService {
   }
 
   // Simple chat with Deepseek
+  // Plain chat completion for structured jobs (schedule planning): the
+  // assistant text, or a throw. Runs the same provider chain as everything
+  // else, with a low temperature so the answer stays on the rails.
+  async rawChat(messages, { temperature = 0.2, max_tokens = 800 } = {}) {
+    const response = await deepseekFetchWithFallback(JSON.stringify({ model: 'deepseek-chat', messages, temperature, max_tokens }));
+    if (!response || !response.ok) throw new Error(`AI request failed: ${response ? response.status : 'no response'}`);
+    const result = await response.json();
+    const content = result?.choices?.[0]?.message?.content;
+    if (typeof content !== 'string' || !content.trim()) throw new Error('No response in expected format');
+    return content;
+  }
+
   async simpleSmartChat(prompt, retryCount = 0) {
     try {
       console.log('🚀 Making chat request to: https://api.deepseek.com');
