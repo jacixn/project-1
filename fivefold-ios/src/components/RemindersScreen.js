@@ -298,6 +298,15 @@ const RemindersScreen = ({ navigation }) => {
 
         <View style={styles.actionCluster}>
           <TouchableOpacity
+            onPress={() => { hapticFeedback.light(); navigation.navigate('MyWeek'); }}
+            style={[styles.iconBtn, { backgroundColor: iconBtnBg }]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="My Week"
+          >
+            <MaterialIcons name="calendar-month" size={20} color={textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => { hapticFeedback.light(); navigation.navigate('ReminderLibrary'); }}
             style={[styles.iconBtn, { backgroundColor: iconBtnBg }]}
             activeOpacity={0.7}

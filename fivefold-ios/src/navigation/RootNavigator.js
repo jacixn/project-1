@@ -703,6 +703,11 @@ const RootNavigator = () => {
         options={{ presentation: 'modal' }}
       />
       <Stack.Screen
+        name="MyWeek"
+        component={require('../screens/MyWeekScreen').default}
+        options={{ presentation: 'modal', gestureResponseDistance: 140 }}
+      />
+      <Stack.Screen
         name="ScheduleWorkout"
         component={require('../components/ScheduleWorkoutModal').default}
         options={{ presentation: 'modal', gestureResponseDistance: 140 }}
