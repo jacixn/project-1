@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,45 @@ const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
 const DISMISS_THRESHOLD = SHEET_HEIGHT * 0.22;
 const VELOCITY_THRESHOLD = 700;
 const SPRING_CONFIG = { damping: 22, stiffness: 220, mass: 0.8 };
+
+// One library row. Memoised so scrubbing the A-Z strip (which only touches
+// the bubble) never re-renders a thousand of these.
+const ExerciseRow = memo(({ exercise, tileColor, theme, selectionMode, onPress }) => (
+  <TouchableOpacity
+    style={[styles.exerciseItem, { backgroundColor: tileColor }]}
+    activeOpacity={0.6}
+    onPress={() => onPress(exercise)}
+    accessibilityRole="button"
+    accessibilityLabel={`${exercise.name}, ${exercise.bodyPart}${exercise.equipment ? `, ${exercise.equipment}` : ''}`}
+    accessibilityHint={selectionMode ? 'Adds this exercise' : 'Shows how to do it'}
+  >
+    <View style={styles.exerciseInfo}>
+      <Text style={[styles.exerciseName, { color: theme.text }]}>{exercise.name}</Text>
+      <Text style={[styles.exerciseCategory, { color: theme.textSecondary }]}>
+        {[exercise.bodyPart, exercise.equipment].filter(Boolean).join('  ·  ')}
+        {exercise.isCustom ? <Text style={{ color: theme.primary }}>{'  ·  Custom'}</Text> : null}
+      </Text>
+    </View>
+    {selectionMode ? (
+      <View style={[styles.addPill, { backgroundColor: theme.primary }]}>
+        <MaterialIcons name="add" size={18} color="#fff" />
+      </View>
+    ) : null}
+  </TouchableOpacity>
+));
+
+// The big letter shown while scrubbing. Owns its own state so the list
+// above it is untouched by the 60 updates a second a drag produces.
+const ScrubBubble = forwardRef(({ color }, ref) => {
+  const [letter, setLetter] = useState(null);
+  useImperativeHandle(ref, () => ({ show: setLetter, hide: () => setLetter(null) }), []);
+  if (!letter) return null;
+  return (
+    <View style={[styles.scrubBubble, { backgroundColor: color }]} pointerEvents="none">
+      <Text style={styles.scrubBubbleText}>{letter}</Text>
+    </View>
+  );
+});
 
 const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = false, asScreen = false }) => {
   const { theme, isDark } = useTheme();
@@ -394,7 +433,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
   // A-Z strip: press anywhere and slide, the list follows. Letters with no
   // entries jump to the next letter that has some, so the drag never stalls.
   const [stripH, setStripH] = useState(0);
-  const [scrubLetter, setScrubLetter] = useState(null);
+  const bubbleRef = useRef(null);
   const lastScrubRef = useRef(null);
   const jumpToLetter = (letter, animated) => {
     const have = sortedSections;
@@ -403,14 +442,16 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     scrollViewRef.current?.scrollTo({ y: sectionRefs.current[target], animated });
     return target;
   };
+  const STRIP_PAD = 6; // matches styles.alphabetStrip paddingVertical
   const scrubTo = (y) => {
     const n = alphabet.length;
-    const i = Math.max(0, Math.min(n - 1, Math.floor((y / Math.max(1, stripH)) * n)));
+    const inner = Math.max(1, stripH - STRIP_PAD * 2);
+    const i = Math.max(0, Math.min(n - 1, Math.floor(((y - STRIP_PAD) / inner) * n)));
     const letter = alphabet[i];
     if (letter === lastScrubRef.current) return;
     lastScrubRef.current = letter;
     const landed = jumpToLetter(letter, false);
-    setScrubLetter(landed || letter);
+    bubbleRef.current?.show(landed || letter);
     hapticFeedback.selection();
   };
   const indexGesture = useMemo(() => Gesture.Pan()
@@ -419,7 +460,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
     .runOnJS(true)
     .onBegin((e) => scrubTo(e.y))
     .onUpdate((e) => scrubTo(e.y))
-    .onFinalize(() => { lastScrubRef.current = null; setScrubLetter(null); }),
+    .onFinalize(() => { lastScrubRef.current = null; bubbleRef.current?.hide(); }),
   [stripH, sortedSections.join('')]);
 
   const handleBodyPartPress = () => {
@@ -434,36 +475,26 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
 
   const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
 
+  const tileColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
+
+  const handlePressExercise = useCallback((exercise) => {
+    hapticFeedback.light();
+    if (selectionMode && onSelectExercise) {
+      onSelectExercise(exercise);
+    } else {
+      navigation.navigate('ExerciseDetail', { exercise });
+    }
+  }, [selectionMode, onSelectExercise, navigation]);
+
   const renderExercise = (exercise) => (
-    <TouchableOpacity
+    <ExerciseRow
       key={exercise.id}
-      style={[styles.exerciseItem, { backgroundColor: tileColor }]}
-      activeOpacity={0.6}
-      onPress={() => {
-        hapticFeedback.light();
-        if (selectionMode && onSelectExercise) {
-          onSelectExercise(exercise);
-        } else {
-          navigation.navigate('ExerciseDetail', { exercise });
-        }
-      }}
-      accessibilityRole="button"
-      accessibilityLabel={`${exercise.name}, ${exercise.bodyPart}${exercise.equipment ? `, ${exercise.equipment}` : ''}`}
-      accessibilityHint={selectionMode ? 'Adds this exercise' : 'Shows how to do it'}
-    >
-      <View style={styles.exerciseInfo}>
-        <Text style={[styles.exerciseName, { color: theme.text }]}>{exercise.name}</Text>
-        <Text style={[styles.exerciseCategory, { color: theme.textSecondary }]}>
-          {[exercise.bodyPart, exercise.equipment].filter(Boolean).join('  ·  ')}
-          {exercise.isCustom ? <Text style={{ color: theme.primary }}>{'  ·  Custom'}</Text> : null}
-        </Text>
-      </View>
-      {selectionMode ? (
-        <View style={[styles.addPill, { backgroundColor: theme.primary }]}>
-          <MaterialIcons name="add" size={18} color="#fff" />
-        </View>
-      ) : null}
-    </TouchableOpacity>
+      exercise={exercise}
+      tileColor={tileColor}
+      theme={theme}
+      selectionMode={selectionMode}
+      onPress={handlePressExercise}
+    />
   );
 
   const content = (
@@ -830,11 +861,7 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
                 </View>
               </GestureDetector>
             </GestureHandlerRootView>
-            {scrubLetter ? (
-              <View style={[styles.scrubBubble, { backgroundColor: theme.primary }]} pointerEvents="none">
-                <Text style={styles.scrubBubbleText}>{scrubLetter}</Text>
-              </View>
-            ) : null}
+            <ScrubBubble ref={bubbleRef} color={theme.primary} />
           </View>
         )}
       </View>

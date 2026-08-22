@@ -9,8 +9,10 @@ check(/bodyParts\.map\(\(bp\)/.test(src) && /bp === 'Any Body Part' \? 'All' : b
 check(/top: 0,\s*bottom: 0,\s*justifyContent: 'center'/.test(src) && !/headerH/.test(src), 'index strip centred in the list area, no header offset');
 check(/Gesture\.Pan\(\)[\s\S]{0,120}\.onBegin\(\(e\) => scrubTo\(e\.y\)\)/.test(src) && /\.onUpdate\(\(e\) => scrubTo\(e\.y\)\)/.test(src), 'press-and-slide scrubbing on the strip');
 check(/have\.find\(\(l\) => l > letter\)/.test(src), 'empty letters jump to the next letter with entries');
-check(/styles\.scrubBubble/.test(src), 'big letter bubble while scrubbing');
-const row = src.slice(src.indexOf('const renderExercise'), src.indexOf('const content = ('));
+check(/const ScrubBubble = forwardRef/.test(src) && /bubbleRef\.current\?\.show\(/.test(src) && !/setScrubLetter/.test(src), 'bubble owns its state; scrubbing never re-renders the list');
+check(/const ExerciseRow = memo\(/.test(src) && /useCallback\(\(exercise\) =>/.test(src), 'rows memoised with a stable press handler');
+check(/\(y - STRIP_PAD\) \/ inner/.test(src), 'letter hit-test accounts for strip padding');
+const row = src.slice(src.indexOf('const ExerciseRow = memo('), src.indexOf('const ScrubBubble'));
 check(!/chevron-right/.test(row) && /backgroundColor: tileColor/.test(row), 'rows are tiles without chevrons');
 check(/\[exercise\.bodyPart, exercise\.equipment\]\.filter\(Boolean\)\.join/.test(row), 'row meta shows body part and equipment');
 check(/selectionMode \? \(/.test(row) && /styles\.addPill/.test(row), 'selection mode shows a solid add pill');
