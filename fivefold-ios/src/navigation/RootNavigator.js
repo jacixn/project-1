@@ -705,7 +705,7 @@ const RootNavigator = () => {
       <Stack.Screen
         name="MyWeek"
         component={require('../screens/MyWeekScreen').default}
-        options={{ presentation: 'modal', gestureResponseDistance: 140 }}
+        options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', gestureEnabled: false }}
       />
       <Stack.Screen
         name="ScheduleWorkout"

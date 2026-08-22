@@ -289,7 +289,9 @@ const MyWeekScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <SheetHeader title="My Week" leftLabel="Done" onLeft={() => navigation.goBack()} rightLabel="Today" onRight={() => { hapticFeedback.light(); const d = new Date(); d.setHours(0, 0, 0, 0); setAnchor(d); }} />
+      <View style={{ paddingTop: insets.top }}>
+        <SheetHeader title="My Week" leftLabel="Done" onLeft={() => navigation.goBack()} rightLabel="Today" onRight={() => { hapticFeedback.light(); const d = new Date(); d.setHours(0, 0, 0, 0); setAnchor(d); }} />
+      </View>
 
       {/* Week strip */}
       <View style={styles.weekRow}>

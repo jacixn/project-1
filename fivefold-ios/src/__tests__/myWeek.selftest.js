@@ -40,7 +40,7 @@ check(/'eyecandy:\/\/'/.test(screen) && /'calshow:'/.test(screen), 'external ite
 check((screen.match(/numberOfLines/g) || []).length === 1 && /numberOfLines=\{titleLines\}/.test(screen) && !/[—]/.test(screen) && !/[—]/.test(src), 'no truncation except a host title above a nested block (iOS rule), no em dashes');
 const move = read('services/rescheduleItem.js');
 check(/updatePrayer\(raw\.id/.test(move) && /updateReminder\(raw\.id/.test(move) && /updateScheduledWorkout\(raw\.id/.test(move) && /scheduleWorkoutNotifications\(fresh\)/.test(move), 'moves go through each owner service; workout alerts rescheduled');
-check(/name="MyWeek"/.test(read('navigation/RootNavigator.js')), 'MyWeek route registered as a modal');
+check(/name="MyWeek"[\s\S]{0,200}presentation: 'fullScreenModal'[\s\S]{0,80}gestureEnabled: false/.test(read('navigation/RootNavigator.js')) && /paddingTop: insets\.top/.test(screen), 'MyWeek is a full-screen modal (no pull-down), header clears the status bar');
 for (const f of ['screens/BiblePrayerTab.js', 'screens/TodosTab.js', 'screens/GymTab.js', 'components/RemindersScreen.js']) {
   check(/navigation\.navigate\('MyWeek'\)/.test(read(f)) && /calendar-month/.test(read(f)), `${f}: calendar button opens My Week`);
 }
