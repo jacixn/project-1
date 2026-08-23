@@ -16,7 +16,8 @@ import {
 // Shared by reminders + workouts.
 // bleed = the parent's horizontal padding; the quick-pick row cancels it so
 // chips scroll right off the screen edge instead of clipping at the inset.
-const DurationField = ({ value = 30, onChange, accent, bleed = 20 }) => {
+// step = fixed minutes per - / + tap (default: adaptive); presets = the quick picks.
+const DurationField = ({ value = 30, onChange, accent, bleed = 20, step = null, presets = null }) => {
   const { theme, isDark } = useTheme();
   const acc = accent || theme.primary;
   const hairline = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
@@ -25,7 +26,8 @@ const DurationField = ({ value = 30, onChange, accent, bleed = 20 }) => {
   const durationAsDate = new Date(2000, 0, 1, Math.floor(value / 60), value % 60, 0);
 
   const set = (m) => onChange?.(clampDuration(m));
-  const bump = (dir) => { hapticFeedback.selection(); set(stepDuration(value, dir)); };
+  const bump = (dir) => { hapticFeedback.selection(); set(step > 0 ? clampDuration(value + dir * step) : stepDuration(value, dir)); };
+  const picks = Array.isArray(presets) && presets.length ? presets : DURATION_PRESETS;
   const chipLabel = (m) => (m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} hr` : `${Math.floor(m / 60)} hr ${m % 60}`);
 
   return (
@@ -73,7 +75,7 @@ const DurationField = ({ value = 30, onChange, accent, bleed = 20 }) => {
         contentContainerStyle={[styles.chipsRow, { paddingHorizontal: bleed }]}
         keyboardShouldPersistTaps="handled"
       >
-        {DURATION_PRESETS.map((m) => {
+        {picks.map((m) => {
           const active = clampDuration(value) === m;
           return (
             <TouchableOpacity

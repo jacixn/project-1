@@ -88,10 +88,10 @@ check(/const panelAccent = \(moving && moving\.color\) \|\| accent;/.test(screen
 
 // ---- tasks (To Do) are a source too ---------------------------------------
 check(K.task && /^#2DC46B$/.test(K.task.color) && mod.KIND_ORDER.join() === 'prayer,reminder,task,gym,eyecandy,eyecandySports,calendar' && mod.TASK_MINUTES === 30, 'task kind: Biblely green, ordered with the other Biblely kinds, 30-minute block');
-check(/getStoredData\('todos'\)/.test(src) && /t\.completed \|\| t\.scheduledDate !== key \|\| !t\.scheduledTime\) continue;/.test(src) && /mk\('task', t\.id, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), TASK_MINUTES, \{ \.\.\.t, type: 'one-time'/.test(src) && /kind === 'task' \|\| kind === 'gym'/.test(src), 'dated, undone tasks load for their day as movable one-time items');
+check(/getStoredData\('todos'\)/.test(src) && /t\.completed \|\| t\.scheduledDate !== key \|\| !t\.scheduledTime\) continue;/.test(src) && /mk\('task', t\.id, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : TASK_MINUTES, \{ \.\.\.t, type: 'one-time'/.test(src) && /kind === 'task' \|\| kind === 'gym'/.test(src), 'dated, undone tasks load for their day as movable one-time items');
 check(/if \(item\.kind === 'task'\) \{/.test(resrc) && /await saveData\('todos', updated\);/.test(resrc) && /syncTodos\(updated\)/.test(resrc) && /DeviceEventEmitter\.emit\('todosChanged'\)/.test(resrc) && /scheduledDateTime: when\.toISOString\(\)/.test(resrc), 'moving a task rewrites scheduledDate/Time/DateTime through the To Do write path (cloud, Calendar mirror, widget, event)');
 const busy = read('utils/dayBusy.js');
-check(/excludeTaskId = null/.test(busy) && /getStoredData\('todos'\)/.test(busy) && /push\(out, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), 30, 'task'\)/.test(busy), 'tasks count as busy time for free-gap picking');
+check(/excludeTaskId = null/.test(busy) && /getStoredData\('todos'\)/.test(busy) && /push\(out, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : 30, 'task'\)/.test(busy), 'tasks count as busy time for free-gap picking');
 check(/k === 'task' \|\| k === 'gym' \? 's'/.test(screen), 'legend chip says Tasks');
 
 // ---- just today / every day, and planning right after a move -------------
@@ -156,6 +156,13 @@ const app = read('../App.js');
 check(/cs\.adoptCalendarChanges\(\)\.then\(\(a\) => \{ if \(a && a\.length\) cs\.syncAll\(\); \}\)/.test(app) && /cs\.adoptCalendarChanges\(\)\.catch\(\(\) => \{\}\)\.then\(\(\) => cs\.syncAll\(\)\)/.test(app), 'App adopts on every foreground and before the cloud-pull resync');
 check(/DeviceEventEmitter\.addListener\('calendarAdopted'/.test(screen), 'My Week refreshes when an adoption lands');
 check(/const PullSheet = \(\{ visible, onClose, accent, children \}\)/.test(screen) && /e\.translationY > 120 \|\| e\.velocityY > 800/.test(screen) && (screen.match(/<PullSheet visible=/g) || []).length === 2 && /styles\.handleBar/.test(screen), 'both panels are pull-down sheets with a handle, same as EyeCandy');
+
+// ---- quick tasks carry how long they take ----------------------------------
+const todoList = read('components/TodoList.js');
+check(/const \[duration, setDuration\] = useState\(60\);/.test(todoList) && /<DurationField value=\{duration\} onChange=\{setDuration\} accent=\{theme\.primary\} step=\{5\} presets=\{\[15, 30, 45, 60, 90, 120\]\}/.test(todoList) && /durationMinutes: chosenDuration,/.test(todoList) && /How long\? \{formatDuration\(duration\)\}/.test(todoList), 'quick To Do asks how long: 1 hr default, 5-minute steps, quick picks, saved as durationMinutes');
+check(/step > 0 \? clampDuration\(value \+ dir \* step\) : stepDuration\(value, dir\)/.test(read('components/DurationField.js')), 'DurationField takes a fixed step');
+check(/Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : TASK_MINUTES/.test(src) && /Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : 30/.test(busy) && /const todoMs = \(Number\(t\.durationMinutes\) > 0/.test(read('services/calendarSync.js')), 'My Week, busy gaps and the Calendar mirror use the task length');
+
 
 
 

@@ -437,12 +437,13 @@ const buildTodos = (list) => {
       if (y) start = new Date(y, mo - 1, dd, 9, 0, 0, 0); // date-only -> 9am default
     }
     if (!start) continue;
-    if (start.getTime() + DURATION.todo * 60000 < now) continue; // skip past
+    const todoMs = (Number(t.durationMinutes) > 0 ? Number(t.durationMinutes) : DURATION.todo) * 60000;
+    if (start.getTime() + todoMs < now) continue; // skip past
     out.push({
       stableKey: `todo__${t.id}`,
       title: t.text || 'Task',
       start,
-      end: new Date(start.getTime() + DURATION.todo * 60000),
+      end: new Date(start.getTime() + todoMs),
       recurring: false,
       frequency: null,
     });

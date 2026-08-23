@@ -110,7 +110,7 @@ export const loadDayItems = async (date) => {
   try {
     for (const t of (await getStoredData('todos')) || []) {
       if (!t || t.completed || t.scheduledDate !== key || !t.scheduledTime) continue;
-      out.push(mk('task', t.id, t.text || 'Task', minutesOf(t.scheduledTime), TASK_MINUTES, { ...t, type: 'one-time', date: t.scheduledDate, time: t.scheduledTime }, { subtitle: 'Task' }));
+      out.push(mk('task', t.id, t.text || 'Task', minutesOf(t.scheduledTime), Number(t.durationMinutes) > 0 ? t.durationMinutes : TASK_MINUTES, { ...t, type: 'one-time', date: t.scheduledDate, time: t.scheduledTime }, { subtitle: 'Task' }));
     }
   } catch {}
 

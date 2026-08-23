@@ -60,7 +60,7 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
     for (const t of (await getStoredData('todos')) || []) {
       if (!t || t.completed || t.scheduledDate !== key || !t.scheduledTime) continue;
       if (excludeTaskId != null && String(t.id) === String(excludeTaskId)) continue;
-      push(out, t.text || 'Task', minutesOf(t.scheduledTime), 30, 'task');
+      push(out, t.text || 'Task', minutesOf(t.scheduledTime), Number(t.durationMinutes) > 0 ? t.durationMinutes : 30, 'task');
     }
   } catch {}
 

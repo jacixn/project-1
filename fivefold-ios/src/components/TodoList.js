@@ -10,6 +10,8 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
+import DurationField from './DurationField';
+import { formatDuration } from '../utils/duration';
 
 // Liquid Glass Container - MUST be outside the main component to prevent re-creation on every render
 const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
@@ -103,16 +105,22 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
     });
   }, []);
 
+  // How long it takes: 1 hr by default, 5-minute steps, quick picks. Rides on
+  // the task as durationMinutes (My Week block, busy gaps, Calendar mirror).
+  const [duration, setDuration] = useState(60);
+
   const handleAddTodo = async () => {
     if (!newTodo.trim()) return;
 
     hapticFeedback.light();
     const chosenDateTime = customDateTime;
+    const chosenDuration = Math.max(5, Number(duration) || 60);
 
     const pendingTask = {
       id: Date.now().toString(),
       text: newTodo.trim(),
       isAnalyzing: true,
+      durationMinutes: chosenDuration,
       createdAt: new Date().toISOString()
     };
     
@@ -124,6 +132,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
     setIsAdding(false);
     setCustomDateTime(null);
     setShowSchedulePicker(false);
+    setDuration(60);
 
     // Run analysis in background
     try {
@@ -139,6 +148,7 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
         timeEstimate: scoring.timeEstimate || 'Unknown',
         confidence: scoring.confidence || 85,
         completed: false,
+        durationMinutes: chosenDuration,
         createdAt: pendingTask.createdAt
       };
 
@@ -263,6 +273,12 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
               </TouchableOpacity>
             )}
           </TouchableOpacity>
+          {/* How long will it take? 1 hr by default; - / + in 5-minute steps; quick picks */}
+          <View style={styles.durationBlock}>
+            <Text style={[styles.durationKicker, { color: textTertiaryColor }]}>How long? {formatDuration(duration)}</Text>
+            <DurationField value={duration} onChange={setDuration} accent={theme.primary} step={5} presets={[15, 30, 45, 60, 90, 120]} bleed={0} />
+          </View>
+
           {showSchedulePicker && (
             <>
               <DateTimePicker
@@ -493,6 +509,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '600',
   },
+  durationBlock: { marginTop: 10, marginBottom: 4 },
+  durationKicker: { fontSize: 12.5, fontWeight: '700', marginBottom: 8, textTransform: 'none' },
   addForm: {
     borderRadius: 12,
     padding: 16,
