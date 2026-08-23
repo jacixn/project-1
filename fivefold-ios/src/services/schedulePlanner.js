@@ -4,7 +4,7 @@
 // caller shows the plan and applies it only after the user taps Apply.
 import productionAiService from './productionAiService';
 import {
-  toModel, pickAnchor, fixableOverlaps, cascadePlan, validatePlan, buildMessages, parsePlanText, describePlan, staysFor,
+  toModel, pickAnchor, fixableOverlaps, cascadePlan, validatePlan, buildMessages, parsePlanText, describePlan, staysFor, planSize,
 } from '../utils/fitPlan';
 
 const noteFor = (plan) => {
@@ -22,6 +22,9 @@ export const planDay = async (items, { anchorId = null, dayLabel = 'today', ask 
   const anchor = pickAnchor(model, anchorId);
   if (!fixableOverlaps(model, anchor).length) return null;
   const base = cascadePlan(model, anchor);
+  // An overlap nothing can fix (the new thing against something fixed) is
+  // not a plan; say nothing rather than offer zero changes.
+  if (!planSize(base)) return null;
 
   let plan = null;
   try {

@@ -81,6 +81,13 @@ check(fixableOverlaps(pullDay).length === 0 && cascadePlan(pullDay).moves.length
 const noAnchor = toModel([it('cal:a', 'calendar', 'Work', T(9), T(12), true, 'one-time'), it('cal:b', 'calendar', 'Dentist', T(11), T(12), true, 'one-time')]);
 check(pickAnchor(noAnchor) === null && fixableOverlaps(noAnchor).length === 0 && cascadePlan(noAnchor).moves.length === 0, 'nothing just added that we can tell: nothing is planned');
 
+// New thing on a fixed thing only: nothing can change, and the plan says so by its size.
+const onWork = toModel([
+  it('cal:w', 'calendar', 'Work', T(9), T(17, 30), true, 'recurring'),
+  it('task:c', 'task', 'call bank', T(11), T(11, 30), true, 'one-time', { createdAt: '2026-08-23T10:00:00Z' }),
+]);
+check(mod.planSize(cascadePlan(onWork)) === 0 && mod.planSize(cascadePlan(model)) === 3, 'a task on a weekly Work block: zero changes possible (no button); the Sunday haircut: three');
+
 // Simple day: an errand on a workout slides the workout next door.
 const simple = toModel([
   it('reminder:e', 'reminder', 'Errand', T(16), T(16, 45), true, 'one-time', { createdAt: '2026-08-23T12:00:00Z' }),
@@ -125,7 +132,7 @@ check(gaps.startsWith('05:00-08:10') && gaps.includes('08:30-14:00') && gaps.inc
 
 // wiring
 const planner = read('services/schedulePlanner.js');
-check(/validatePlan\(model, parsed, anchor, base\)\.ok/.test(planner) && /pickAnchor\(model, anchorId\)/.test(planner) && /source: 'ai'/.test(planner) && /source: 'rules'/.test(planner), 'planner: AI plan only when it validates against the rules plan');
+check(/validatePlan\(model, parsed, anchor, base\)\.ok/.test(planner) && /pickAnchor\(model, anchorId\)/.test(planner) && /source: 'ai'/.test(planner) && /source: 'rules'/.test(planner) && /if \(!planSize\(base\)\) return null;/.test(planner), 'planner: AI plan only when it validates against the rules plan; no plan when nothing can change');
 const resrc = read('services/rescheduleItem.js');
 check(/export const trimItem/.test(resrc) && /export const dropItem/.test(resrc) && /Calendar\.deleteEventAsync\(raw\.eventId\)/.test(resrc) && /export const applyPlanRow/.test(resrc) && /row\.action === 'drop'/.test(resrc), 'trim and skip write through the Calendar; applyPlanRow routes each row');
 const screen = read('screens/MyWeekScreen.js');

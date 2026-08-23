@@ -17,7 +17,7 @@ import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, r
 import { moveItem, applyPlanRow, removeItem } from '../services/rescheduleItem';
 import { rowText } from '../services/fitOffer';
 import { planDay } from '../services/schedulePlanner';
-import { toModel, fixableOverlaps, pickAnchor } from '../utils/fitPlan';
+import { toModel, fixableOverlaps, pickAnchor, cascadePlan, planSize } from '../utils/fitPlan';
 
 // My Week: everything scheduled, from every source, on one screen. Prayers,
 // reminders, workouts, EyeCandy events and your own calendar events can all
@@ -112,7 +112,7 @@ const MyWeekScreen = ({ navigation }) => {
       if (!a || autoOfferedRef.current.has(a)) return;
       const m = model.find((x) => x.id === a);
       const recent = lastMovedRef.current === a || (m && m.createdAt != null && Date.now() - m.createdAt <= RECENT_MS);
-      if (!recent || !fixableOverlaps(model, a).length) return;
+      if (!recent || !planSize(cascadePlan(model, a))) return;
       autoOfferedRef.current.add(a);
       autoPlan(items, a);
     } catch {}
@@ -122,8 +122,13 @@ const MyWeekScreen = ({ navigation }) => {
 
   const dayItems = itemsByDay[dateKeyOf(anchor)] || [];
   const counts = useMemo(() => countByKind(dayItems), [dayItems]);
-  // Overlaps a plan could fix (a 5-min prayer inside a show does not count)
-  const fixableCount = useMemo(() => fixableOverlaps(toModel(dayItems), lastMovedRef.current).length, [dayItems]);
+  // Changes the rules would make around the newest thing (0 = no button:
+  // an overlap nothing can fix is not worth offering)
+  const fixableCount = useMemo(() => {
+    const model = toModel(dayItems);
+    const a = pickAnchor(model, lastMovedRef.current);
+    return a ? planSize(cascadePlan(model, a)) : 0;
+  }, [dayItems]);
   const visible = useMemo(() => dayItems.filter((i) => !hidden.has(i.kind)), [dayItems, hidden]);
   const rows = useMemo(() => buildAgenda(visible), [visible]);
   const today = new Date();
@@ -623,7 +628,7 @@ const MyWeekScreen = ({ navigation }) => {
           <TouchableOpacity onPress={makeItFit} disabled={fitting} style={[styles.fitBtn, { backgroundColor: accent, opacity: fitting ? 0.75 : 1 }]} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Make it fit" accessibilityHint="Plans moves so nothing overlaps. You approve before anything changes">
             {fitting ? <ActivityIndicator color="#fff" /> : null}
             <Text style={styles.fitBtnText}>{fitting ? 'Working it out' : 'Make it fit'}</Text>
-            <Text style={styles.fitBtnSub}>{fixableCount === 1 ? '1 overlap' : `${fixableCount} overlaps`}</Text>
+            <Text style={styles.fitBtnSub}>{fixableCount === 1 ? '1 change' : `${fixableCount} changes`}</Text>
           </TouchableOpacity>
         ) : null}
 

@@ -298,6 +298,9 @@ const placeFun = (model, anchorId, lifeMoves) => {
   return { moves, trims, drops, stuck };
 };
 
+// How many things a plan actually changes.
+export const planSize = (plan) => (plan ? (plan.moves || []).length + (plan.trims || []).length + (plan.drops || []).length : 0);
+
 // The rules' plan. { moves, trims, drops, overflow, anchorId, lifeCost }
 export const cascadePlan = (model, anchorArg = null) => {
   const anchorId = pickAnchor(model, anchorArg);
