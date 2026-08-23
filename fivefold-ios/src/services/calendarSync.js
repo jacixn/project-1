@@ -125,6 +125,10 @@ const localDateAt = (dateStr, h, m) => {
 // WEEKLY series per selected weekday when limited via days[]); one-time
 // prayers are a single event today (skipped if already passed). Skip prayers
 // with no/invalid time.
+// Event notes carry what EyeCandy's My Week cannot see otherwise: the kind,
+// and whether plans must leave it alone (pinned; fixed for template blocks).
+const notesFor = (kind, pinned) => `Added by Biblely · ${kind}${pinned ? ' · pinned' : ''}`;
+
 const buildPrayers = (list) => {
   const now = Date.now();
   const out = [];
@@ -153,6 +157,7 @@ const buildPrayers = (list) => {
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
           alarms: alarmsFromNotify(p.notifyBefore),
+          notes: notesFor('prayer', p.pinned != null ? !!p.pinned : true),
         });
       }
       continue;
@@ -176,6 +181,7 @@ const buildPrayers = (list) => {
       recurring,
       frequency: recurring ? Calendar.Frequency.DAILY : null,
       alarms: alarmsFromNotify(p.notifyBefore),
+      notes: notesFor('prayer', p.pinned != null ? !!p.pinned : true),
     });
   }
   return out;
@@ -205,6 +211,7 @@ const buildReminders = (list) => {
         end: new Date(start.getTime() + durMs),
         recurring: false,
         frequency: null,
+        notes: notesFor('reminder', !!r.pinned),
       });
     } else {
       const days = Array.isArray(r.days) && r.days.length ? r.days : [0, 1, 2, 3, 4, 5, 6];
@@ -218,6 +225,7 @@ const buildReminders = (list) => {
           end: new Date(start.getTime() + durMs),
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
+          notes: notesFor('reminder', !!r.pinned),
           skipDates: Array.isArray(r.skipDates) ? r.skipDates : [],
         });
       }
@@ -249,6 +257,7 @@ const buildGym = (list) => {
         recurring: false,
         frequency: null,
         alarms: alarmsFromNotify(s.notifyBefore),
+        notes: notesFor('gym', !!s.pinned),
       });
     } else {
       const days = Array.isArray(s.days) ? s.days : [];
@@ -264,6 +273,7 @@ const buildGym = (list) => {
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
           alarms: alarmsFromNotify(s.notifyBefore),
+          notes: notesFor('gym', !!s.pinned),
         });
       }
     }
@@ -375,12 +385,12 @@ const reconcile = (namespace, desired) => serialize(async () => {
     const entry = map[d.stableKey];
     const existingId = idOf(entry);
     const skips = (d.skipDates || []).slice().sort().join(',');
-    const stamp = (id) => ({ id, recurring: d.recurring, start: d.start.getTime(), end: d.end.getTime(), title: d.title, skips, alarmsOff: calendarAlertsOff });
+    const stamp = (id) => ({ id, recurring: d.recurring, start: d.start.getTime(), end: d.end.getTime(), title: d.title, skips, alarmsOff: calendarAlertsOff, notes: details.notes });
     if (existingId) {
       // Unchanged since we last wrote it: leave the event alone. Rewriting a
       // series would also wipe one-day edits made in the Calendar (EyeCandy's
       // My Week moving tonight's dinner).
-      const same = !FORCE && entry && typeof entry === 'object' && entry.start === d.start.getTime() && entry.end === d.end.getTime() && entry.title === d.title && entry.skips === skips && !!entry.alarmsOff === calendarAlertsOff;
+      const same = !FORCE && entry && typeof entry === 'object' && entry.start === d.start.getTime() && entry.end === d.end.getTime() && entry.title === d.title && entry.skips === skips && (entry.notes || 'Added by Biblely') === details.notes && !!entry.alarmsOff === calendarAlertsOff;
       if (same) continue;
       try {
         await Calendar.updateEventAsync(existingId, details, d.recurring ? { futureEvents: true } : undefined);
@@ -441,6 +451,7 @@ const buildTodos = (list) => {
     if (start.getTime() + todoMs < now) continue; // skip past
     out.push({
       stableKey: `todo__${t.id}`,
+      notes: notesFor('todo', !!t.pinned),
       title: t.text || 'Task',
       start,
       end: new Date(start.getTime() + todoMs),
@@ -475,7 +486,7 @@ const buildBlocks = (templates, plan) => {
       const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
       if (end.getTime() < now) continue;
       // "fixed" in the notes tells EyeCandy's planner to leave work alone too
-      out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [], notes: b.fixed ? 'Added by Biblely · fixed' : 'Added by Biblely' });
+      out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [], notes: b.fixed ? 'Added by Biblely · block · fixed' : 'Added by Biblely · block' });
     }
   }
   return out;

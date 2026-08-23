@@ -30,7 +30,7 @@ export const isCalendarPinned = async (item) => {
   if (!key) return false;
   const map = await load();
   if (map[key] != null) return !!map[key];
-  return DEFAULT_PIN.test(String(item.title || ''));
+  return !!(item.raw && item.raw.pinnedHint) || DEFAULT_PIN.test(String(item.title || ''));
 };
 
 export const setCalendarPinned = async (item, pinned) => {
@@ -54,7 +54,9 @@ export const applyCalendarPins = async (items) => {
     const key = pinKeyFor(it);
     const byTitle = map[titleKey(it)];
     const stored = key && map[key] != null ? map[key] : byTitle;
-    const pinned = stored != null ? !!stored : DEFAULT_PIN.test(String(it.title || ''));
+    // Default: what the owner said (Biblely marks prayers and pinned items in
+    // the event notes, read into raw.pinnedHint), else the title rule.
+    const pinned = stored != null ? !!stored : (!!raw.pinnedHint || DEFAULT_PIN.test(String(it.title || '')));
     if (pinned) it.raw = { ...raw, pinned: true };
   }
   return items;
