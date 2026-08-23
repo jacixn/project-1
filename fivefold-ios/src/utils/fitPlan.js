@@ -57,6 +57,9 @@ export const tierOf = (it) => {
   // Repeating workouts and reminders can give way for one day (the series
   // skips it, a one-time copy takes the new time), so they are life too.
   if (it.kind === 'gym' || it.kind === 'reminder' || it.kind === 'task') return 'life';
+  // EyeCandy's My Week sees Biblely's prayers/reminders/workouts/tasks as
+  // events of the "Biblely" calendar: life, repeats for this day only.
+  if (it.kind === 'biblely') return 'life';
   if (it.kind === 'calendar') return oneTime ? 'life' : 'fixed';
   return 'fixed';
 };
@@ -71,7 +74,7 @@ export const toModel = (items) => (items || []).map((it, i) => {
   const durationMin = Math.max(5, (it.endMin || 0) - (it.startMin || 0));
   const days = Array.isArray(raw.days) ? raw.days : [];
   const daily = !days.length || days.length === 7;
-  const todayOnly = !oneTime && ((tier === 'life' && (it.kind === 'reminder' || it.kind === 'gym')) || (tier === 'fun' && it.kind === 'eyecandy'));
+  const todayOnly = !oneTime && ((tier === 'life' && (it.kind === 'reminder' || it.kind === 'gym' || it.kind === 'biblely')) || (tier === 'fun' && it.kind === 'eyecandy'));
   const why = it.kind === 'eyecandySports' ? 'match'
     : raw.official ? 'official release time'
     : !it.movable ? 'read-only'
