@@ -60,7 +60,7 @@ export const getDefaultAlarmMinutes = async () => {
 // without a per-item lead time pick up the change too.
 export const setDefaultAlarmMinutes = async (minutes) => {
   await userStorage.setRaw(ALARM_KEY, String(minutes));
-  await syncAll();
+  await syncAll({ force: true });
 };
 
 export const requestPermission = async () => {
@@ -218,6 +218,7 @@ const buildReminders = (list) => {
           end: new Date(start.getTime() + durMs),
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
+          skipDates: Array.isArray(r.skipDates) ? r.skipDates : [],
         });
       }
     }
@@ -259,6 +260,7 @@ const buildGym = (list) => {
           title,
           start,
           end: new Date(start.getTime() + durMs),
+          skipDates: Array.isArray(s.skipDates) ? s.skipDates : [],
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
           alarms: alarmsFromNotify(s.notifyBefore),
@@ -370,11 +372,20 @@ const reconcile = (namespace, desired) => serialize(async () => {
       notes: 'Added by Biblely',
       ...(d.recurring ? { recurrenceRule: { frequency: d.frequency } } : {}),
     };
-    const existingId = idOf(map[d.stableKey]);
+    const entry = map[d.stableKey];
+    const existingId = idOf(entry);
+    const skips = (d.skipDates || []).slice().sort().join(',');
+    const stamp = (id) => ({ id, recurring: d.recurring, start: d.start.getTime(), end: d.end.getTime(), title: d.title, skips, alarmsOff: calendarAlertsOff });
     if (existingId) {
+      // Unchanged since we last wrote it: leave the event alone. Rewriting a
+      // series would also wipe one-day edits made in the Calendar (EyeCandy's
+      // My Week moving tonight's dinner).
+      const same = !FORCE && entry && typeof entry === 'object' && entry.start === d.start.getTime() && entry.end === d.end.getTime() && entry.title === d.title && entry.skips === skips && !!entry.alarmsOff === calendarAlertsOff;
+      if (same) continue;
       try {
         await Calendar.updateEventAsync(existingId, details, d.recurring ? { futureEvents: true } : undefined);
-        map[d.stableKey] = { id: existingId, recurring: d.recurring };
+        map[d.stableKey] = stamp(existingId);
+        await dropSkippedInstances(existingId, d);
         continue;
       } catch {
         // Event was deleted out from under us; fall through to recreate.
@@ -382,12 +393,31 @@ const reconcile = (namespace, desired) => serialize(async () => {
     }
     try {
       const newId = await Calendar.createEventAsync(calId, details);
-      map[d.stableKey] = { id: newId, recurring: d.recurring };
+      map[d.stableKey] = stamp(newId);
+      await dropSkippedInstances(newId, d);
     } catch {}
   }
 
   await userStorage.set(EVENTS_KEY, map);
 });
+
+// A repeating reminder/workout moved or removed "just today" skips that date:
+// take the matching occurrence out of the Calendar series too (the one-time
+// copy, if any, is its own event). Dates within the next 90 days only.
+const dropSkippedInstances = async (eventId, d) => {
+  if (!d.recurring || !d.skipDates || !d.skipDates.length) return;
+  const wd = d.start.getDay();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const limit = today.getTime() + 90 * 86400000;
+  for (const key of d.skipDates) {
+    const inst = localDateAt(key, d.start.getHours(), d.start.getMinutes());
+    if (!inst || inst.getDay() !== wd || inst.getTime() < today.getTime() || inst.getTime() > limit) continue;
+    try { await Calendar.deleteEventAsync(eventId, { instanceStartDate: inst, futureEvents: false }); } catch {}
+  }
+};
+
+// Force every event to be rewritten on the next sync (alarm setting changed).
+let FORCE = false;
 
 // ── per-domain entry points (called from each domain's storage setter) ──────────
 
@@ -426,7 +456,8 @@ export const syncGym = (list) => reconcile('gym', buildGym(list || []));
 export const syncTodos = (list) => reconcile('todo', buildTodos(list || []));
 
 // Backfill every domain from its current stored data (used on enable + cloud pull).
-export const syncAll = async () => {
+export const syncAll = async ({ force = false } = {}) => {
+  FORCE = !!force;
   try {
     const { getStoredData } = require('../utils/localStorage');
     const reminderService = require('./reminderService');
@@ -442,6 +473,158 @@ export const syncAll = async () => {
     await syncGym(scheduled);
     await syncTodos(todos);
   } catch {}
+  FORCE = false;
+};
+
+// ── Two-way: adopt what EyeCandy's My Week (or the Calendar app) did to our
+// events. Each map entry remembers the start/end we wrote; an event whose
+// start or end differs, or an occurrence that moved or vanished, was changed
+// elsewhere, so the prayer/reminder/workout/task follows instead of the
+// next sync snapping the event back.
+const parseKey = (key) => {
+  const parts = String(key).split('__');
+  if (parts.length < 2) return null;
+  return { ns: parts[0], id: parts[1], dayIdx: parts.length > 2 ? Number(parts[2]) : null };
+};
+const hhmm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const keyOfDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// Apply one change to the thing that owns it. { ns, id, dayIdx } + what.
+const applyAdoption = async ({ ns, id }, change) => {
+  const { getStoredData, saveData } = require('../utils/localStorage');
+  if (ns === 'reminder') {
+    const rs = require('./reminderService');
+    if (change.kind === 'series') return !!(await rs.updateReminder(id, { time: change.time, ...(change.date ? { date: change.date } : {}) }));
+    if (change.kind === 'today') return !!(await rs.moveReminderForDay(id, { from: change.from, to: change.to || change.from, time: change.time }));
+    if (change.kind === 'skip') return !!(await rs.skipReminderDay(id, change.from));
+    if (change.kind === 'gone') { await rs.deleteReminder(id); return true; }
+  }
+  if (ns === 'gym') {
+    const WorkoutService = require('./workoutService').default;
+    const wx = require('./workoutExceptions');
+    if (change.kind === 'series') { const saved = await WorkoutService.updateScheduledWorkout(id, { time: change.time, ...(change.date ? { date: change.date } : {}) }); try { await require('./workoutSchedule').scheduleWorkoutNotifications(saved); } catch {} return !!saved; }
+    if (change.kind === 'today') return !!(await wx.moveWorkoutForDay(id, { from: change.from, to: change.to || change.from, time: change.time }));
+    if (change.kind === 'skip') return !!(await wx.skipWorkoutDay(id, change.from));
+    if (change.kind === 'gone') { await WorkoutService.deleteScheduledWorkout(id); return true; }
+  }
+  if (ns === 'prayer') {
+    const ps = require('./simplePrayersService');
+    if (change.kind === 'series') { await ps.updatePrayer(id, { time: change.time, ...(change.date ? { date: change.date } : {}) }); return true; }
+    if (change.kind === 'gone') { await ps.deletePrayerById(id); return true; }
+    return false; // no per-day exceptions for prayers
+  }
+  if (ns === 'todo') {
+    const todos = (await getStoredData('todos')) || [];
+    const idx = todos.findIndex((t) => String(t.id) === String(id));
+    if (idx < 0) return false;
+    if (change.kind === 'gone') todos.splice(idx, 1);
+    else {
+      const date = change.date || todos[idx].scheduledDate;
+      const [y, m, d] = String(date).split('-').map(Number); const [hh, mm] = change.time.split(':').map(Number);
+      todos[idx] = { ...todos[idx], scheduledDate: date, scheduledTime: change.time, scheduledDateTime: new Date(y, m - 1, d, hh, mm, 0, 0).toISOString() };
+    }
+    await saveData('todos', todos);
+    try { require('./userSyncService').pushToCloud('todos', todos); } catch {}
+    try { require('react-native').DeviceEventEmitter.emit('todosChanged'); } catch {}
+    return true;
+  }
+  return false;
+};
+
+let adopting = null;
+// Resolves to the list of adopted changes [{ title, kind, time, date }].
+export const adoptCalendarChanges = () => {
+  if (adopting) return adopting;
+  adopting = (async () => {
+    if (!userStorage.getCurrentUid()) return [];
+    if (!(await isEnabled())) return [];
+    try { const perm = await Calendar.getCalendarPermissionsAsync(); if (!perm.granted) return []; } catch { return []; }
+    const calId = await ensureCalendar();
+    if (!calId) return [];
+    const map = (await userStorage.get(EVENTS_KEY)) || {};
+    const adopted = [];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const horizon = new Date(today.getTime() + 14 * 86400000);
+    let instances = null; // occurrences in the next two weeks, by master id
+    const occurrencesOf = async (id) => {
+      if (!instances) {
+        instances = new Map();
+        try {
+          for (const e of (await Calendar.getEventsAsync([calId], today, horizon)) || []) {
+            if (!e || !e.id) continue;
+            if (!instances.has(e.id)) instances.set(e.id, []);
+            instances.get(e.id).push(e);
+          }
+        } catch {}
+      }
+      return instances.get(id) || [];
+    };
+    // Items whose skipDates we already know about (our own just-today moves).
+    const skipsOf = (entry) => new Set(String(entry.skips || '').split(',').filter(Boolean));
+
+    for (const [key, entry] of Object.entries(map)) {
+      if (!entry || typeof entry !== 'object' || !entry.id || entry.start == null) continue;
+      const k = parseKey(key);
+      if (!k) continue;
+      let ev = null;
+      try { ev = await Calendar.getEventAsync(entry.id); } catch { ev = null; }
+      if (!ev || !ev.startDate) {
+        // The whole event is gone from a calendar that still exists: removed elsewhere.
+        if (entry.recurring) continue; // a series vanishing is not a user action we can read
+        if (await applyAdoption(k, { kind: 'gone' })) { adopted.push({ title: entry.title, kind: 'gone' }); delete map[key]; }
+        continue;
+      }
+      const evStart = new Date(ev.startDate);
+      const startChanged = Math.abs(evStart.getTime() - entry.start) >= 60000;
+      if (!entry.recurring) {
+        if (!startChanged) continue;
+        const change = { kind: 'series', time: hhmm(evStart), date: keyOfDate(evStart) };
+        if (await applyAdoption(k, change)) { adopted.push({ title: entry.title, kind: 'moved', time: change.time, date: change.date }); map[key] = { ...entry, start: evStart.getTime(), end: ev.endDate ? new Date(ev.endDate).getTime() : entry.end }; }
+        continue;
+      }
+      // Repeating: the master moved = every week; an occurrence that moved or
+      // vanished = this day only.
+      if (startChanged) {
+        const change = { kind: 'series', time: hhmm(evStart) };
+        if (await applyAdoption(k, change)) { adopted.push({ title: entry.title, kind: 'moved', time: change.time, every: true }); map[key] = { ...entry, start: evStart.getTime(), end: ev.endDate ? new Date(ev.endDate).getTime() : entry.end }; }
+        continue;
+      }
+      const expectTime = hhmm(new Date(entry.start));
+      const known = skipsOf(entry);
+      const occ = await occurrencesOf(entry.id);
+      // Moved occurrences (detached in the Calendar): the original date is
+      // skipped on the series, a one-time copy takes the new day and time.
+      const present = new Set();
+      for (const o of occ) {
+        const os = new Date(o.startDate);
+        const orig = o.originalStartDate ? new Date(o.originalStartDate) : os;
+        const fromKey = keyOfDate(orig); const toKey = keyOfDate(os);
+        present.add(fromKey);
+        if (hhmm(os) === expectTime && fromKey === toKey) continue;
+        if (known.has(fromKey)) continue;
+        const change = { kind: 'today', from: fromKey, to: toKey, time: hhmm(os) };
+        // Take the detached occurrence out first; our sync recreates the day as a one-time copy.
+        try { await Calendar.deleteEventAsync(entry.id, { instanceStartDate: os, futureEvents: false }); }
+        catch { try { await Calendar.deleteEventAsync(entry.id, { instanceStartDate: orig, futureEvents: false }); } catch {} }
+        if (await applyAdoption(k, change)) adopted.push({ title: entry.title, kind: 'moved', time: change.time, date: toKey, today: true });
+      }
+      // Missing occurrences on expected weekdays = removed for that day.
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today.getTime() + i * 86400000);
+        if (d.getDay() !== k.dayIdx) continue;
+        const dateKey = keyOfDate(d);
+        if (d.getTime() < new Date(entry.start).setHours(0, 0, 0, 0)) continue; // before the series began
+        if (present.has(dateKey) || known.has(dateKey)) continue;
+        if (await applyAdoption(k, { kind: 'skip', from: dateKey })) adopted.push({ title: entry.title, kind: 'skipped', date: dateKey });
+      }
+    }
+    if (adopted.length) {
+      await userStorage.set(EVENTS_KEY, map);
+      try { require('react-native').DeviceEventEmitter.emit('calendarAdopted', adopted); } catch {}
+    }
+    return adopted;
+  })().catch(() => []).finally(() => { adopting = null; });
+  return adopting;
 };
 
 // Turn the feature on: ask permission, make the calendar, backfill everything.
@@ -492,6 +675,7 @@ export default {
   syncGym,
   syncTodos,
   syncAll,
+  adoptCalendarChanges,
   getDefaultAlarmMinutes,
   setDefaultAlarmMinutes,
 };

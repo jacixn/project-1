@@ -421,7 +421,7 @@ const ThemedApp = () => {
       reloadTheme?.();
       // Cloud pulls overwrite prayers/reminders/workouts without going through
       // their local setters, so refresh the calendar mirror too (no-op if off).
-      try { require('./src/services/calendarSync').syncAll(); } catch {}
+      try { const cs = require('./src/services/calendarSync'); cs.adoptCalendarChanges().catch(() => {}).then(() => cs.syncAll()); } catch {}
     });
     
     return () => subscription.remove();
@@ -1067,6 +1067,9 @@ const ThemedApp = () => {
 
         // Refresh any single-shot notifications that may have fired while backgrounded
         notificationService.refreshAllScheduledNotifications().catch(() => {});
+        // Moves made to our Calendar events elsewhere (EyeCandy's My Week, the
+        // Calendar app) become real prayer/reminder/workout/task changes.
+        try { const cs = require('./src/services/calendarSync'); cs.adoptCalendarChanges().then((a) => { if (a && a.length) cs.syncAll(); }).catch(() => {}); } catch {}
       }
       if (nextState === 'active' && userId) {
         const now = Date.now();

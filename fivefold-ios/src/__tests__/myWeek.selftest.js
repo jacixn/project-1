@@ -146,6 +146,17 @@ check(/await applyCalendarPins\(out\);/.test(src) && /if \(raw\.calendar\) retur
 check(/const options = raw\.recurring \? \{ futureEvents: false, instanceStartDate: new Date\(raw\.startDate\) \} : undefined;/.test(resrc) && /calendarMoveDetails\(ev, \{ startDate: at\(startMin\), endDate: at\(endMin\) \}, false\)/.test(resrc), 'a cut on a weekly show is this occurrence only');
 check(/raw\.recurring && to\.todayOnly \? \{ futureEvents: false, instanceStartDate: new Date\(raw\.startDate\) \}/.test(resrc) && /if \(raw\.recurring\) await Calendar\.deleteEventAsync\(raw\.eventId, \{ futureEvents: false, instanceStartDate/.test(resrc), 'plan moves and skips of a weekly show touch only today\'s occurrence');
 
+// ---- Biblely adopts what EyeCandy's My Week (or the Calendar app) did --------
+const cs = read('services/calendarSync.js');
+check(/const stamp = \(id\) => \(\{ id, recurring: d\.recurring, start: d\.start\.getTime\(\), end: d\.end\.getTime\(\), title: d\.title, skips, alarmsOff: calendarAlertsOff \}\);/.test(cs) && /const same = !FORCE && entry/.test(cs), 'mirror entries remember what was written; unchanged events are left alone');
+check(/const dropSkippedInstances = async \(eventId, d\)/.test(cs) && /skipDates: Array\.isArray\(r\.skipDates\) \? r\.skipDates : \[\]/.test(cs) && /skipDates: Array\.isArray\(s\.skipDates\) \? s\.skipDates : \[\]/.test(cs), 'days skipped on a reminder or workout series are taken out of the Calendar series');
+check(/export const adoptCalendarChanges/.test(cs) && /kind: 'series'/.test(cs) && /kind: 'today'/.test(cs) && /kind: 'skip'/.test(cs) && /kind: 'gone'/.test(cs) && /rs\.moveReminderForDay\(id, \{ from: change\.from, to: change\.to \|\| change\.from, time: change\.time \}\)/.test(cs) && /wx\.moveWorkoutForDay/.test(cs) && /o\.originalStartDate/.test(cs), 'adopt-back: series moves, this-day moves (detached occurrences), skipped days, removals, for reminders, workouts, prayers and tasks');
+check(/syncAll\(\{ force: true \}\)/.test(cs) && /export const syncAll = async \(\{ force = false \} = \{\}\)/.test(cs), 'alarm setting forces a rewrite');
+const app = read('../App.js');
+check(/cs\.adoptCalendarChanges\(\)\.then\(\(a\) => \{ if \(a && a\.length\) cs\.syncAll\(\); \}\)/.test(app) && /cs\.adoptCalendarChanges\(\)\.catch\(\(\) => \{\}\)\.then\(\(\) => cs\.syncAll\(\)\)/.test(app), 'App adopts on every foreground and before the cloud-pull resync');
+check(/DeviceEventEmitter\.addListener\('calendarAdopted'/.test(screen), 'My Week refreshes when an adoption lands');
+
+
 
 
 

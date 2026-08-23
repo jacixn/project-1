@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, ActivityIndicator, Platform, DeviceEventEmitter } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
@@ -120,6 +120,8 @@ const MyWeekScreen = ({ navigation }) => {
   }, [anchor]);
   useEffect(() => { loadWeek().then(offerRecent); }, [loadWeek]);
   useEffect(() => navigation.addListener('focus', () => loadWeek().then(offerRecent)), [navigation, loadWeek, offerRecent]);
+  // Changes adopted from the Calendar (EyeCandy's My Week, the Calendar app) while this screen is up.
+  useEffect(() => { const sub = DeviceEventEmitter.addListener('calendarAdopted', () => { loadWeek(); }); return () => sub.remove(); }, [loadWeek]);
 
   const dayItems = itemsByDay[dateKeyOf(anchor)] || [];
   const counts = useMemo(() => countByKind(dayItems), [dayItems]);
