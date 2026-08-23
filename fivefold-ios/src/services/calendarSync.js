@@ -369,7 +369,7 @@ const reconcile = (namespace, desired) => serialize(async () => {
       // that don't specify one use the user's DEFAULT from Profile. An empty
       // array means no calendar alert fires.
       alarms: calendarAlertsOff ? [] : (d.alarms !== undefined ? d.alarms : defaultAlarms),
-      notes: 'Added by Biblely',
+      notes: d.notes || 'Added by Biblely',
       ...(d.recurring ? { recurrenceRule: { frequency: d.frequency } } : {}),
     };
     const entry = map[d.stableKey];
@@ -474,7 +474,8 @@ const buildBlocks = (templates, plan) => {
       const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.startMin, 0, 0);
       const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
       if (end.getTime() < now) continue;
-      out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [] });
+      // "fixed" in the notes tells EyeCandy's planner to leave work alone too
+      out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [], notes: b.fixed ? 'Added by Biblely · fixed' : 'Added by Biblely' });
     }
   }
   return out;
