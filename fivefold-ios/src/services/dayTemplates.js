@@ -7,6 +7,7 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import {
   PRESET_TEMPLATES, makeTemplate, normalizeTemplate, normalizePlan, emptyPlan, prunePlan,
   withDateTemplate, withWeekdayTemplate, withoutDateChoice, withOverride, withoutTemplate,
+  withBlockDone,
   blocksForDay, templateIdForDay, templateForDay, minToHm, reminderHiddenOn, groupHiddenOn, hideGroupsFor,
 } from '../utils/dayTemplates';
 
@@ -92,6 +93,14 @@ export const moveBlockForDay = async (dateKey, blockId, { startMin, endMin }) =>
   savePlan(withOverride(await getPlan(), dateKey, blockId, { start: minToHm(startMin), end: minToHm(endMin) }));
 export const skipBlockForDay = async (dateKey, blockId) => savePlan(withOverride(await getPlan(), dateKey, blockId, null));
 export const restoreBlockForDay = async (dateKey, blockId) => savePlan(withOverride(await getPlan(), dateKey, blockId, undefined));
+// Tick a block off for the day (no calendar rewrite needed: only the tick changes).
+export const setBlockDone = async (dateKey, blockId, done) => {
+  const clean = prunePlan(withBlockDone(await getPlan(), dateKey, blockId, done), dateKeyOf(new Date()));
+  await saveData(PLAN_KEY, clean);
+  push(PLAN_KEY, clean);
+  emit();
+  return clean;
+};
 
 // What My Week / the calendar mirror need for one day.
 export const getBlocksForDay = async (date) => {

@@ -114,12 +114,23 @@ export const normalizeKeeps = (k) => {
 };
 export const hideGroupsFor = (t) => DAY_GROUPS.filter((g) => t && t.keeps && t.keeps[g] === false);
 
-export const emptyPlan = () => ({ dates: {}, weekdays: {}, overrides: {} });
+export const emptyPlan = () => ({ dates: {}, weekdays: {}, overrides: {}, done: {} });
 export const normalizePlan = (p) => ({
   dates: p && p.dates && typeof p.dates === 'object' ? p.dates : {},
   weekdays: p && p.weekdays && typeof p.weekdays === 'object' ? p.weekdays : {},
   overrides: p && p.overrides && typeof p.overrides === 'object' ? p.overrides : {},
+  done: p && p.done && typeof p.done === 'object' ? p.done : {}, // { 'YYYY-MM-DD': [blockId] } ticked off that day
 });
+// Tick a block off (or back on) for one day.
+export const withBlockDone = (plan, dateKey, blockId, done) => {
+  const p = normalizePlan(plan);
+  const list = (p.done[dateKey] || []).filter((id) => id !== blockId);
+  if (done) list.push(blockId);
+  const next = { ...p.done };
+  if (list.length) next[dateKey] = list; else delete next[dateKey];
+  return { ...p, done: next };
+};
+export const isBlockDone = (plan, dateKey, blockId) => ((normalizePlan(plan).done[dateKey]) || []).includes(blockId);
 
 // Which template a day uses: the date's own choice first (null = none,
 // on purpose), else the weekday's.
@@ -148,7 +159,7 @@ export const blocksForDay = (templates, plan, dateKey, dow) => {
     const s = hmToMin(o && o.start ? o.start : start);
     const e = hmToMin(o && o.end ? o.end : end);
     if (s == null || e == null || e <= s) return;
-    out.push({ blockId: id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(start), fixed: !!b.fixed, notify: b.notify !== false, moved: !!o, icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}), ...extra });
+    out.push({ blockId: id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(start), fixed: !!b.fixed, notify: b.notify !== false, moved: !!o, done: ((normalizePlan(plan).done[dateKey]) || []).includes(id), icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}), ...extra });
   };
   for (const b of t.blocks || []) {
     if (b.overnight) {
@@ -210,7 +221,8 @@ export const prunePlan = (plan, todayKey) => {
   const p = normalizePlan(plan);
   const dates = {}; for (const [k, v] of Object.entries(p.dates)) if (k >= todayKey) dates[k] = v;
   const overrides = {}; for (const [k, v] of Object.entries(p.overrides)) if (k >= todayKey) overrides[k] = v;
-  return { ...p, dates, overrides };
+  const done = {}; for (const [k, v] of Object.entries(p.done)) if (k >= todayKey) done[k] = v;
+  return { ...p, dates, overrides, done };
 };
 
 // "Work 9 AM to 5:30 PM · Breakfast, Lunch, Dinner"

@@ -156,5 +156,13 @@ const rs = fs.readFileSync(path.join(root, 'components', 'RemindersScreen.js'), 
 check(/isBlock: true/.test(rs) && /Day plan · \$\{reminder\.templateName\}/.test(rs) && /dayPlanChanged/.test(rs), 'Reminders screen lists the day\'s ringing blocks');
 check(/Rings at \$\{fmtClock\(hmToMin\(b\.start\)\)\}, like a reminder/.test(fs.readFileSync(path.join(root, 'screens', 'DayTemplatesScreen.js'), 'utf8')), 'editor: per-block Remind me toggle');
 
+let doneP = T.withBlockDone(T.emptyPlan(), '2026-08-23', 'd', true);
+check(T.isBlockDone(doneP, '2026-08-23', 'd') && !T.isBlockDone(doneP, '2026-08-24', 'd') && !T.isBlockDone(T.withBlockDone(doneP, '2026-08-23', 'd', false), '2026-08-23', 'd'), 'a block can be ticked off for one day and back');
+check(T.blocksForDay([ringT], { ...T.withDateTemplate(T.emptyPlan(), 'x', 'r'), done: { x: ['d'] } }, 'x', 1).find((b) => b.blockId === 'd').done === true, 'blocksForDay carries done');
+check(!T.prunePlan({ ...T.emptyPlan(), done: { '2026-01-01': ['d'], '2026-09-01': ['d'] } }, '2026-08-23').done['2026-01-01'], 'old ticks pruned');
+const rc = fs.readFileSync(path.join(root, 'components', 'RemindersCard.js'), 'utf8');
+check(/getBlocksForDay\(new Date\(\)\)/.test(rc) && /isBlock: true/.test(rc) && /setBlockDone\(dateStr, reminder\.blockId, true\)/.test(rc) && /dayPlanChanged/.test(rc), 'Focus card shows today\'s ringing blocks and ticks them off');
+check(/setBlockDone\(dateStr, reminder\.blockId, done\)/.test(rs), 'Reminders screen ticks blocks too');
+
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

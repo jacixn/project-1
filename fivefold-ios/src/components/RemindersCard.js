@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -91,7 +92,33 @@ const RemindersCard = ({
 
   const today = new Date().getDay();
   const dateStr = todayDateStr();
-  const todayReminders = getRemindersForDay(reminders || [], today, dateStr);
+  // Today's day-template blocks that ring (Eat dinner at 7 on a Work Remote
+  // day) sit with the reminders; ticking one is remembered for the day.
+  const [blocks, setBlocks] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const { getBlocksForDay } = require('../services/dayTemplates');
+        const list = (await getBlocksForDay(new Date())).filter((b) => b.notify && !b.source && b.overnight !== 'am');
+        if (alive) setBlocks(list);
+      } catch {}
+    };
+    load();
+    const sub = DeviceEventEmitter.addListener('dayPlanChanged', load);
+    return () => { alive = false; sub.remove(); };
+  }, [reminders]);
+  const blockRows = blocks.map((b) => ({
+    id: `block:${dateStr}:${b.blockId}`,
+    title: b.title,
+    time: `${String(Math.floor(b.startMin / 60)).padStart(2, '0')}:${String(b.startMin % 60).padStart(2, '0')}`,
+    icon: b.icon || 'schedule',
+    color: '#5AC8FA',
+    isBlock: true,
+    blockId: b.blockId,
+    completions: b.done ? { [dateStr]: true } : {},
+  }));
+  const todayReminders = [...getRemindersForDay(reminders || [], today, dateStr), ...blockRows];
   // Smart ordering: surface what still needs doing. Incomplete reminders come
   // first (so a finished top-3 no longer buries the ones left to do), each group
   // sorted by time so the soonest shows first. Completed ones sink to the bottom
@@ -203,6 +230,7 @@ const RemindersCard = ({
                 const pts = 10 + Math.floor(Math.random() * 11);
                 showFloatingPoints(pts, rColor);
                 onPointsEarned?.(pts);
+                if (reminder.isBlock) { try { require('../services/dayTemplates').setBlockDone(dateStr, reminder.blockId, true); } catch {} return; }
                 onComplete?.(reminder, dateStr);
               }}
             />

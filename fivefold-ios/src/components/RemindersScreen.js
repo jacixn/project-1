@@ -160,8 +160,10 @@ const RemindersScreen = ({ navigation }) => {
       icon: b.icon || 'schedule',
       color: '#5AC8FA',
       isBlock: true,
+      blockId: b.blockId,
       templateId: b.templateId,
       templateName: b.templateName,
+      completions: b.done ? { [dateStr]: true } : {},
     }));
     const dayReminders = [...getRemindersForDay(reminders, dayIndex, dateStr), ...blockRows]
       .sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
@@ -228,7 +230,16 @@ const RemindersScreen = ({ navigation }) => {
                   {/* Card */}
                   <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => { if (reminder.isBlock) { hapticFeedback.light(); navigation.navigate('DayTemplates', { editId: reminder.templateId }); return; } handleToggleComplete(reminder, dateStr); }}
+                    onPress={async () => {
+                      if (reminder.isBlock) {
+                        const done = !reminder.completions?.[dateStr];
+                        if (done) hapticFeedback.success(); else hapticFeedback.light();
+                        try { await require('../services/dayTemplates').setBlockDone(dateStr, reminder.blockId, done); } catch {}
+                        await refresh();
+                        return;
+                      }
+                      handleToggleComplete(reminder, dateStr);
+                    }}
                     onLongPress={() => {
                       hapticFeedback.medium();
                       if (reminder.isBlock) { navigation.navigate('DayTemplates', { editId: reminder.templateId }); return; }
