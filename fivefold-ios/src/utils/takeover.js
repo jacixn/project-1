@@ -17,7 +17,9 @@ export const normTitle = (t) => String(t || '')
   .replace(/\s+(time|break|block|session|hour)$/, '')
   .trim();
 
-export const isBlockItem = (it) => !!it && (it.kind === 'block' || (it.kind === 'biblely' && it.raw && it.raw.biblelyKind === 'block'));
+// A calendar event tagged as a template block (the user's own "Work" event
+// standing in for the Work block) counts as a block too.
+export const isBlockItem = (it) => !!it && (it.kind === 'block' || !!(it.raw && it.raw.templateBlock) || (it.kind === 'biblely' && it.raw && it.raw.biblelyKind === 'block'));
 
 const protectedKind = (it) => it.kind === 'prayer' || it.kind === 'eyecandy' || it.kind === 'eyecandySports'
   || (it.kind === 'biblely' && it.raw && it.raw.biblelyKind === 'prayer');
@@ -39,6 +41,24 @@ export const applyTakeover = (items) => {
   const blocks = list.filter(isBlockItem);
   if (!blocks.length) return list;
   return list.filter((it) => isBlockItem(it) || protectedKind(it) || !blocks.some((b) => sameThing(b.title, it.title)));
+};
+
+// The same thing kept twice: a Biblely reminder ("Social Media time") and
+// the user's own iPhone Calendar event with the same name at the same time.
+// Biblely shows its reminder and hides the event; EyeCandy shows the event
+// and hides Biblely's mirror of the reminder. One thing, once, in both.
+const overlaps = (a, b) => a.startMin < b.endMin && b.startMin < a.endMin;
+export const dedupeMirrors = (items) => {
+  const list = items || [];
+  return list.filter((it) => {
+    if (it.kind === 'calendar' && !(it.raw && it.raw.templateBlock)) {
+      return !list.some((o) => (o.kind === 'reminder' || o.kind === 'task' || o.kind === 'gym') && overlaps(o, it) && sameThing(o.title, it.title));
+    }
+    if (it.kind === 'biblely' && !isBlockItem(it)) {
+      return !list.some((o) => o.kind === 'calendar' && overlaps(o, it) && sameThing(o.title, it.title));
+    }
+    return true;
+  });
 };
 
 // For busy lists ({ title, source }): same rule by titles.

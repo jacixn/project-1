@@ -10,7 +10,7 @@ import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
-import { takeoverTitles } from './takeover';
+import { takeoverTitles, sameThing } from './takeover';
 
 const BIBLELY_CAL = 'Biblely';
 const DAY_MIN = 24 * 60;
@@ -67,9 +67,14 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
 
   // Day template blocks (Work, Lunch...) are busy like anything else.
   let blockTitles = [];
+  const fromCalendar = [];
   try {
     const { getBlocksForDay } = require('../services/dayTemplates');
-    for (const b of await getBlocksForDay(date)) { push(out, b.title, b.startMin, b.endMin - b.startMin, 'block'); blockTitles.push(b.title); }
+    for (const b of await getBlocksForDay(date)) {
+      blockTitles.push(b.title);
+      if (b.source) { fromCalendar.push(b); continue; } // the calendar event below is this block
+      push(out, b.title, b.startMin, b.endMin - b.startMin, 'block');
+    }
   } catch {}
 
   try {
@@ -101,6 +106,12 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
     }
   } catch {}
 
+  // Calendar-backed blocks: the matching event counts as the block; with
+  // none today, the block's own time counts.
+  for (const b of fromCalendar) {
+    const ev = out.find((e) => e.source === 'calendar' && sameThing(e.title, b.source.title));
+    if (ev) ev.source = 'block'; else push(out, b.title, b.startMin, b.endMin - b.startMin, 'block');
+  }
   // The template takes the day over: same-named things step aside.
   return takeoverTitles(out, blockTitles).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };

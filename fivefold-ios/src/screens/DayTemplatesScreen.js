@@ -15,7 +15,8 @@ import { getTemplates, upsertTemplate, deleteTemplate } from '../services/dayTem
 import { BLOCK_PRESETS, hmToMin, minToHm, fmtClock, newId, iconForTitle, templateSummary, freeMinutes, normalizeTemplate } from '../utils/dayTemplates';
 import { KINDS, fmtDur } from '../utils/dayItems';
 import { loadReminderPresets, loadReminders } from '../services/reminderService';
-import { sameThing } from '../utils/takeover';
+import { sameThing, normTitle } from '../utils/takeover';
+import * as Calendar from 'expo-calendar';
 
 const ACCENT = KINDS.block.color;
 
@@ -34,6 +35,9 @@ const DayTemplatesScreen = ({ navigation, route }) => {
   // The user's own reminder bookmarks (Eat breakfast, Eat dinner...) as
   // blocks: their icon and length, and the time they are usually set for.
   const [mine, setMine] = useState([]);
+  // Repeating events from the user's other iPhone calendars ("Work" in the
+  // Work calendar, "Social Media time"): a block can simply BE one of those.
+  const [fromCal, setFromCal] = useState([]);
   const load = useCallback(async () => {
     try { setList(await getTemplates()); } catch {}
     try {
@@ -50,6 +54,29 @@ const DayTemplatesScreen = ({ navigation, route }) => {
         const sm = hmToMin(start) ?? 12 * 60;
         return { title: p.title, start: minToHm(sm), end: minToHm(Math.min(24 * 60, sm + len)), fixed: false, icon: p.icon || iconForTitle(p.title) };
       }));
+    } catch {}
+    try {
+      const perm = await Calendar.getCalendarPermissionsAsync();
+      if (perm.granted) {
+        const cals = (await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT)) || [];
+        const byId = {}; for (const c of cals) byId[c.id] = c;
+        const ids = cals.filter((c) => c.title !== 'Biblely' && !/^eyecandy/i.test(c.title || '')).map((c) => c.id);
+        const from = new Date(); from.setHours(0, 0, 0, 0);
+        const to = new Date(from.getTime() + 14 * 86400000);
+        const evs = ids.length ? (await Calendar.getEventsAsync(ids, from, to)) || [] : [];
+        const seen = new Set(); const list = [];
+        for (const e of evs) {
+          if (!e || e.allDay || !e.recurrenceRule || !e.title) continue;
+          const cal = byId[e.calendarId] || {};
+          const k = `${normTitle(e.title)}|${e.calendarId}`;
+          if (seen.has(k)) continue; seen.add(k);
+          const st = new Date(e.startDate); const en = new Date(e.endDate);
+          const sm = st.getHours() * 60 + st.getMinutes(); const em = Math.max(sm + 5, en.getHours() * 60 + en.getMinutes());
+          list.push({ title: e.title, start: minToHm(sm), end: minToHm(em), fixed: /work|school|office|shift/i.test(e.title), icon: iconForTitle(e.title), color: cal.color || ACCENT, calendarTitle: cal.title || 'Calendar', source: { kind: 'calendar', title: e.title, calendarTitle: cal.title || null } });
+        }
+        list.sort((a, b) => hmToMin(a.start) - hmToMin(b.start));
+        setFromCal(list);
+      }
     } catch {}
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -74,12 +101,12 @@ const DayTemplatesScreen = ({ navigation, route }) => {
     // Nudge a second meal or commute after the last one so it never lands on top
     patch((e) => {
       let start = hmToMin(preset.start); let end = hmToMin(preset.end);
-      const clash = e.blocks.some((b) => hmToMin(b.start) < end && hmToMin(b.end) > start);
+      const clash = !preset.source && e.blocks.some((b) => hmToMin(b.start) < end && hmToMin(b.end) > start);
       if (clash) {
         const lastEnd = Math.max(0, ...e.blocks.map((b) => hmToMin(b.end)));
         const len = end - start; start = Math.min(23 * 60, lastEnd + 30); end = Math.min(24 * 60, start + len);
       }
-      e.blocks.push({ id, title: preset.title, start: minToHm(start), end: minToHm(end), fixed: !!preset.fixed });
+      e.blocks.push({ id, title: preset.title, start: minToHm(start), end: minToHm(end), fixed: !!preset.fixed, ...(preset.source ? { source: preset.source } : {}) });
       e.blocks.sort((a, b) => hmToMin(a.start) - hmToMin(b.start));
       return e;
     });
@@ -177,11 +204,23 @@ const DayTemplatesScreen = ({ navigation, route }) => {
                 <MaterialIcons name={iconForTitle(b.title)} size={22} color={ACCENT} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.blockTitle, { color: theme.text }]}>{b.title}</Text>
-                  <Text style={[styles.blockTime, { color: bad ? '#FF453A' : theme.textSecondary }]}>{`${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${b.fixed ? '  ·  fixed' : ''}`}</Text>
+                  <Text style={[styles.blockTime, { color: bad ? '#FF453A' : theme.textSecondary }]}>{`${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${b.fixed ? '  ·  fixed' : ''}${b.source ? `  ·  your ${b.source.calendarTitle || 'Calendar'} event` : ''}`}</Text>
                 </View>
                 <MaterialIcons name={open ? 'expand-less' : 'expand-more'} size={22} color={theme.textSecondary} />
               </TouchableOpacity>
-              {open ? (
+              {open && b.source ? (
+                <View style={styles.blockBody}>
+                  <Text style={[styles.empty, { color: theme.textSecondary, paddingVertical: 0 }]}>{`This is your "${b.source.title}" event from the ${b.source.calendarTitle || 'Calendar'} calendar. On days it is on, it stands in for this block; its time comes from the Calendar app.`}</Text>
+                  <TouchableOpacity onPress={() => { hapticFeedback.selection(); setBlock(b.id, { fixed: !b.fixed }); }} style={[styles.fixedRow, { borderColor: hairline }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: !!b.fixed }}>
+                    <MaterialIcons name="push-pin" size={18} color={b.fixed ? ACCENT : theme.textSecondary} />
+                    <Text style={[styles.fixedText, { color: theme.text }]}>{b.fixed ? 'Fixed: plans never move this' : 'Can give way for a day'}</Text>
+                    <Text style={[styles.fixedState, { color: b.fixed ? ACCENT : theme.textSecondary }]}>{b.fixed ? 'Fixed' : 'Flexible'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removeBlock(b.id)} style={styles.removeBtn} activeOpacity={0.7} accessibilityRole="button">
+                    <Text style={styles.removeText}>Remove {b.title}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : open ? (
                 <View style={styles.blockBody}>
                   <TextInput
                     value={b.title}
@@ -234,6 +273,18 @@ const DayTemplatesScreen = ({ navigation, route }) => {
           );
         })}
 
+        {fromCal.length ? (<>
+          <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 18 }]}>From your Calendar</Text>
+          <View style={styles.presets}>
+            {fromCal.map((p) => (
+              <TouchableOpacity key={`cal-${p.calendarTitle}-${p.title}`} onPress={() => addBlock(p)} style={[styles.preset, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Add ${p.title} from your ${p.calendarTitle} calendar, ${fmtClock(hmToMin(p.start))} to ${fmtClock(hmToMin(p.end))}`}>
+                <View style={[styles.calBar, { backgroundColor: p.color }]} />
+                <Text style={[styles.presetText, { color: theme.text }]}>{p.title}</Text>
+                <Text style={[styles.presetSub, { color: theme.textSecondary }]}>{`${fmtClock(hmToMin(p.start))} to ${fmtClock(hmToMin(p.end))}`}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>) : null}
         {mine.length ? (<>
           <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 18 }]}>From your reminders</Text>
           <View style={styles.presets}>
@@ -246,7 +297,7 @@ const DayTemplatesScreen = ({ navigation, route }) => {
             ))}
           </View>
         </>) : null}
-        <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 18 }]}>{mine.length ? 'More' : 'Add to the day'}</Text>
+        <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 18 }]}>{mine.length || fromCal.length ? 'More' : 'Add to the day'}</Text>
         <View style={styles.presets}>
           {BLOCK_PRESETS.map((p) => (
             <TouchableOpacity key={p.title} onPress={() => addBlock(p)} style={[styles.preset, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Add ${p.title}`}>
@@ -304,6 +355,7 @@ const styles = StyleSheet.create({
   preset: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 12, borderRadius: 12 },
   presetText: { fontSize: 14, fontWeight: '700' },
   presetSub: { fontSize: 12, fontWeight: '600' },
+  calBar: { width: 4, height: 18, borderRadius: 2 },
 });
 
 export default DayTemplatesScreen;

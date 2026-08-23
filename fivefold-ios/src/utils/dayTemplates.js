@@ -87,7 +87,11 @@ export const normalizeTemplate = (t) => {
     if (!b) continue;
     const s = hmToMin(b.start); const e = hmToMin(b.end);
     if (s == null || e == null || e <= s) continue;
-    blocks.push({ id: b.id || newId('b'), title: String(b.title || 'Block').trim() || 'Block', start: minToHm(s), end: minToHm(Math.min(e, DAY_MIN)), fixed: !!b.fixed });
+    // source = the block IS an event the user already has in another iPhone
+    // calendar ("Work" in the Work calendar): that event stands in for the
+    // block on days it occurs, nothing is mirrored, so nothing shows twice.
+    const source = b.source && b.source.kind === 'calendar' && b.source.title ? { kind: 'calendar', title: String(b.source.title), calendarTitle: b.source.calendarTitle ? String(b.source.calendarTitle) : null } : null;
+    blocks.push({ id: b.id || newId('b'), title: String(b.title || 'Block').trim() || 'Block', start: minToHm(s), end: minToHm(Math.min(e, DAY_MIN)), fixed: !!b.fixed, ...(source ? { source } : {}) });
   }
   blocks.sort((a, b) => hmToMin(a.start) - hmToMin(b.start) || hmToMin(a.end) - hmToMin(b.end));
   return { id: (t && t.id) || newId('t'), name: String((t && t.name) || 'Day').trim() || 'Day', blocks };
@@ -127,7 +131,7 @@ export const blocksForDay = (templates, plan, dateKey, dow) => {
     const s = hmToMin(o && o.start ? o.start : b.start);
     const e = hmToMin(o && o.end ? o.end : b.end);
     if (s == null || e == null || e <= s) continue;
-    out.push({ blockId: b.id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(b.start), fixed: !!b.fixed, moved: !!o, icon: iconForTitle(b.title) });
+    out.push({ blockId: b.id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(b.start), fixed: !!b.fixed, moved: !!o, icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}) });
   }
   out.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
   return out;

@@ -482,6 +482,7 @@ const buildBlocks = (templates, plan) => {
     const d = new Date(today.getTime() + i * 86400000);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     for (const b of blocksForDay(templates, plan, key, d.getDay())) {
+      if (b.source) continue; // the user's own calendar event already is this block
       const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.startMin, 0, 0);
       const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
       if (end.getTime() < now) continue;

@@ -31,6 +31,10 @@ check(t.blocks.map((b) => b.id).join() === 'bf,work,lunch', `blocks sorted by st
 check(t.blocks[1].fixed === true && t.blocks[0].fixed === false, 'fixed flag kept / defaulted');
 check(T.templateSummary(t) === 'Work 9 AM to 5:30 PM · Breakfast, Lunch', `summary (${T.templateSummary(t)})`);
 
+const withSrc = T.normalizeTemplate({ id: 's', name: 'S', blocks: [{ id: 'w', title: 'Work', start: '09:00', end: '17:30', fixed: true, source: { kind: 'calendar', title: 'Work', calendarTitle: 'Work' } }, { id: 'x', title: 'X', start: '10:00', end: '11:00', source: { kind: 'other' } }] });
+check(withSrc.blocks[0].source && withSrc.blocks[0].source.calendarTitle === 'Work' && !withSrc.blocks[1].source, 'calendar source kept on a block, unknown sources dropped');
+check(T.blocksForDay([withSrc], { dates: { d: 's' }, weekdays: {}, overrides: {} }, 'd', 1)[0].source.title === 'Work', 'blocksForDay carries the source');
+
 // Presets make valid templates
 for (const p of T.PRESET_TEMPLATES) {
   const m = T.makeTemplate(p.name, p.blocks);

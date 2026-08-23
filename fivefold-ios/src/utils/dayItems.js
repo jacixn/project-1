@@ -14,7 +14,7 @@ import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
 import { applyCalendarPins } from '../services/pins';
 import { getBlocksForDay } from '../services/dayTemplates';
-import { applyTakeover } from './takeover';
+import { applyTakeover, dedupeMirrors, sameThing } from './takeover';
 
 // Colour = where it comes from, matching how the iPhone Calendar shows the
 // same items: Biblely green (three close shades so the legend still tells
@@ -123,8 +123,12 @@ export const loadDayItems = async (date) => {
 
   // Day template blocks (Work, Lunch...). Fixed blocks never move in a
   // plan; the rest may give way for one day.
+  // Blocks that ARE one of the user's own calendar events wait for the
+  // calendar read below: the event stands in for them when it is on today.
+  const fromCalendar = [];
   try {
     for (const b of await getBlocksForDay(date)) {
+      if (b.source) { fromCalendar.push(b); continue; }
       out.push(mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, subtitle: b.moved ? `${b.templateName} · moved today` : b.templateName }));
     }
   } catch {}
@@ -198,11 +202,24 @@ export const loadDayItems = async (date) => {
     }
   } catch {}
 
+  // Calendar-backed blocks: tag the matching event as the block (fixed from
+  // the template); with no such event today, the block itself shows.
+  for (const b of fromCalendar) {
+    const ev = out.find((it) => it.kind === 'calendar' && !it.raw?.templateBlock && sameThing(it.title, b.source.title) && (!b.source.calendarTitle || it.raw?.calendarTitle === b.source.calendarTitle));
+    if (ev) {
+      ev.raw = { ...ev.raw, templateBlock: { blockId: b.blockId, templateId: b.templateId, templateName: b.templateName }, fixed: !!b.fixed, ...(b.fixed ? { pinned: true } : {}) };
+      ev.subtitle = `${b.templateName} · ${ev.raw.calendarTitle || 'Calendar'}`;
+    } else {
+      const it = mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, subtitle: b.templateName });
+      if (it) out.push(it);
+    }
+  }
+
   // Pins for things Biblely does not own (other calendars, EyeCandy slots).
   try { await applyCalendarPins(out); } catch {}
   // A day template takes the day over: same-named reminders and calendar
   // events step aside for that day (no duplicate Work, no Breakfast twice).
-  return applyTakeover(out).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  return applyTakeover(dedupeMirrors(out)).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };
 
 // ---- pure ----------------------------------------------------------------
