@@ -182,5 +182,15 @@ check(/\{ \.\.\.p, pinned: p\.pinned != null \? !!p\.pinned : true \}/.test(src)
 
 
 
+// Home-screen widget: one flowing timeline fed by the same loader
+const wb = read('utils/widgetBridge.js');
+check(/export async function updateMyWeekWidget/.test(wb) && /loadDayItems, KINDS \} = require\('\.\/dayItems'\)/.test(wb) && /setWidgetData\(MY_WEEK_KEY, \{ days, updatedAt/.test(wb) && /MY_WEEK_KEY = 'widgetMyWeekData'/.test(wb), 'widget data: 3 days from the My Week loader (colours, takeover, templates included)');
+const appSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'App.js'), 'utf8');
+check((appSrc.match(/updateMyWeekWidget\(\)\.catch/g) || []).length === 2 && /biblely:\/\/myweek/.test(appSrc) && /navigate\('MyWeek'\)/.test(appSrc), 'App refreshes the widget with the others and opens My Week from a widget tap');
+const sw = fs.readFileSync(path.join(__dirname, '..', '..', 'ios', 'BiblelyVerseWidget', 'MyWeekWidget.swift'), 'utf8');
+check(/key = "widgetMyWeekData"/.test(sw) && /struct MyWeekItem: Codable/.test(sw) && /\.supportedFamilies\(\[\.systemSmall, \.systemMedium, \.systemLarge\]\)/.test(sw) && /biblely:\/\/myweek/.test(sw) && /case free\(/.test(sw) && /Tomorrow/.test(sw), 'Swift widget: same key and shape, three sizes, free rows, flows into tomorrow, taps open My Week');
+check(/MyWeekWidget\(\)/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'ios', 'BiblelyVerseWidget', 'BiblelyVerseWidgetBundle.swift'), 'utf8')), 'widget registered in the bundle');
+check(/updateMyWeekWidget\(\)/.test(screen) && /updateMyWeekWidget\(\)/.test(read('services/dayTemplates.js')), 'My Week screen and day-plan changes push fresh widget data');
+
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

@@ -20,6 +20,7 @@ const TODO_KEY = 'widgetTodoData';
 const HABITS_KEY = 'widgetHabitsData';
 const VISION_KEY = 'widgetVisionData';
 const BODY_COMP_KEY = 'widgetBodyCompData';
+const MY_WEEK_KEY = 'widgetMyWeekData';
 
 /**
  * Safely write JSON to the shared App Group container and reload widgets.
@@ -243,3 +244,52 @@ export default {
   updateVisionWidget,
   updateBodyCompWidget,
 };
+
+// ─── My Week Widget ───────────────────────────────────────────
+// Today and the next two days as one flowing timeline: prayers, reminders,
+// tasks, workouts, day-template blocks, EyeCandy and every iPhone calendar,
+// already deduped / taken over exactly like the My Week screen (same loader).
+// The widget itself moves the "now" line and fades the past; JS only ships
+// the items and their iPhone Calendar colours.
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export async function updateMyWeekWidget() {
+  if (Platform.OS !== 'ios' || !WidgetBridge?.setWidgetData) return;
+  try {
+    const { loadDayItems, KINDS } = require('./dayItems');
+    const { getTemplateDayFor } = require('../services/dayTemplates');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const days = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(today.getTime() + i * 86400000);
+      let items = [];
+      try { items = await loadDayItems(d); } catch {}
+      let template = null;
+      try { const td = await getTemplateDayFor(d); template = td && td.template ? td.template.name : null; } catch {}
+      days.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        weekday: WEEKDAYS[d.getDay()],
+        day: d.getDate(),
+        month: MONTHS[d.getMonth()],
+        template,
+        items: items
+          .filter((it) => it && Number.isFinite(it.startMin) && Number.isFinite(it.endMin))
+          .sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin)
+          .slice(0, 40)
+          .map((it) => ({
+            id: String(it.id),
+            title: String(it.title || ''),
+            start: Math.round(it.startMin),
+            end: Math.round(Math.max(it.startMin + 1, it.endMin)),
+            color: String(it.color || (KINDS[it.kind] && KINDS[it.kind].color) || '#34C759'),
+            kind: String(it.kind || ''),
+            label: String((KINDS[it.kind] && KINDS[it.kind].label) || ''),
+            pinned: !!(it.raw && it.raw.pinned),
+          })),
+      });
+    }
+    await setWidgetData(MY_WEEK_KEY, { days, updatedAt: new Date().toISOString() });
+  } catch (err) {
+    console.warn('⚠️ updateMyWeekWidget failed:', err?.message || err);
+  }
+}

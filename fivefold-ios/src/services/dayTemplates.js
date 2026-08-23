@@ -30,7 +30,7 @@ const requiet = () => {
     ns._rescheduleWorkoutNotifications().catch(() => {});
   } catch {}
 };
-const emit = () => { try { DeviceEventEmitter.emit(DAY_PLAN_CHANGED); } catch {} };
+const emit = () => { try { DeviceEventEmitter.emit(DAY_PLAN_CHANGED); } catch {} try { require('../utils/widgetBridge').updateMyWeekWidget().catch(() => {}); } catch {} };
 
 // First open seeds the three starting points so the sheet is never empty.
 export const getTemplates = async () => {

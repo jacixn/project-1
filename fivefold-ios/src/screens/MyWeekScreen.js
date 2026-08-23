@@ -191,6 +191,7 @@ const MyWeekScreen = ({ navigation }) => {
       setItemsByDay((prev) => ({ ...prev, ...map }));
       loadedWeeksRef.current.add(weekKey);
       if (fresh) setLoading(false);
+      try { require('../utils/widgetBridge').updateMyWeekWidget().catch(() => {}); } catch {}
       return map;
     } catch { if (fresh) setItemsByDay({}); }
     if (fresh) setLoading(false);

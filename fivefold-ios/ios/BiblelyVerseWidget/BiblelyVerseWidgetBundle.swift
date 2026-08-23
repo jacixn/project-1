@@ -15,6 +15,7 @@ struct BiblelyVerseWidgetBundle: WidgetBundle {
         AddTaskWidget()
         HabitsWidget()
         BodyCompWidget()
+        MyWeekWidget()
     }
 }
 

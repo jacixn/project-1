@@ -36,7 +36,7 @@ import InAppNotification from './src/components/InAppNotification';
 import PersistentAudioPlayerBar from './src/components/PersistentAudioPlayerBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WorkoutService from './src/services/workoutService';
-import { updateFuelWidget, updateTodoWidget, updateHabitsWidget, updateVisionWidget, updateBodyCompWidget } from './src/utils/widgetBridge';
+import { updateFuelWidget, updateTodoWidget, updateHabitsWidget, updateVisionWidget, updateBodyCompWidget, updateMyWeekWidget } from './src/utils/widgetBridge';
 import { startSharedHeaderLogoAnim } from './src/utils/sharedHeaderLogoAnim';
 
 // Start shared header logo animation loops once at module load — values keep
@@ -549,6 +549,13 @@ const ThemedApp = () => {
         navigate();
         // Warm case (list already mounted): nudge it to open now.
         setTimeout(() => DeviceEventEmitter.emit('openQuickAddTodo'), 400);
+      } else if (url.startsWith('biblely://myweek')) {
+        // My Week widget tapped
+        const navigate = () => {
+          if (navigationRef.current?.isReady()) navigationRef.current.navigate('MyWeek');
+          else pendingNavigationRef.current = { tab: 'MyWeek' };
+        };
+        navigate();
       } else if (url.startsWith('biblely://todos')) {
         // Todo widget tapped — navigate to Todos tab
         console.log('📋 Todo widget tap — navigating to Todos');
@@ -954,6 +961,7 @@ const ThemedApp = () => {
         updateTodoWidget().catch(() => {});
         updateFuelWidget().catch(() => {});
         updateHabitsWidget().catch(() => {});
+        updateMyWeekWidget().catch(() => {});
         updateVisionWidget().catch(() => {});
         updateBodyCompWidget().catch(() => {});
       } catch (error) {
@@ -1065,6 +1073,7 @@ const ThemedApp = () => {
         updateTodoWidget().catch(() => {});
         updateFuelWidget().catch(() => {});
         updateHabitsWidget().catch(() => {});
+        updateMyWeekWidget().catch(() => {});
         updateVisionWidget().catch(() => {});
         updateBodyCompWidget().catch(() => {});
 
