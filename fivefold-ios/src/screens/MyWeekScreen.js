@@ -1094,6 +1094,9 @@ const MyWeekScreen = ({ navigation }) => {
                     <Text style={[styles.planSummary, { color: theme.textSecondary }]}>{templateSummary(t)}</Text>
                   </View>
                   <Text style={[styles.addRowDur, { color: theme.textSecondary }]}>{`${fmtDur(free)} free`}</Text>
+                  <TouchableOpacity onPress={() => { hapticFeedback.light(); setPlanOpen(false); navigation.navigate('DayTemplates', { editId: t.id }); }} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }} style={{ paddingLeft: 6 }} accessibilityRole="button" accessibilityLabel={`Edit ${t.name}`}>
+                    <MaterialIcons name="edit" size={20} color={theme.textSecondary} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
               );
             })}

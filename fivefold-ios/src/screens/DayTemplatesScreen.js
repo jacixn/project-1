@@ -14,6 +14,8 @@ import SheetHeader from '../components/SheetHeader';
 import { getTemplates, upsertTemplate, deleteTemplate } from '../services/dayTemplates';
 import { BLOCK_PRESETS, hmToMin, minToHm, fmtClock, newId, iconForTitle, templateSummary, freeMinutes, normalizeTemplate } from '../utils/dayTemplates';
 import { KINDS, fmtDur } from '../utils/dayItems';
+import { loadReminderPresets, loadReminders } from '../services/reminderService';
+import { sameThing } from '../utils/takeover';
 
 const ACCENT = KINDS.block.color;
 
@@ -29,9 +31,36 @@ const DayTemplatesScreen = ({ navigation, route }) => {
   const [which, setWhich] = useState('start'); // which wheel is showing
   const [dirty, setDirty] = useState(false);
 
-  const load = useCallback(async () => { try { setList(await getTemplates()); } catch {} }, []);
+  // The user's own reminder bookmarks (Eat breakfast, Eat dinner...) as
+  // blocks: their icon and length, and the time they are usually set for.
+  const [mine, setMine] = useState([]);
+  const load = useCallback(async () => {
+    try { setList(await getTemplates()); } catch {}
+    try {
+      const [presets, reminders] = await Promise.all([loadReminderPresets().catch(() => []), loadReminders().catch(() => [])]);
+      const usual = (title) => {
+        const r = (reminders || []).find((x) => x && x.enabled !== false && x.time && sameThing(x.title, title));
+        if (r) return { start: String(r.time).slice(0, 5), dur: Number(r.duration) > 0 ? Number(r.duration) : null };
+        const guess = BLOCK_PRESETS.find((p) => sameThing(p.title, title));
+        return { start: guess ? guess.start : '12:00', dur: null };
+      };
+      setMine((presets || []).map((p) => {
+        const { start, dur } = usual(p.title);
+        const len = Number(p.duration) > 0 ? Number(p.duration) : (dur || 30);
+        const sm = hmToMin(start) ?? 12 * 60;
+        return { title: p.title, start: minToHm(sm), end: minToHm(Math.min(24 * 60, sm + len)), fixed: false, icon: p.icon || iconForTitle(p.title) };
+      }));
+    } catch {}
+  }, []);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (route?.params?.editId) { const t = list.find((x) => x.id === route.params.editId); if (t) startEdit(t); } }, [list, route?.params?.editId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Opened from a template row's Edit: go straight into that template, once.
+  const openedRef = React.useRef(null);
+  useEffect(() => {
+    const id = route?.params?.editId;
+    if (!id || openedRef.current === id) return;
+    const t = list.find((x) => x.id === id);
+    if (t) { openedRef.current = id; startEdit(t); }
+  }, [list, route?.params?.editId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startEdit = (t) => { hapticFeedback.light(); setEditing(JSON.parse(JSON.stringify(t))); setOpenBlock(null); setDirty(false); };
   const startNew = () => { hapticFeedback.light(); setEditing({ id: newId('t'), name: '', blocks: [] }); setOpenBlock(null); setDirty(true); };
@@ -205,7 +234,19 @@ const DayTemplatesScreen = ({ navigation, route }) => {
           );
         })}
 
-        <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 18 }]}>Add to the day</Text>
+        {mine.length ? (<>
+          <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 18 }]}>From your reminders</Text>
+          <View style={styles.presets}>
+            {mine.map((p) => (
+              <TouchableOpacity key={`mine-${p.title}`} onPress={() => addBlock(p)} style={[styles.preset, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Add ${p.title}, ${fmtClock(hmToMin(p.start))} to ${fmtClock(hmToMin(p.end))}`}>
+                <MaterialIcons name={p.icon} size={18} color={ACCENT} />
+                <Text style={[styles.presetText, { color: theme.text }]}>{p.title}</Text>
+                <Text style={[styles.presetSub, { color: theme.textSecondary }]}>{fmtDur(hmToMin(p.end) - hmToMin(p.start))}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>) : null}
+        <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 18 }]}>{mine.length ? 'More' : 'Add to the day'}</Text>
         <View style={styles.presets}>
           {BLOCK_PRESETS.map((p) => (
             <TouchableOpacity key={p.title} onPress={() => addBlock(p)} style={[styles.preset, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Add ${p.title}`}>
@@ -262,6 +303,7 @@ const styles = StyleSheet.create({
   presets: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   preset: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 12, borderRadius: 12 },
   presetText: { fontSize: 14, fontWeight: '700' },
+  presetSub: { fontSize: 12, fontWeight: '600' },
 });
 
 export default DayTemplatesScreen;

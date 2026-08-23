@@ -10,6 +10,7 @@ import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
+import { takeoverTitles } from './takeover';
 
 const BIBLELY_CAL = 'Biblely';
 const DAY_MIN = 24 * 60;
@@ -65,9 +66,10 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
   } catch {}
 
   // Day template blocks (Work, Lunch...) are busy like anything else.
+  let blockTitles = [];
   try {
     const { getBlocksForDay } = require('../services/dayTemplates');
-    for (const b of await getBlocksForDay(date)) push(out, b.title, b.startMin, b.endMin - b.startMin, 'block');
+    for (const b of await getBlocksForDay(date)) { push(out, b.title, b.startMin, b.endMin - b.startMin, 'block'); blockTitles.push(b.title); }
   } catch {}
 
   try {
@@ -99,5 +101,6 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
     }
   } catch {}
 
-  return out.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  // The template takes the day over: same-named things step aside.
+  return takeoverTitles(out, blockTitles).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };

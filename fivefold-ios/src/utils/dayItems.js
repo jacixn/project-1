@@ -14,6 +14,7 @@ import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
 import { applyCalendarPins } from '../services/pins';
 import { getBlocksForDay } from '../services/dayTemplates';
+import { applyTakeover } from './takeover';
 
 // Colour = where it comes from, matching how the iPhone Calendar shows the
 // same items: Biblely green (three close shades so the legend still tells
@@ -199,7 +200,9 @@ export const loadDayItems = async (date) => {
 
   // Pins for things Biblely does not own (other calendars, EyeCandy slots).
   try { await applyCalendarPins(out); } catch {}
-  return out.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  // A day template takes the day over: same-named reminders and calendar
+  // events step aside for that day (no duplicate Work, no Breakfast twice).
+  return applyTakeover(out).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };
 
 // ---- pure ----------------------------------------------------------------
