@@ -74,7 +74,7 @@ export const toModel = (items) => (items || []).map((it, i) => {
     : raw.official ? 'official release time'
     : !it.movable ? 'read-only'
     : raw.pinned ? 'pinned'
-    : tier === 'fixed' ? (it.kind === 'prayer' ? 'daily prayer' : daily ? 'repeats every day' : 'repeats every week')
+    : tier === 'fixed' ? (it.kind === 'prayer' ? 'daily prayer' : (it.kind === 'calendar' || it.kind === 'eyecandy') ? 'repeats every week' : daily ? 'repeats every day' : 'repeats every week')
     : null;
   return {
     id: it.id,
@@ -303,7 +303,7 @@ const placeFun = (model, anchorId, lifeMoves) => {
   const moves = []; const trims = []; const drops = []; const stuck = [];
   for (const f of shows) {
     if (!inWay.has(f.id)) continue;
-    if (f.tier !== 'fun') { stuck.push(f.title); continue; }
+    if (f.tier !== 'fun') continue; // a weekly show cannot change for one day; it is listed under "stays"
     const obstacles = [...hard, ...shows.filter((o) => o.id !== f.id && settled.has(o.id)).map((o) => settled.get(o.id))];
     const mid = clearMiddle(f.startMin, f.endMin, obstacles);
     const cs = mid ? r5up(mid[0]) : 0; const ce = mid ? r5dn(mid[1]) : 0;

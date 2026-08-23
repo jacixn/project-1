@@ -139,6 +139,12 @@ check(/\/social media\/i\.test\(out\.title/.test(rem), 'Social Media time is pin
 check(/const bumped = one && one\.action === 'move' && \(one\.kind === 'gym' \|\| one\.kind === 'reminder'\)/.test(offer) && /\$\{bumped\.todayOnly \? 'Skip' : 'Remove'\} \$\{bumped\.title\} today/.test(offer) && /Move \$\{bumped\.title\} to \$\{fmtClock\(bumped\.to\)\}/.test(offer), 'the add-time alert offers Move or Remove for one bumped workout/reminder');
 check(/const toggleFitRemove = \(id\)/.test(screen) && /it today instead/.test(screen) && /\.map\(effectiveRow\)/.test(screen) && /setPinned\(moving, !moving\.raw\?\.pinned\)/.test(screen) && /Pin: plans ignore this/.test(screen), 'My Week: remove-instead per row, pin toggle in the Move panel');
 
+// ---- pins for things Biblely does not own --------------------------------
+const pins = read('services/pins.js');
+check(/const DEFAULT_PIN = \/social media\/i;/.test(pins) && /raw\.recurring \? `title:/.test(pins) && /export const applyCalendarPins/.test(pins) && /export const setCalendarPinned/.test(pins), 'calendar pins: local list, repeating events by title, Social Media pinned by default');
+check(/await applyCalendarPins\(out\);/.test(src) && /if \(raw\.calendar\) return setCalendarPinned\(item, pinned\);/.test(resrc) && /moving\.kind === 'calendar' \|\| moving\.kind === 'eyecandy' \? \(/.test(screen), 'loader applies pins; Move panel can pin calendar and EyeCandy items');
+
+
 
 
 

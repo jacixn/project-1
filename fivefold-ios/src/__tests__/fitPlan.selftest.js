@@ -44,7 +44,7 @@ const model = toModel(day);
 const byId = Object.fromEntries(model.map((m) => [m.id, m]));
 const tiers = (ids) => ids.map((id) => byId[id].tier).join(',');
 
-check(tiers(['cal:mc', 'cal:tr', 'prayer:1']) === 'fixed,fixed,fixed', 'fixtures, weekly shows and prayers are fixed');
+check(tiers(['cal:mc', 'cal:tr', 'prayer:1']) === 'fixed,fixed,fixed' && byId['cal:tr'].why === 'repeats every week', 'fixtures, weekly shows and prayers are fixed; a weekly show says so');
 check(tiers(['reminder:hc', 'reminder:l', 'gym:p', 'reminder:sh']) === 'life,life,life,life' && byId['reminder:l'].todayOnly && !byId['reminder:hc'].todayOnly, 'tasks, reminders (repeats this day only) and one-time workouts are life');
 check(tiers(['cal:fc', 'cal:fp', 'cal:sl', 'cal:cj']) === 'fun,fun,fun,fun' && byId['cal:fp'].droppable, 'one-time shows and games are fun and can be skipped');
 check(tierOf({ kind: 'gym', movable: true, raw: { type: 'recurring' } }) === 'life' && toModel([it('gym:w', 'gym', 'Pull', T(16), T(17), true, 'recurring')])[0].todayOnly && tierOf({ kind: 'calendar', movable: true, raw: { type: 'one-time' } }) === 'life', 'weekly workouts are life (they can give way for one day); your own calendar events are life');
@@ -148,6 +148,22 @@ const onWork = toModel([
   it('task:c', 'task', 'call bank', T(11), T(11, 30), true, 'one-time', { createdAt: '2026-08-23T10:00:00Z' }),
 ]);
 check(mod.planSize(cascadePlan(onWork)) === 0 && mod.planSize(cascadePlan(model)) === 3, 'a task on a weekly Work block: zero changes possible (no button); the Sunday haircut: three');
+
+// A weekly show in the way is listed under "stays", not twice.
+const weeklyShow = toModel([
+  it('cal:tr', 'eyecandy', 'Trinity Seven', T(9), T(10, 15), true, 'recurring'),
+  it('reminder:m', 'reminder', 'Meeting', T(9, 30), T(10, 30), true, 'one-time', { createdAt: '2026-08-23T08:00:00Z' }),
+  it('reminder:b', 'reminder', 'Brunch', T(10), T(10, 30), true, 'one-time', { createdAt: '2026-08-20T08:00:00Z' }),
+]);
+const wsp = cascadePlan(weeklyShow);
+check(!wsp.overflow.includes('Trinity Seven') && staysFor(weeklyShow).some((x) => x.title === 'Trinity Seven' && x.why === 'repeats every week'), 'weekly show: in stays with the right words, not in left-as-is');
+const pinnedCal = toModel([
+  it('reminder:h', 'reminder', 'Haircut', T(19), T(20), true, 'one-time', { createdAt: '2026-08-23T13:20:00Z' }),
+  it('reminder:d', 'reminder', 'eat dinner', T(19, 25), T(19, 45), true, 'recurring', { createdAt: '2026-06-01' }),
+  it('cal:sm', 'calendar', 'Social Media time', T(20), T(21), true, 'recurring', { pinned: true }),
+]);
+const pcp = describePlan(pinnedCal, cascadePlan(pinnedCal));
+check(pcp.length === 1 && pcp[0].id === 'reminder:d' && pcp[0].to === T(20) && !staysFor(pinnedCal).some((x) => x.title === 'Social Media time'), 'a pinned calendar event is invisible: dinner lands on it, it is never listed');
 
 // Simple day: an errand on a workout slides the workout next door.
 const simple = toModel([
