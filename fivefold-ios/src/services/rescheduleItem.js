@@ -73,7 +73,9 @@ export const moveItem = async (item, to) => {
   const raw = item.raw || {};
   if (CALENDAR_KINDS.has(item.kind) && raw.eventId) {
     const dates = calendarMoveDates(raw, to);
-    const options = calendarMoveOptions(item.kind, raw);
+    // A plan moves a weekly show for today only (this occurrence); the Move
+    // panel's "every week" path keeps the series semantics.
+    const options = raw.recurring && to.todayOnly ? { futureEvents: false, instanceStartDate: new Date(raw.startDate) } : calendarMoveOptions(item.kind, raw);
     const series = !!(options && options.futureEvents);
     let ev = null;
     try {
@@ -170,8 +172,10 @@ export const trimItem = async (item, { startMin, endMin }) => {
 // and EyeCandy takes the slot off its schedule when it next opens.
 export const dropItem = async (item) => {
   const raw = item.raw || {};
-  if (item.kind !== 'eyecandy' || !raw.eventId || raw.recurring) return false;
-  await Calendar.deleteEventAsync(raw.eventId);
+  if (item.kind !== 'eyecandy' || !raw.eventId) return false;
+  // Weekly: only today's occurrence goes; the series and EyeCandy's slot stay.
+  if (raw.recurring) await Calendar.deleteEventAsync(raw.eventId, { futureEvents: false, instanceStartDate: new Date(raw.startDate) });
+  else await Calendar.deleteEventAsync(raw.eventId);
   return true;
 };
 

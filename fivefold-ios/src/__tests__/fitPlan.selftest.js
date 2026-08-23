@@ -44,9 +44,9 @@ const model = toModel(day);
 const byId = Object.fromEntries(model.map((m) => [m.id, m]));
 const tiers = (ids) => ids.map((id) => byId[id].tier).join(',');
 
-check(tiers(['cal:mc', 'cal:tr', 'prayer:1']) === 'fixed,fixed,fixed' && byId['cal:tr'].why === 'repeats every week', 'fixtures, weekly shows and prayers are fixed; a weekly show says so');
+check(tiers(['cal:mc', 'prayer:1']) === 'fixed,fixed' && byId['cal:tr'].tier === 'fun' && byId['cal:tr'].todayOnly, 'fixtures and prayers are fixed; a weekly show is fun for today only');
 check(tiers(['reminder:hc', 'reminder:l', 'gym:p', 'reminder:sh']) === 'life,life,life,life' && byId['reminder:l'].todayOnly && !byId['reminder:hc'].todayOnly, 'tasks, reminders (repeats this day only) and one-time workouts are life');
-check(tiers(['cal:fc', 'cal:fp', 'cal:sl', 'cal:cj']) === 'fun,fun,fun,fun' && byId['cal:fp'].droppable, 'one-time shows and games are fun and can be skipped');
+check(tiers(['cal:fc', 'cal:fp', 'cal:sl', 'cal:cj']) === 'fun,fun,fun,fun' && byId['cal:fp'].droppable && !byId['cal:fp'].todayOnly, 'one-time shows and games are fun and can be skipped');
 check(tierOf({ kind: 'gym', movable: true, raw: { type: 'recurring' } }) === 'life' && toModel([it('gym:w', 'gym', 'Pull', T(16), T(17), true, 'recurring')])[0].todayOnly && tierOf({ kind: 'calendar', movable: true, raw: { type: 'one-time' } }) === 'life', 'weekly workouts are life (they can give way for one day); your own calendar events are life');
 check(tierOf({ kind: 'reminder', movable: true, raw: { type: 'one-time', pinned: true } }) === 'fixed' && toModel([it('reminder:s', 'reminder', 'Social Media time', T(20), T(21), true, 'one-time', { pinned: true })])[0].why === 'pinned', 'a pinned item is fixed: plans never move it');
 
@@ -156,7 +156,7 @@ const weeklyShow = toModel([
   it('reminder:b', 'reminder', 'Brunch', T(10), T(10, 30), true, 'one-time', { createdAt: '2026-08-20T08:00:00Z' }),
 ]);
 const wsp = cascadePlan(weeklyShow);
-check(!wsp.overflow.includes('Trinity Seven') && staysFor(weeklyShow).some((x) => x.title === 'Trinity Seven' && x.why === 'repeats every week'), 'weekly show: in stays with the right words, not in left-as-is');
+check(!wsp.overflow.includes('Trinity Seven') && describePlan(weeklyShow, wsp).some((r) => r.id === 'cal:tr' && r.todayOnly), 'a weekly show in the way changes for today, never listed as left-as-is');
 const pinnedCal = toModel([
   it('reminder:h', 'reminder', 'Haircut', T(19), T(20), true, 'one-time', { createdAt: '2026-08-23T13:20:00Z' }),
   it('reminder:d', 'reminder', 'eat dinner', T(19, 25), T(19, 45), true, 'recurring', { createdAt: '2026-06-01' }),
@@ -172,13 +172,14 @@ const weeklyAnime = toModel([
 ]);
 const wap = cascadePlan(weeklyAnime);
 const war = describePlan(weeklyAnime, wap);
-check(war.length === 1 && war[0].id === 'cal:sl' && war[0].action === 'trim' && war[0].endTo === T(19) && !staysFor(weeklyAnime, null, wap).length, `weekly Solo Leveling ends at 7 PM today (${war[0] ? `${war[0].action} ${hm(war[0].endTo || 0)}` : 'untouched'})`);
-check(validatePlan(weeklyAnime, wap).ok && /must not move/.test(validatePlan(weeklyAnime, { moves: [{ id: 'cal:sl', startMin: T(17) }] }, null, wap).reason) && /must not move/.test(validatePlan(weeklyAnime, { moves: [], drops: ['cal:sl'] }, null, wap).reason), 'a weekly show may be cut, never moved or skipped');
+check(war.length === 1 && war[0].id === 'cal:sl' && war[0].action === 'trim' && war[0].endTo === T(19) && war[0].todayOnly && !staysFor(weeklyAnime, null, wap).length, `weekly Solo Leveling ends at 7 PM today (${war[0] ? `${war[0].action} ${hm(war[0].endTo || 0)}` : 'untouched'})`);
+check(validatePlan(weeklyAnime, wap).ok && validatePlan(weeklyAnime, { moves: [], drops: ['cal:sl'] }, null, wap).reason === 'skips more than needed', 'a weekly show may change today; skipping when a cut would do is refused');
 const weeklyFilm = toModel([
   it('cal:f', 'eyecandy', 'Friday Film', T(17, 45), T(19, 25), true, 'recurring', { mediaType: 'movie' }),
   it('reminder:h', 'reminder', 'Haircut', T(19), T(20), true, 'one-time', { createdAt: '2026-08-23T13:20:00Z' }),
 ]);
-check(cascadePlan(weeklyFilm).trims.length === 0 && staysFor(weeklyFilm).some((x) => x.title === 'Friday Film'), 'a weekly film is never cut; it is listed under stays');
+const wfp = cascadePlan(weeklyFilm); const wfr = describePlan(weeklyFilm, wfp);
+check(wfp.trims.length === 0 && wfr.length === 1 && wfr[0].action === 'move' && wfr[0].todayOnly && wfr[0].to === T(17, 20), `a weekly film is never cut: it moves whole for today only, to the nearest gap (${wfr[0] ? `${wfr[0].action} ${hm(wfr[0].to || 0)}` : 'untouched'})`);
 
 // Simple day: an errand on a workout slides the workout next door.
 const simple = toModel([
@@ -210,6 +211,7 @@ check(!validatePlan(model, { moves: [], trims: [{ id: 'cal:sl', startMin: T(17, 
 check(!validatePlan(model, { moves: [], drops: ['cal:lnd'] }, null, plan).ok && validatePlan(model, { moves: [], drops: ['cal:cj'] }, null, plan).reason === 'Candy Jar is not in the way', 'refuses skipping shows that are not in the way (Candy Jar under matches included)');
 check(validatePlan(model, { moves: [], drops: ['cal:fp'] }, null, { moves: [], drops: [], lifeCost: 0 }).reason === 'skips more than needed', 'refuses skipping more than the rules would');
 check(!validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(13, 42) }] }, null, plan).ok, 'refuses times off the 5-minute grid');
+check(validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(13, 30) }], trims: [{ id: 'cal:fc', startMin: T(12, 5), endMin: T(13, 30) }, { id: 'cal:fp', startMin: T(15), endMin: T(15, 50) }], drops: [] }, null, plan).reason === 'moves life items more than needed', 'the AI may not make a plan costlier than the rules, not even by 10 minutes');
 check(!validatePlan(model, { moves: [{ id: 'reminder:l', startMin: T(13, 40) }] }, null, plan).ok, 'refuses a half plan that leaves FragPunk on the haircut');
 check(parsePlanText('no json', model) === null && parsePlanText('{"moves":[{"id":"zzz","start":"10:00"}]}', model) === null && parsePlanText('{"skip":["zzz"]}', model) === null, 'garbage and unknown ids are rejected at parse');
 
