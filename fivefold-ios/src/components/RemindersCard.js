@@ -114,6 +114,7 @@ const RemindersCard = ({
     time: `${String(Math.floor(b.startMin / 60)).padStart(2, '0')}:${String(b.startMin % 60).padStart(2, '0')}`,
     icon: b.icon || 'schedule',
     color: '#5AC8FA',
+    duration: b.endMin - b.startMin,
     isBlock: true,
     blockId: b.blockId,
     completions: b.done ? { [dateStr]: true } : {},
@@ -130,10 +131,18 @@ const RemindersCard = ({
     const [h, m] = t.split(':').map((n) => parseInt(n, 10));
     return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
   };
+  // Closest first: what is coming up (or on now) from this minute, soonest
+  // first; then what already passed and is still unticked; ticked ones last.
+  const nowMinutes = (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
+  const bucketOf = (r) => {
+    if (r.completions?.[dateStr]) return 2;
+    const start = minutesOfTime(r.time);
+    const end = start + (Number(r.duration) > 0 ? Number(r.duration) : 0);
+    return end >= nowMinutes ? 0 : 1;
+  };
   const sortedReminders = [...todayReminders].sort((a, b) => {
-    const aDone = !!a.completions?.[dateStr];
-    const bDone = !!b.completions?.[dateStr];
-    if (aDone !== bDone) return aDone ? 1 : -1;
+    const ab = bucketOf(a), bb = bucketOf(b);
+    if (ab !== bb) return ab - bb;
     return minutesOfTime(a.time) - minutesOfTime(b.time);
   });
   const visibleReminders = sortedReminders.slice(0, MAX_VISIBLE);
