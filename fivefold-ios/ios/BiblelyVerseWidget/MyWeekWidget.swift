@@ -108,10 +108,12 @@ struct MyWeekProvider: TimelineProvider {
         let data = load()
         // The now line walks by itself: an entry every 5 minutes for 3 hours,
         // then WidgetKit asks again (the app also pushes fresh data on changes).
+        // One entry per minute for two hours: the red line is never more than
+        // a minute behind the clock. Then WidgetKit asks again.
         var entries: [MyWeekEntry] = []
-        let start = Date()
-        for i in 0..<36 {
-            if let d = Calendar.current.date(byAdding: .minute, value: i * 5, to: start) { entries.append(MyWeekEntry(date: d, data: data)) }
+        let start = Calendar.current.date(bySetting: .second, value: 0, of: Date()) ?? Date()
+        for i in 0..<120 {
+            if let d = Calendar.current.date(byAdding: .minute, value: i, to: start) { entries.append(MyWeekEntry(date: d, data: data)) }
         }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
@@ -317,6 +319,8 @@ struct MyWeekPlaced: Identifiable {
     let now: Bool
     let past: Bool
     let tomorrow: Bool
+    let strip: Bool     // too short for a box: a line with the title beside it, full width
+    let lane: Int       // strips close together stack down one lane each
 }
 
 enum MyWeekTimeline {
@@ -353,8 +357,20 @@ enum MyWeekTimeline {
         }
         raw.sort { $0.1 == $1.1 ? $0.2 > $1.2 : $0.1 < $1.1 }
 
-        // Overlap groups -> columns (greedy, first free column).
+        // Short things (a prayer, a 20-minute meal) are strips: full width,
+        // never a column, stacked a lane down when two fall close together.
+        let stripMax = 24
         var placed: [MyWeekPlaced] = []
+        var lastStripStart = -999; var lane = 0
+        for g in raw where g.2 - g.1 < stripMax {
+            let absStart = g.1 + ws, absEnd = g.2 + ws
+            lane = (g.1 - lastStripStart < 14) ? lane + 1 : 0
+            lastStripStart = g.1
+            placed.append(MyWeekPlaced(id: "\(g.3 ? "t" : "d")-\(g.0.id)", item: g.0, start: g.1, end: g.2, col: 0, cols: 1, now: !g.3 && absStart <= nowMin && absEnd > nowMin, past: !g.3 && absEnd <= nowMin, tomorrow: g.3, strip: true, lane: lane))
+        }
+        raw = raw.filter { $0.2 - $0.1 >= stripMax }
+
+        // Overlap groups -> columns (greedy, first free column).
         var i = 0
         while i < raw.count {
             var groupEnd = raw[i].2
@@ -373,7 +389,7 @@ enum MyWeekTimeline {
                 let absStart = g.1 + ws, absEnd = g.2 + ws
                 let onNow = !g.3 && absStart <= nowMin && absEnd > nowMin
                 let past = !g.3 && absEnd <= nowMin
-                placed.append(MyWeekPlaced(id: "\(g.3 ? "t" : "d")-\(g.0.id)", item: g.0, start: g.1, end: g.2, col: col, cols: cols, now: onNow, past: past, tomorrow: g.3))
+                placed.append(MyWeekPlaced(id: "\(g.3 ? "t" : "d")-\(g.0.id)", item: g.0, start: g.1, end: g.2, col: col, cols: cols, now: onNow, past: past, tomorrow: g.3, strip: false, lane: 0))
             }
             i = j + 1
         }
@@ -397,14 +413,23 @@ enum MyWeekTimeline {
     }
 }
 
+// "7:45 – 9:45 PM": one suffix, fits a narrow column.
+func myWeekRange(_ a: Int, _ b: Int) -> String {
+    let ca = MyWeekFlow.clock(a), cb = MyWeekFlow.clock(b)
+    let sa = String(ca.suffix(2)), sb = String(cb.suffix(2))
+    return sa == sb ? "\(ca.dropLast(3)) – \(cb)" : "\(ca) – \(cb)"
+}
+
 struct MyWeekBlock: View {
     let p: MyWeekPlaced
     let height: CGFloat
     var body: some View {
         let tint = Color(hex: p.item.color)
-        let strip = height < 17          // too short for text inside: a line with the title beside it
-        let twoLines = height >= 40
+        let strip = p.strip
         let showTime = height >= 28
+        // As many title lines as the box can hold (never an ellipsis): the
+        // font also shrinks to 55% before any line would overflow.
+        let titleLines = max(1, min(4, Int((height - (showTime ? 20 : 8)) / 12)))
         let alpha: Double = p.past ? 0.45 : 1
         Group {
             if strip {
@@ -413,10 +438,11 @@ struct MyWeekBlock: View {
                     Text(p.item.title)
                         .font(.system(size: 9.5, weight: .bold)).foregroundColor(tint)
                         .lineLimit(1).minimumScaleFactor(0.6).allowsTightening(true)
+                        .layoutPriority(1)
                     Text(MyWeekFlow.clock(p.item.start)).font(.system(size: 8.5, weight: .semibold)).foregroundColor(tint.opacity(0.8)).lineLimit(1).minimumScaleFactor(0.6)
                     Spacer(minLength: 0)
                 }
-                .frame(height: max(10, height), alignment: .center)
+                .frame(height: 11, alignment: .center)
                 .opacity(alpha)
             } else {
                 ZStack(alignment: .topLeading) {
@@ -428,13 +454,12 @@ struct MyWeekBlock: View {
                         RoundedRectangle(cornerRadius: 1.5).fill(tint).frame(width: 3).padding(.vertical, 4).padding(.leading, 4)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(p.item.title)
-                                .font(.system(size: twoLines ? 11.5 : 10.5, weight: .bold)).foregroundColor(tint)
-                                .lineLimit(twoLines ? 2 : 1).minimumScaleFactor(0.6).allowsTightening(true)
-                                .fixedSize(horizontal: false, vertical: true)
+                                .font(.system(size: titleLines >= 2 ? 11 : 10.5, weight: .bold)).foregroundColor(tint)
+                                .lineLimit(titleLines).minimumScaleFactor(0.55).allowsTightening(true)
                             if showTime {
-                                Text(p.now ? "now · until \(MyWeekFlow.clock(p.item.end))" : "\(MyWeekFlow.clock(p.item.start)) to \(MyWeekFlow.clock(p.item.end))")
+                                Text(p.now ? "now · until \(MyWeekFlow.clock(p.item.end))" : myWeekRange(p.item.start, p.item.end))
                                     .font(.system(size: 9, weight: .semibold)).foregroundColor(tint.opacity(0.85))
-                                    .lineLimit(1).minimumScaleFactor(0.6).allowsTightening(true)
+                                    .lineLimit(1).minimumScaleFactor(0.5).allowsTightening(true)
                             }
                         }
                         .padding(.leading, 5).padding(.trailing, 4).padding(.top, 4)
@@ -501,13 +526,13 @@ struct MyWeekLargeView: View {
                     }
                     // Blocks
                     ForEach(laid.placed) { p in
-                        let w = (colW - CGFloat(p.cols - 1) * 3) / CGFloat(p.cols)
-                        let x = gutter + CGFloat(p.col) * (w + 3)
-                        let y = inset + CGFloat(p.start) * pxPerMin
+                        let w = p.strip ? colW : (colW - CGFloat(p.cols - 1) * 3) / CGFloat(p.cols)
+                        let x = gutter + (p.strip ? 0 : CGFloat(p.col) * (w + 3))
+                        let y = inset + CGFloat(p.start) * pxPerMin + (p.strip ? CGFloat(p.lane) * 12 - 4 : 1)
                         let h = max(3, CGFloat(p.end - p.start) * pxPerMin - 2)
                         MyWeekBlock(p: p, height: h)
                             .frame(width: w, alignment: .leading)
-                            .offset(x: x, y: y + 1)
+                            .offset(x: x, y: y)
                     }
                     // Now line
                     if nowRel >= 0 && nowRel <= totalMin {
