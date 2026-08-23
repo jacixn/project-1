@@ -186,6 +186,11 @@ Notifications.setNotificationHandler({
   },
 });
 
+// Day templates can turn whole groups off for a day (prayers, workouts,
+// one-off things): those days get no notification for that group.
+const dateKeyOfLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const hiddenDays = async (group, days = 15) => { try { return await require('./dayTemplates').hiddenDatesForGroup(group, days); } catch { return new Set(); } };
+
 class NotificationService {
   constructor() {
     this.expoPushToken = null;
@@ -735,6 +740,7 @@ class NotificationService {
         return;
       }
 
+      const hiddenPrayers = await hiddenDays('prayers', 15);
       for (const [slot, time] of Object.entries(prayerTimes)) {
         const displayName =
           (time && typeof time === 'object' && !(time instanceof Date) ? time.name : null) ||
@@ -792,6 +798,7 @@ class NotificationService {
             continue;
           }
           const base = new Date(y, mo - 1, d, hours, minutes, 0, 0);
+          if (hiddenPrayers.has(dateKeyOfLocal(base))) continue; // a day template turned prayers off that day
           triggerDate = new Date(base.getTime() - lead * 60000);
           if (triggerDate.getTime() <= Date.now()) {
             console.log(`Skipping prayer ${slot}: one-time reminder ${triggerDate.toLocaleString()} already passed`);
@@ -808,11 +815,12 @@ class NotificationService {
             // subtraction can cross midnight into the previous day.
             const now = new Date();
             triggerDate = null;
-            for (let offset = 0; offset <= 7 && !triggerDate; offset++) {
+            for (let offset = 0; offset <= 15 && !triggerDate; offset++) {
               const occurrence = new Date(now);
               occurrence.setDate(occurrence.getDate() + offset);
               occurrence.setHours(hours, minutes, 0, 0);
               if (!dayList.includes(occurrence.getDay())) continue;
+              if (hiddenPrayers.has(dateKeyOfLocal(occurrence))) continue;
               const candidate = new Date(occurrence.getTime() - lead * 60000);
               if (candidate.getTime() > now.getTime()) triggerDate = candidate;
             }
@@ -824,6 +832,13 @@ class NotificationService {
             // Subtract the lead from the prayer clock time, wrapping across midnight.
             const totalMin = (((hours * 60 + minutes - lead) % 1440) + 1440) % 1440;
             triggerDate = this.getNextOccurrenceDate(Math.floor(totalMin / 60), totalMin % 60);
+            // Daily prayer on a day whose template turned prayers off: the
+            // next day that keeps them.
+            for (let guard = 0; guard < 15; guard++) {
+              const occ = new Date(triggerDate.getTime() + lead * 60000);
+              if (!hiddenPrayers.has(dateKeyOfLocal(occ))) break;
+              triggerDate = new Date(triggerDate.getTime() + 86400000);
+            }
           }
         }
 
@@ -1901,6 +1916,10 @@ class NotificationService {
         } else {
           triggerDate = this.getNextOccurrenceDate(hour, minute);
         }
+        // A day template that turned one-off things off that day keeps it quiet.
+        let hiddenOnce = new Set();
+        try { hiddenOnce = await require('./dayTemplates').hiddenDatesForReminder(reminder, 15); } catch {}
+        if (hiddenOnce.has(dateKeyOfLocal(triggerDate))) return;
 
         if (triggerDate > new Date()) {
           await this.scheduleNotif({
@@ -2101,11 +2120,13 @@ class NotificationService {
       const tasks = JSON.parse(storedTodos);
       const now = new Date();
       let count = 0;
+      const hiddenTasks = await hiddenDays('oneOffs', 21);
 
       for (const task of tasks) {
         if (task.completed || !task.scheduledDate) continue;
         const taskDate = new Date(task.scheduledDate);
         if (taskDate <= now) continue;
+        if (hiddenTasks.has(dateKeyOfLocal(taskDate))) continue; // a day template turned one-off things off
 
         const reminderMin = task.reminderBefore || 60;
         const notifyTime = new Date(taskDate.getTime() - reminderMin * 60 * 1000);
@@ -2147,68 +2168,14 @@ class NotificationService {
       const schedules = await WorkoutService.getScheduledWorkouts();
       if (!schedules || schedules.length === 0) return;
 
+      // One source of truth for workout alerts (lead time semantics, skipped
+      // days, day templates that turn workouts off): services/workoutSchedule.
       let count = 0;
-      const sound = soundEnabled ? 'default' : null;
-
+      const { scheduleWorkoutNotifications } = require('./workoutSchedule');
       for (const schedule of schedules) {
-        const notifyMin = schedule.notifyBefore || 60;
-        const [hours, minutes] = schedule.time.split(':').map(Number);
-
-        let notifyHours = hours;
-        let notifyMins = minutes - notifyMin;
-        if (notifyMins < 0) {
-          notifyHours -= Math.ceil(Math.abs(notifyMins) / 60);
-          notifyMins = 60 + (notifyMins % 60);
-          if (notifyMins === 60) notifyMins = 0;
-        }
-        if (notifyHours < 0) notifyHours += 24;
-
-        const reminderText = notifyMin >= 60
-          ? `${Math.floor(notifyMin / 60)} hour${notifyMin >= 120 ? 's' : ''}`
-          : `${notifyMin} minutes`;
-
-        try {
-          if (schedule.type === 'recurring') {
-            for (let i = 0; i <= 6; i++) {
-              await Notifications.cancelScheduledNotificationAsync(`${schedule.id}_${i}`).catch(() => {});
-            }
-            for (const day of schedule.days) {
-              await this.scheduleNotif({
-                identifier: `${schedule.id}_${day}`,
-                content: {
-                  title: 'Workout Reminder',
-                  body: `${schedule.templateName} starts in ${reminderText}!`,
-                  data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
-                  sound,
-                },
-                trigger: { type: 'weekly', weekday: day + 1, hour: notifyHours, minute: notifyMins, repeats: true },
-              });
-              count++;
-            }
-          } else {
-            await Notifications.cancelScheduledNotificationAsync(schedule.id).catch(() => {});
-            const workoutDate = new Date(schedule.date);
-            workoutDate.setHours(hours, minutes, 0, 0);
-            const notifyTime = new Date(workoutDate.getTime() - notifyMin * 60 * 1000);
-            if (notifyTime > new Date()) {
-              await this.scheduleNotif({
-                identifier: schedule.id,
-                content: {
-                  title: 'Workout Reminder',
-                  body: `${schedule.templateName} starts in ${reminderText}!`,
-                  data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
-                  sound,
-                },
-                trigger: { type: 'date', date: notifyTime },
-              });
-              count++;
-            }
-          }
-        } catch (err) {
-          console.error('Error scheduling workout notification:', err);
-        }
+        try { await scheduleWorkoutNotifications(schedule); count++; } catch {}
       }
-      console.log(`[Notif] Rescheduled ${count} workout notifications (tab restore)`);
+      console.log(`[Notif] Rescheduled ${count} workout schedules`);
     } catch (error) {
       console.error('Failed to reschedule workout notifications:', error);
     }

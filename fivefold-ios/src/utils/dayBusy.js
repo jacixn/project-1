@@ -68,11 +68,13 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
   // Day template blocks (Work, Lunch...) are busy like anything else.
   let blockTitles = [];
   let keep = null;
+  let hide = [];
   const fromCalendar = [];
   try {
-    const { getBlocksForDay, getTemplateIdForDay } = require('../services/dayTemplates');
+    const { getBlocksForDay, getTemplateDayFor } = require('../services/dayTemplates');
     const blocks = await getBlocksForDay(date);
-    if (await getTemplateIdForDay(date)) keep = blocks.map((b) => b.title);
+    const td = await getTemplateDayFor(date);
+    if (td) { keep = td.keep; hide = td.hide; }
     for (const b of blocks) {
       blockTitles.push(b.title);
       if (b.source) { fromCalendar.push(b); continue; } // the calendar event below is this block
@@ -116,5 +118,5 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
     if (ev) ev.source = 'block'; else push(out, b.title, b.startMin, b.endMin - b.startMin, 'block');
   }
   // The template takes the day over: same-named things step aside.
-  return templateDayTitles(takeoverTitles(out, blockTitles), keep).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  return templateDayTitles(takeoverTitles(out, blockTitles), keep, hide).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };

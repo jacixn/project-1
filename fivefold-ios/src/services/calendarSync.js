@@ -479,7 +479,7 @@ const buildBlocks = (templates, plan) => {
   const out = [];
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const now = Date.now();
-  const { templateForDay } = require('../utils/dayTemplates');
+  const { templateForDay, hideGroupsFor } = require('../utils/dayTemplates');
   const { keepNotes } = require('../utils/takeover');
   for (let i = 0; i < BLOCK_HORIZON_DAYS; i++) {
     const d = new Date(today.getTime() + i * 86400000);
@@ -491,7 +491,7 @@ const buildBlocks = (templates, plan) => {
     if (t) {
       const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
       const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
-      out.push({ stableKey: `block__${key}~day`, title: `${t.name} day`, start, end, recurring: false, frequency: null, alarms: [], allDay: true, notes: keepNotes(blocks.map((b) => b.title)) });
+      out.push({ stableKey: `block__${key}~day`, title: `${t.name} day`, start, end, recurring: false, frequency: null, alarms: [], allDay: true, notes: keepNotes(blocks.map((b) => b.title), hideGroupsFor(t)) });
     }
     for (const b of blocks) {
       if (b.source) continue; // the user's own calendar event already is this block

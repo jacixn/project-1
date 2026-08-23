@@ -124,5 +124,13 @@ check(/hiddenDatesForReminder\(reminder, 15\)/.test(ns) && /if \(hidden\.has\(ca
 const svc2 = fs.readFileSync(path.join(root, 'services', 'dayTemplates.js'), 'utf8');
 check(/export const hiddenDatesForReminder/.test(svc2) && (svc2.match(/mirror\(\); requiet\(\); emit\(\);/g) || []).length === 2 && !/from '\.\.\/utils\/dayBusy'/.test(svc2), 'plan/template saves reschedule reminders; service no longer pulls dayBusy (no require cycle with notifications)');
 
+check(JSON.stringify(T.normalizeKeeps()) === '{"prayers":true,"workouts":true,"oneOffs":true,"eyecandy":true,"sports":true}' && T.normalizeKeeps({ sports: false }).sports === false && T.normalizeKeeps({ sports: false }).prayers === true, 'keeps default to all on');
+const quiet = T.normalizeTemplate({ id: 'q', name: 'Quiet Sunday', blocks: [{ id: 'c', title: 'Church', start: '10:00', end: '12:00', fixed: true }], keeps: { sports: false, eyecandy: false } });
+check(T.hideGroupsFor(quiet).join() === 'eyecandy,sports' && T.hideGroupsFor(wr).length === 0, 'hideGroupsFor lists the groups turned off');
+const plan3 = T.withWeekdayTemplate(T.emptyPlan(), 0, 'q');
+check(T.groupHiddenOn('sports', [quiet], plan3, '2026-08-30', 0) === true && T.groupHiddenOn('prayers', [quiet], plan3, '2026-08-30', 0) === false && T.groupHiddenOn('sports', [quiet], plan3, '2026-08-31', 1) === false, 'groupHiddenOn');
+const oo = T.normalizeTemplate({ id: 'o', name: 'O', blocks: [{ id: 'w', title: 'Work', start: '09:00', end: '17:00' }], keeps: { oneOffs: false } });
+check(T.reminderHiddenOn({ title: 'Dentist', type: 'one-time' }, [oo], T.withWeekdayTemplate(T.emptyPlan(), 2, 'o'), '2026-08-25', 2) === true, 'one-off reminders go quiet when one-off things are off');
+
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

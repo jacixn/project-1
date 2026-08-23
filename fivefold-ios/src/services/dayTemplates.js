@@ -7,7 +7,7 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import {
   PRESET_TEMPLATES, makeTemplate, normalizeTemplate, normalizePlan, emptyPlan, prunePlan,
   withDateTemplate, withWeekdayTemplate, withoutDateChoice, withOverride, withoutTemplate,
-  blocksForDay, templateIdForDay, minToHm, reminderHiddenOn,
+  blocksForDay, templateIdForDay, templateForDay, minToHm, reminderHiddenOn, groupHiddenOn, hideGroupsFor,
 } from '../utils/dayTemplates';
 
 // Local (utils/dayBusy pulls in services that pull in notifications; this
@@ -21,7 +21,15 @@ const PLAN_KEY = 'dayPlan';
 const push = (key, data) => { try { require('./userSyncService').pushToCloud(key, data); } catch {} };
 const mirror = () => { try { require('./calendarSync').syncBlocks(); } catch {} };
 // Hidden reminders must not ring: the next-fire dates depend on the plan.
-const requiet = () => { try { require('./notificationService').default.rescheduleAllReminderNotifications().catch(() => {}); } catch {} };
+const requiet = () => {
+  try {
+    const ns = require('./notificationService').default;
+    ns.rescheduleAllReminderNotifications().catch(() => {});
+    ns.scheduleStoredPrayerReminders().catch(() => {});
+    ns._rescheduleTaskNotifications().catch(() => {});
+    ns._rescheduleWorkoutNotifications().catch(() => {});
+  } catch {}
+};
 const emit = () => { try { DeviceEventEmitter.emit(DAY_PLAN_CHANGED); } catch {} };
 
 // First open seeds the three starting points so the sheet is never empty.
@@ -90,11 +98,32 @@ export const getBlocksForDay = async (date) => {
   return blocksForDay(templates, plan, dateKeyOf(date), date.getDay());
 };
 export const getTemplateIdForDay = async (date) => templateIdForDay(await getPlan(), dateKeyOf(date), date.getDay());
+// { keep: [block titles], hide: [groups] } for the day, or null without a template.
+export const getTemplateDayFor = async (date) => {
+  const [templates, plan] = await Promise.all([getTemplates(), getPlan()]);
+  const key = dateKeyOf(date);
+  const t = templateForDay(templates, plan, key, date.getDay());
+  if (!t) return null;
+  return { keep: blocksForDay(templates, plan, key, date.getDay()).map((b) => b.title), hide: hideGroupsFor(t), template: t };
+};
+// Dates (next `days` days) on which a whole group is turned off by a template.
+export const hiddenDatesForGroup = async (group, days = 15) => {
+  const out = new Set();
+  try {
+    const [templates, plan] = await Promise.all([getTemplates(), getPlan()]);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    for (let i = 0; i <= days; i++) {
+      const d = new Date(today.getTime() + i * 86400000);
+      if (groupHiddenOn(group, templates, plan, dateKeyOf(d), d.getDay())) out.add(dateKeyOf(d));
+    }
+  } catch {}
+  return out;
+};
 
 // Dates (next `days` days) on which this reminder is silenced by a template.
 export const hiddenDatesForReminder = async (reminder, days = 15) => {
   const out = new Set();
-  if (!reminder || reminder.type === 'one-time') return out;
+  if (!reminder) return out;
   try {
     const [templates, plan] = await Promise.all([getTemplates(), getPlan()]);
     const today = new Date(); today.setHours(0, 0, 0, 0);

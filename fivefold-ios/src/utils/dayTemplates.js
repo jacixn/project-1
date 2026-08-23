@@ -16,7 +16,7 @@
 // (null = skipped that day). `fixed` blocks never move in a plan (work,
 // school); the rest (meals) may give way for one day like reminders do.
 
-import { sameThing } from './takeover';
+import { sameThing, DAY_GROUPS } from './takeover';
 
 export const DAY_MIN = 24 * 60;
 
@@ -96,8 +96,18 @@ export const normalizeTemplate = (t) => {
     blocks.push({ id: b.id || newId('b'), title: String(b.title || 'Block').trim() || 'Block', start: minToHm(s), end: minToHm(Math.min(e, DAY_MIN)), fixed: !!b.fixed, ...(source ? { source } : {}) });
   }
   blocks.sort((a, b) => hmToMin(a.start) - hmToMin(b.start) || hmToMin(a.end) - hmToMin(b.end));
-  return { id: (t && t.id) || newId('t'), name: String((t && t.name) || 'Day').trim() || 'Day', blocks };
+  return { id: (t && t.id) || newId('t'), name: String((t && t.name) || 'Day').trim() || 'Day', blocks, keeps: normalizeKeeps(t && t.keeps) };
 };
+
+// What else stays on this kind of day (and rings): prayers, workouts,
+// one-off things, EyeCandy shows and films, matches. All on unless the
+// user turns one off for the template.
+export const normalizeKeeps = (k) => {
+  const out = {};
+  for (const g of DAY_GROUPS) out[g] = !(k && k[g] === false);
+  return out;
+};
+export const hideGroupsFor = (t) => DAY_GROUPS.filter((g) => t && t.keeps && t.keeps[g] === false);
 
 export const emptyPlan = () => ({ dates: {}, weekdays: {}, overrides: {} });
 export const normalizePlan = (p) => ({
@@ -216,8 +226,14 @@ export const freeMinutes = (blocks, { dayStart = 7 * 60, dayEnd = 23 * 60 } = {}
 // A templated day silences the routine it hides: a repeating reminder that
 // is not one of the template's blocks does not ring that day.
 export const reminderHiddenOn = (reminder, templates, plan, dateKey, dow) => {
-  if (!reminder || reminder.type === 'one-time') return false;
+  if (!reminder) return false;
   const t = templateForDay(templates, plan, dateKey, dow);
   if (!t) return false;
+  if (reminder.type === 'one-time') return hideGroupsFor(t).includes('oneOffs');
   return !(t.blocks || []).some((b) => sameThing(b.title, reminder.title));
+};
+// Whole groups a template turns off: prayers, workouts, tasks (oneOffs)...
+export const groupHiddenOn = (group, templates, plan, dateKey, dow) => {
+  const t = templateForDay(templates, plan, dateKey, dow);
+  return !!t && hideGroupsFor(t).includes(group);
 };

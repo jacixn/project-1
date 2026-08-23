@@ -15,7 +15,8 @@ import { getTemplates, upsertTemplate, deleteTemplate } from '../services/dayTem
 import { BLOCK_PRESETS, hmToMin, minToHm, fmtClock, newId, iconForTitle, templateSummary, freeMinutes, normalizeTemplate } from '../utils/dayTemplates';
 import { KINDS, fmtDur } from '../utils/dayItems';
 import { loadReminderPresets, loadReminders } from '../services/reminderService';
-import { sameThing, normTitle } from '../utils/takeover';
+import { sameThing, normTitle, DAY_GROUPS, GROUP_LABELS } from '../utils/takeover';
+import { normalizeKeeps } from '../utils/dayTemplates';
 import * as Calendar from 'expo-calendar';
 
 const ACCENT = KINDS.block.color;
@@ -90,7 +91,7 @@ const DayTemplatesScreen = ({ navigation, route }) => {
   }, [list, route?.params?.editId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startEdit = (t) => { hapticFeedback.light(); setEditing(JSON.parse(JSON.stringify(t))); setOpenBlock(null); setDirty(false); };
-  const startNew = () => { hapticFeedback.light(); setEditing({ id: newId('t'), name: '', blocks: [] }); setOpenBlock(null); setDirty(true); };
+  const startNew = () => { hapticFeedback.light(); setEditing({ id: newId('t'), name: '', blocks: [], keeps: normalizeKeeps() }); setOpenBlock(null); setDirty(true); };
 
   const patch = (fn) => { setEditing((e) => { const next = fn(JSON.parse(JSON.stringify(e))); return next; }); setDirty(true); };
   const setBlock = (id, changes) => patch((e) => { e.blocks = e.blocks.map((b) => (b.id === id ? { ...b, ...changes } : b)); return e; });
@@ -311,6 +312,19 @@ const DayTemplatesScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
+        <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 22 }]}>Also on this kind of day</Text>
+        <Text style={[styles.empty, { color: theme.textSecondary, paddingTop: 0, paddingBottom: 8 }]}>On: it stays on the day and rings as usual. Off: it steps aside that day and stays quiet.</Text>
+        {DAY_GROUPS.map((g) => {
+          const on = !(editing.keeps && editing.keeps[g] === false);
+          return (
+            <TouchableOpacity key={g} onPress={() => { hapticFeedback.selection(); patch((e) => { e.keeps = { ...normalizeKeeps(e.keeps), [g]: !on }; return e; }); }} style={[styles.keepRow, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: on }} accessibilityLabel={GROUP_LABELS[g]}>
+              <MaterialIcons name={g === 'prayers' ? 'favorite' : g === 'workouts' ? 'fitness-center' : g === 'oneOffs' ? 'event' : g === 'sports' ? 'sports-soccer' : 'movie'} size={20} color={on ? ACCENT : theme.textSecondary} />
+              <Text style={[styles.keepText, { color: theme.text, opacity: on ? 1 : 0.7 }]}>{GROUP_LABELS[g]}</Text>
+              <Text style={[styles.keepState, { color: on ? ACCENT : theme.textSecondary }]}>{on ? 'On' : 'Off'}</Text>
+            </TouchableOpacity>
+          );
+        })}
+
         <TouchableOpacity onPress={save} style={[styles.primary, { backgroundColor: ACCENT, opacity: problems.length ? 0.6 : 1 }]} activeOpacity={0.8} accessibilityRole="button">
           <MaterialIcons name="check" size={20} color="#fff" />
           <Text style={styles.primaryText}>{list.some((t) => t.id === editing.id) ? 'Save changes' : 'Save template'}</Text>
@@ -356,6 +370,9 @@ const styles = StyleSheet.create({
   presetText: { fontSize: 14, fontWeight: '700' },
   presetSub: { fontSize: 12, fontWeight: '600' },
   calBar: { width: 4, height: 18, borderRadius: 2 },
+  keepRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, borderRadius: 14, paddingHorizontal: 14, marginBottom: 8 },
+  keepText: { flex: 1, fontSize: 15, fontWeight: '700' },
+  keepState: { fontSize: 13, fontWeight: '800' },
 });
 
 export default DayTemplatesScreen;

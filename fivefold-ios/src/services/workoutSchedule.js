@@ -74,6 +74,10 @@ export const scheduleWorkoutNotifications = async (schedule) => {
         // Schedule recurring notifications for each day
         // Using weekly trigger with proper format
         const skipDates = Array.isArray(schedule.skipDates) ? schedule.skipDates : [];
+        // Days whose template turned workouts off are quiet too.
+        let hidden = new Set();
+        try { hidden = await require('./dayTemplates').hiddenDatesForGroup('workouts', 28); } catch {}
+        const keyOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const content = {
           title: atStart ? 'Workout Time' : 'Workout Reminder',
           body: atStart ? `Time for ${schedule.templateName}!` : `${schedule.templateName} starts in ${reminderText}!`,
@@ -87,9 +91,11 @@ export const scheduleWorkoutNotifications = async (schedule) => {
           const next = new Date();
           next.setHours(notifyHours, notifyMins, 0, 0);
           while (next.getDay() !== day || next <= new Date()) next.setDate(next.getDate() + 1);
-          const nextKey = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
-          if (skipDates.includes(nextKey)) {
-            const after = new Date(next); after.setDate(after.getDate() + 7);
+          const nextKey = keyOf(next);
+          if (skipDates.includes(nextKey) || hidden.has(nextKey)) {
+            // One-off for the first later week that is neither skipped nor quiet.
+            const after = new Date(next);
+            for (let w = 0; w < 4; w++) { after.setDate(after.getDate() + 7); if (!skipDates.includes(keyOf(after)) && !hidden.has(keyOf(after))) break; }
             console.log(`⏭️ Day ${day} skipped on ${nextKey}; one-off for ${after.toLocaleString()}`);
             await notificationService.scheduleNotif({ identifier: `${schedule.id}_${day}`, content, trigger: { type: 'date', date: after } });
             continue;
@@ -118,6 +124,10 @@ export const scheduleWorkoutNotifications = async (schedule) => {
         // Parse date parts manually to avoid UTC timezone issues
         const dateParts = schedule.date.split('-').map(Number);
         const workoutDateTime = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hours, minutes, 0, 0);
+        try {
+          const hiddenOnce = await require('./dayTemplates').hiddenDatesForGroup('workouts', 28);
+          if (hiddenOnce.has(schedule.date)) { console.log('Workout quiet: its day template turned workouts off'); return; }
+        } catch {}
         
         const notifyTime = new Date(workoutDateTime.getTime() - notifyMinutes * 60 * 1000);
         

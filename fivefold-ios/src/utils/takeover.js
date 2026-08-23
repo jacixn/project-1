@@ -63,9 +63,12 @@ export const dedupeMirrors = (items) => {
 
 // A templated day holds what the template says, nothing else from the
 // routine: repeating reminders and repeating events from other calendars
-// that are not in the template step aside for that day. Prayers, workouts,
-// tasks, one-offs, EyeCandy slots and matches are plans of their own and stay.
+// that are not in the template step aside for that day. Everything else is
+// a plan of its own and stays, unless the template says that group steps
+// aside too (`hide`: prayers, workouts, oneOffs, eyecandy, sports).
 // `keep` = the template's block titles.
+export const DAY_GROUPS = ['prayers', 'workouts', 'oneOffs', 'eyecandy', 'sports'];
+export const GROUP_LABELS = { prayers: 'Prayers', workouts: 'Workouts', oneOffs: 'One-off things (tasks, appointments)', eyecandy: 'EyeCandy shows and films', sports: 'Matches' };
 const isRepeatingRoutine = (it) => {
   const raw = it.raw || {};
   if (raw.templateBlock || isBlockItem(it)) return false;
@@ -74,23 +77,58 @@ const isRepeatingRoutine = (it) => {
   if (it.kind === 'biblely') return raw.biblelyKind === 'reminder' && !!raw.recurring;
   return false;
 };
-export const applyTemplateDay = (items, keep) => {
+export const groupOf = (it) => {
+  if (!it) return null;
+  const raw = it.raw || {};
+  if (raw.templateBlock || isBlockItem(it)) return null;
+  if (it.kind === 'prayer' || (it.kind === 'biblely' && raw.biblelyKind === 'prayer')) return 'prayers';
+  if (it.kind === 'gym' || (it.kind === 'biblely' && raw.biblelyKind === 'gym')) return 'workouts';
+  if (it.kind === 'eyecandySports') return 'sports';
+  if (it.kind === 'eyecandy') return 'eyecandy';
+  if (it.kind === 'task' || (it.kind === 'biblely' && raw.biblelyKind === 'todo')) return 'oneOffs';
+  if (it.kind === 'reminder' && raw.type === 'one-time') return 'oneOffs';
+  if (it.kind === 'biblely' && raw.biblelyKind === 'reminder' && !raw.recurring) return 'oneOffs';
+  if (it.kind === 'calendar' && !raw.recurring) return 'oneOffs';
+  return null;
+};
+export const applyTemplateDay = (items, keep, hide = []) => {
   const list = items || [];
   if (!keep) return list;
-  return list.filter((it) => !isRepeatingRoutine(it) || keep.some((t) => sameThing(t, it.title)));
+  const off = new Set(hide || []);
+  return list.filter((it) => {
+    if (isRepeatingRoutine(it)) return keep.some((t) => sameThing(t, it.title));
+    const g = groupOf(it);
+    return !(g && off.has(g));
+  });
 };
 // Same for busy lists ({ title, source, recurring }).
-export const templateDayTitles = (entries, keep) => {
+const busyGroup = (e) => {
+  if (e.source === 'prayer') return 'prayers';
+  if (e.source === 'gym') return 'workouts';
+  if (e.source === 'task') return 'oneOffs';
+  if ((e.source === 'reminder' || e.source === 'calendar') && !e.recurring) return 'oneOffs';
+  return null;
+};
+export const templateDayTitles = (entries, keep, hide = []) => {
   if (!keep) return entries || [];
-  return (entries || []).filter((e) => !((e.source === 'reminder' || e.source === 'calendar') && e.recurring) || keep.some((t) => sameThing(t, e.title)));
+  const off = new Set(hide || []);
+  return (entries || []).filter((e) => {
+    if ((e.source === 'reminder' || e.source === 'calendar') && e.recurring) return keep.some((t) => sameThing(t, e.title));
+    const g = busyGroup(e);
+    return !(g && off.has(g));
+  });
 };
 // The marker Biblely writes into its calendar (an all-day event named after
-// the template) so EyeCandy knows the day is templated and what it keeps.
-export const keepNotes = (titles) => `Added by Biblely · template · keep:${(titles || []).map(normTitle).filter(Boolean).join('|')}`;
+// the template) so EyeCandy knows the day is templated, what it keeps, and
+// which groups step aside.
+export const keepNotes = (titles, hide = []) => `Added by Biblely · template · keep:${(titles || []).map(normTitle).filter(Boolean).join('|')} · hide:${(hide || []).join(',')}`;
 export const parseKeepNotes = (notes) => {
-  const m = /· template · keep:([^\n]*)/.exec(String(notes || ''));
+  const m = /· template · keep:([^·\n]*)(?:· hide:([^·\n]*))?/.exec(String(notes || ''));
   if (!m) return null;
-  return m[1].split('|').map((t) => t.trim()).filter(Boolean);
+  return {
+    titles: m[1].split('|').map((t) => t.trim()).filter(Boolean),
+    hide: (m[2] || '').split(',').map((t) => t.trim()).filter((t) => DAY_GROUPS.includes(t)),
+  };
 };
 
 // For busy lists ({ title, source }): same rule by titles.
