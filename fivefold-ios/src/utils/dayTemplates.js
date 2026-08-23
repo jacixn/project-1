@@ -16,6 +16,8 @@
 // (null = skipped that day). `fixed` blocks never move in a plan (work,
 // school); the rest (meals) may give way for one day like reminders do.
 
+import { sameThing } from './takeover';
+
 export const DAY_MIN = 24 * 60;
 
 export const hmToMin = (hm) => {
@@ -209,4 +211,13 @@ export const freeMinutes = (blocks, { dayStart = 7 * 60, dayEnd = 23 * 60 } = {}
   }
   if (cur) busy += cur[1] - cur[0];
   return Math.max(0, dayEnd - dayStart - busy);
+};
+
+// A templated day silences the routine it hides: a repeating reminder that
+// is not one of the template's blocks does not ring that day.
+export const reminderHiddenOn = (reminder, templates, plan, dateKey, dow) => {
+  if (!reminder || reminder.type === 'one-time') return false;
+  const t = templateForDay(templates, plan, dateKey, dow);
+  if (!t) return false;
+  return !(t.blocks || []).some((b) => sameThing(b.title, reminder.title));
 };

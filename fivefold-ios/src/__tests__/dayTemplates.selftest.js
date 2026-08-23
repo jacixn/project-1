@@ -2,14 +2,14 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
-const load = (rel) => {
-  const src = fs.readFileSync(path.join(root, rel), 'utf8');
+const load = (rel, deps = []) => {
+  const src = [...deps, rel].map((r) => fs.readFileSync(path.join(root, r), 'utf8')).join('\n');
   const pure = src.replace(/^import[^\n]*\n/gm, '').replace(/export const (\w+) =/g, 'const $1 = exports.$1 =');
   const mod = {};
   new Function('exports', pure)(mod);
   return mod;
 };
-const T = load('utils/dayTemplates.js');
+const T = load('utils/dayTemplates.js', ['utils/takeover.js']);
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
 
@@ -111,6 +111,18 @@ check(/name="DayTemplates"/.test(src('navigation/RootNavigator.js')), 'DayTempla
 check(fs.existsSync(path.join(root, 'screens', 'DayTemplatesScreen.js')), 'editor screen exists');
 const svc = src('services/dayTemplates.js');
 check(/syncBlocks/.test(svc) && /DAY_PLAN_CHANGED/.test(svc) && /prunePlan/.test(svc), 'service mirrors to the calendar, emits, prunes');
+
+// Silence: a templated day mutes repeating reminders the template does not hold
+const wr = T.normalizeTemplate({ id: 'wr', name: 'Work Remote', blocks: [{ id: 'w', title: 'Work', start: '09:00', end: '17:30', fixed: true }, { id: 's', title: 'Social Media time', start: '20:00', end: '21:00' }] });
+const plan2 = T.withWeekdayTemplate(T.emptyPlan(), 3, 'wr');
+check(T.reminderHiddenOn({ title: 'Eat breakfast', type: 'recurring' }, [wr], plan2, '2026-08-26', 3) === true, 'Wednesday (Work Remote): the breakfast reminder is silenced');
+check(T.reminderHiddenOn({ title: 'Social Media time', type: 'recurring' }, [wr], plan2, '2026-08-26', 3) === false, 'a reminder the template holds still rings');
+check(T.reminderHiddenOn({ title: 'Eat breakfast', type: 'recurring' }, [wr], plan2, '2026-08-27', 4) === false, 'Thursday (no template): rings as usual');
+check(T.reminderHiddenOn({ title: 'Dentist', type: 'one-time' }, [wr], plan2, '2026-08-26', 3) === false, 'one-time reminders are never silenced');
+const ns = fs.readFileSync(path.join(root, 'services', 'notificationService.js'), 'utf8');
+check(/hiddenDatesForReminder\(reminder, 15\)/.test(ns) && /if \(hidden\.has\(candidateKey\)\) continue;/.test(ns), 'reminder notifications skip silenced days');
+const svc2 = fs.readFileSync(path.join(root, 'services', 'dayTemplates.js'), 'utf8');
+check(/export const hiddenDatesForReminder/.test(svc2) && (svc2.match(/mirror\(\); requiet\(\); emit\(\);/g) || []).length === 2 && !/from '\.\.\/utils\/dayBusy'/.test(svc2), 'plan/template saves reschedule reminders; service no longer pulls dayBusy (no require cycle with notifications)');
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);
