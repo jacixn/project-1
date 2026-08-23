@@ -363,7 +363,7 @@ struct MyWeekPlaced: Identifiable {
 }
 
 enum MyWeekTimeline {
-    static let hours = 5   // 6 PM to 11 PM: big enough to read, long enough to plan
+    static let minutes = 210   // 3 hr 30 min: 6 PM to 9:30 PM, big enough to read every word
 
     // Window start: the hour that keeps "now" near the top (half an hour of
     // context above it), so 5:52 PM shows 5 PM to 12 AM.
@@ -378,7 +378,7 @@ enum MyWeekTimeline {
         guard let data = data else { return ([], []) }
         let nowMin = MyWeekFlow.minuteOfDay(now)
         let ws = windowStart(now: now)
-        let we = ws + hours * 60
+        let we = ws + minutes
         let tKey = MyWeekFlow.todayKey(now)
         guard let tIdx = data.days.firstIndex(where: { $0.key == tKey }) else { return ([], []) }
         var raw: [(MyWeekItem, Int, Int, Bool)] = [] // item, start, end, tomorrow
@@ -457,7 +457,7 @@ enum MyWeekTimeline {
             if p.start - cursor >= 30 { free.append((cursor, p.start)) }
             cursor = max(cursor, p.end)
         }
-        if hours * 60 - cursor >= 30 { free.append((cursor, hours * 60)) }
+        if minutes - cursor >= 30 { free.append((cursor, minutes)) }
         return (placed, free)
     }
 
@@ -540,7 +540,7 @@ struct MyWeekLargeView: View {
         VStack(alignment: .leading, spacing: 6) {
             MyWeekHeader(day: today, now: entry.date, leftToday: leftToday)
             GeometryReader { geo in
-                let totalMin = CGFloat(MyWeekTimeline.hours * 60)
+                let totalMin = CGFloat(MyWeekTimeline.minutes)
                 let inset: CGFloat = 7 // room for the first and last hour labels
                 let pxPerMin = (geo.size.height - inset * 2) / totalMin
                 let colW = geo.size.width - gutter
@@ -548,19 +548,20 @@ struct MyWeekLargeView: View {
                 let nowRel = CGFloat(MyWeekFlow.minuteOfDay(entry.date) - ws)
                 ZStack(alignment: .topLeading) {
                     // Hour lines + labels
-                    ForEach(0...MyWeekTimeline.hours, id: \.self) { h in
-                        let y = inset + CGFloat(h * 60) * pxPerMin
-                        let abs = ws + h * 60
+                    ForEach(Array(stride(from: 0, through: MyWeekTimeline.minutes, by: 30)), id: \.self) { m in
+                        let y = inset + CGFloat(m) * pxPerMin
+                        let abs = ws + m
+                        let hour = m % 60 == 0
                         HStack(spacing: 6) {
-                            Text(MyWeekTimeline.hourLabel(abs))
-                                .font(.system(size: 9.5, weight: abs % 1440 == 0 ? .heavy : .semibold))
-                                .foregroundColor(abs % 1440 == 0 ? MyWeekPalette.accent : MyWeekPalette.faint)
+                            Text(hour ? MyWeekTimeline.hourLabel(abs) : (m == MyWeekTimeline.minutes ? MyWeekFlow.clock(abs) : String(format: ":%02d", abs % 60)))
+                                .font(.system(size: hour ? 9.5 : 8, weight: abs % 1440 == 0 ? .heavy : (hour ? .semibold : .medium)))
+                                .foregroundColor(abs % 1440 == 0 ? MyWeekPalette.accent : (hour ? MyWeekPalette.faint : MyWeekPalette.faint.opacity(0.7)))
                                 .frame(width: gutter - 6, alignment: .trailing)
                                 .lineLimit(1).minimumScaleFactor(0.7)
-                            Rectangle().fill(abs % 1440 == 0 ? MyWeekPalette.accent.opacity(0.5) : MyWeekPalette.hairline).frame(height: 1)
+                            Rectangle().fill(abs % 1440 == 0 ? MyWeekPalette.accent.opacity(0.5) : (hour ? MyWeekPalette.hairline : MyWeekPalette.hairline.opacity(0.5))).frame(height: 1)
                         }
                         .offset(y: y - 6)
-                        if abs % 1440 == 0 && h > 0 {
+                        if abs % 1440 == 0 && m > 0 {
                             // Sits on the line itself, cutting it, never inside a block.
                             Text("TOMORROW").font(.system(size: 8, weight: .heavy)).tracking(0.8).foregroundColor(MyWeekPalette.accent)
                                 .padding(.horizontal, 5).padding(.vertical, 1.5)
