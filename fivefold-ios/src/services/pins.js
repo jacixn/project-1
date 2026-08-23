@@ -7,11 +7,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const KEY = 'myweek_calendar_pins_v1';
 const DEFAULT_PIN = /social media/i;
 
-// One key per thing: repeating events by title (every occurrence), one-offs by event id.
+// One key per thing: repeating things by title (every occurrence), one-offs
+// by id. Works for every kind, not only calendar events.
+const titleKey = (item) => `title:${String(item?.title || '').trim().toLowerCase()}`;
 export const pinKeyFor = (item) => {
   const raw = item?.raw || {};
-  if (!raw.calendar) return null;
-  return raw.recurring ? `title:${String(item.title || '').trim().toLowerCase()}` : `event:${raw.eventId}`;
+  if (!item) return null;
+  if (raw.calendar) return raw.recurring ? titleKey(item) : `event:${raw.eventId}`;
+  return raw.type === 'one-time' ? `own:${item.kind}:${raw.id}` : titleKey(item);
 };
 
 let cache = null;
@@ -40,14 +43,20 @@ export const setCalendarPinned = async (item, pinned) => {
   return true;
 };
 
-// For loaders: resolve pins for a whole list in one go.
+// For loaders: resolve pins for a whole list in one go. A pin stored on the
+// item itself (reminder/task/workout `pinned`) wins; then this list by id or
+// title; then the default by title.
 export const applyCalendarPins = async (items) => {
   const map = await load();
   for (const it of items) {
+    const raw = it.raw || {};
+    if (raw.pinned != null) continue;
     const key = pinKeyFor(it);
-    if (!key) continue;
-    const pinned = map[key] != null ? !!map[key] : DEFAULT_PIN.test(String(it.title || ''));
-    if (pinned) it.raw = { ...(it.raw || {}), pinned: true };
+    const byTitle = map[titleKey(it)];
+    const stored = key && map[key] != null ? map[key] : byTitle;
+    const pinned = stored != null ? !!stored : DEFAULT_PIN.test(String(it.title || ''));
+    if (pinned) it.raw = { ...raw, pinned: true };
   }
   return items;
 };
+export const applyPins = applyCalendarPins;

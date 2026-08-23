@@ -141,7 +141,7 @@ check(/const toggleFitRemove = \(id\)/.test(screen) && /it today instead/.test(s
 
 // ---- pins for things Biblely does not own --------------------------------
 const pins = read('services/pins.js');
-check(/const DEFAULT_PIN = \/social media\/i;/.test(pins) && /raw\.recurring \? `title:/.test(pins) && /export const applyCalendarPins/.test(pins) && /export const setCalendarPinned/.test(pins), 'calendar pins: local list, repeating events by title, Social Media pinned by default');
+check(/const DEFAULT_PIN = \/social media\/i;/.test(pins) && /raw\.recurring \? titleKey\(item\)/.test(pins) && /return raw\.type === 'one-time' \? `own:\$\{item\.kind\}:\$\{raw\.id\}` : titleKey\(item\);/.test(pins) && /if \(raw\.pinned != null\) continue;/.test(pins) && /DEFAULT_PIN\.test\(String\(it\.title \|\| ''\)\)/.test(pins), 'pins apply to every kind: stored pin wins, then the list, then Social Media by default');
 check(/await applyCalendarPins\(out\);/.test(src) && /if \(raw\.calendar\) return setCalendarPinned\(item, pinned\);/.test(resrc) && /moving\.kind === 'calendar' \|\| moving\.kind === 'eyecandy' \? \(/.test(screen), 'loader applies pins; Move panel can pin calendar and EyeCandy items');
 
 
