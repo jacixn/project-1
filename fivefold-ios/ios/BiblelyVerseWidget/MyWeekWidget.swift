@@ -355,6 +355,23 @@ enum MyWeekTimeline {
                 raw.append((it, max(ws, s) - ws, min(we, e) - ws, true))
             }
         }
+        // Something that runs over midnight (Sleep 10:30 PM to 6:30 AM) arrives
+        // as two pieces: join them into one block across the line.
+        let midnight = 24 * 60 - ws
+        var joined: [(MyWeekItem, Int, Int, Bool)] = []
+        var used = Set<Int>()
+        for (idx, g) in raw.enumerated() {
+            if used.contains(idx) { continue }
+            if !g.3 && g.2 == midnight, let j = raw.indices.first(where: { !used.contains($0) && raw[$0].3 && raw[$0].1 == midnight && raw[$0].0.title == g.0.title }) {
+                let t = raw[j]
+                let merged = MyWeekItem(id: g.0.id, title: g.0.title, start: g.0.start, end: t.0.end + 24 * 60, color: g.0.color, kind: g.0.kind, label: g.0.label, pinned: g.0.pinned)
+                joined.append((merged, g.1, t.2, false))
+                used.insert(idx); used.insert(j)
+            } else {
+                joined.append(g); used.insert(idx)
+            }
+        }
+        raw = joined
         raw.sort { $0.1 == $1.1 ? $0.2 > $1.2 : $0.1 < $1.1 }
 
         // Short things (a prayer, a 20-minute meal) are strips: full width,
@@ -505,8 +522,13 @@ struct MyWeekLargeView: View {
                         }
                         .offset(y: y - 6)
                         if abs % 1440 == 0 && h > 0 {
-                            Text("TOMORROW").font(.system(size: 8.5, weight: .heavy)).tracking(0.8).foregroundColor(MyWeekPalette.accent)
-                                .offset(x: gutter + 2, y: y + 2)
+                            // Sits on the line itself, cutting it, never inside a block.
+                            Text("TOMORROW").font(.system(size: 8, weight: .heavy)).tracking(0.8).foregroundColor(MyWeekPalette.accent)
+                                .padding(.horizontal, 5).padding(.vertical, 1.5)
+                                .background(RoundedRectangle(cornerRadius: 5).fill(Color(hex: "0E140F")))
+                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(MyWeekPalette.accent.opacity(0.5), lineWidth: 1))
+                                .frame(width: geo.size.width, alignment: .trailing)
+                                .offset(y: y - 8)
                         }
                     }
                     // Free stretches
