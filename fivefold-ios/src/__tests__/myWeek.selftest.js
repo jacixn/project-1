@@ -37,7 +37,7 @@ const screen = read('screens/MyWeekScreen.js');
 check(/loadDayItems\(d\)/.test(screen) && /week\.map/.test(screen) && /KIND_ORDER\.filter/.test(screen), 'week strip loads all 7 days with per-kind dots');
 check(/Gesture\.Pan\(\)[\s\S]{0,80}activeOffsetX\(\[-14, 14\]\)/.test(screen) && /goWeek\(1\)/.test(screen) && /goWeek\(-1\)/.test(screen) && /withSpring\(0/.test(screen) && !/styles\.weekNav/.test(screen) && /\.slice\(0, 4\)/.test(screen), 'week strip swipes between weeks with a slide/spring, no chevron tiles, dots capped at four');
 check(/it\.movable \? startMove\(it\) : explainExternal\(it\)/.test(screen), 'movable items open Move; others explain where to change them');
-check(/NUDGES\.map/.test(screen) && /computeDayFlow\(\{ events: dayList/.test(screen) && /freeSlots\.map/.test(screen) && /<DateTimePicker/.test(screen) && /Set an exact time/.test(screen) && /styles\.backdrop/.test(screen) && /styles\.panelSurface/.test(screen) && /moving\.raw\?\.type === 'one-time'/.test(screen), 'move panel: nudges, free-time chips, explicit exact-time button with inline wheel, dimmed backdrop, own surface, another day for one-time items');
+check(/NUDGES\.map/.test(screen) && /computeDayFlow\(\{ events: dayList/.test(screen) && /freeSlots\.map/.test(screen) && /<DateTimePicker/.test(screen) && /Set an exact time/.test(screen) && /backdropStyle/.test(screen) && /styles\.sheetBody/.test(screen) && /moving\.raw\?\.type === 'one-time'/.test(screen), 'move panel: nudges, free-time chips, explicit exact-time button with inline wheel, dimmed backdrop, own sheet surface, another day for one-time items');
 check(/moveItem\(moving, \{ time: minToTime\(draftMin\), date: draftDate, from: dateKeyOf\(anchor\), todayOnly \}\)/.test(screen), 'save goes through rescheduleItem');
 check(/Linking\.openURL\('calshow:'\)/.test(screen) && /explainExternal/.test(screen) && /it\.movable \? startMove\(it\) : explainExternal\(it\)/.test(screen), 'read-only calendar items explain themselves and can open Calendar; everything movable opens the move panel');
 check((screen.match(/numberOfLines/g) || []).length === 1 && /numberOfLines=\{titleLines\}/.test(screen) && !/[—]/.test(screen) && !/[—]/.test(src), 'no truncation except a host title above a nested block (iOS rule), no em dashes');
@@ -155,6 +155,7 @@ check(/syncAll\(\{ force: true \}\)/.test(cs) && /export const syncAll = async \
 const app = read('../App.js');
 check(/cs\.adoptCalendarChanges\(\)\.then\(\(a\) => \{ if \(a && a\.length\) cs\.syncAll\(\); \}\)/.test(app) && /cs\.adoptCalendarChanges\(\)\.catch\(\(\) => \{\}\)\.then\(\(\) => cs\.syncAll\(\)\)/.test(app), 'App adopts on every foreground and before the cloud-pull resync');
 check(/DeviceEventEmitter\.addListener\('calendarAdopted'/.test(screen), 'My Week refreshes when an adoption lands');
+check(/const PullSheet = \(\{ visible, onClose, accent, children \}\)/.test(screen) && /e\.translationY > 120 \|\| e\.velocityY > 800/.test(screen) && (screen.match(/<PullSheet visible=/g) || []).length === 2 && /styles\.handleBar/.test(screen), 'both panels are pull-down sheets with a handle, same as EyeCandy');
 
 
 

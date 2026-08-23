@@ -19,6 +19,75 @@ import { rowText } from '../services/fitOffer';
 import { planDay } from '../services/schedulePlanner';
 import { toModel, fixableOverlaps, pickAnchor, cascadePlan, planSize } from '../utils/fitPlan';
 
+// Bottom sheet: springs up, pull the handle/header down to dismiss (past
+// 120pt or a flick), shorter drags spring back. Same feel as EyeCandy's.
+// Children stay rendered while it slides out.
+const SHEET_IN = { damping: 22, stiffness: 220, mass: 0.9 };
+const SHEET_OUT_MS = 220;
+const SHEET_H = 900;
+const PullSheet = ({ visible, onClose, accent, children }) => {
+  const { theme, isDark } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const lastChildren = useRef(children);
+  if (visible) lastChildren.current = children;
+  const translateY = useSharedValue(SHEET_H);
+  const backdrop = useSharedValue(0);
+  const closingRef = useRef(false);
+  const animateOut = useCallback(() => {
+    backdrop.value = withTiming(0, { duration: SHEET_OUT_MS });
+    translateY.value = withTiming(SHEET_H, { duration: SHEET_OUT_MS, easing: Easing.in(Easing.cubic) });
+  }, []);
+  useEffect(() => {
+    if (visible) {
+      closingRef.current = false;
+      setMounted(true);
+      translateY.value = SHEET_H;
+      backdrop.value = withTiming(1, { duration: 260 });
+      translateY.value = withSpring(0, SHEET_IN);
+    } else if (mounted) {
+      animateOut();
+      const t = setTimeout(() => setMounted(false), SHEET_OUT_MS + 30);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [visible]);
+  const dismiss = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    animateOut();
+    setTimeout(() => { onClose && onClose(); }, SHEET_OUT_MS);
+  }, [onClose, animateOut]);
+  const pan = useMemo(() => Gesture.Pan()
+    .activeOffsetY([8, 8])
+    .failOffsetX([-16, 16])
+    .onUpdate((e) => { translateY.value = Math.max(0, e.translationY); })
+    .onEnd((e) => {
+      if (e.translationY > 120 || e.velocityY > 800) runOnJS(dismiss)();
+      else translateY.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) });
+    }), [dismiss]);
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.value * 0.45 }));
+  if (!mounted) return null;
+  return (
+    <GestureHandlerRootView style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={dismiss} accessibilityRole="button" accessibilityLabel="Close">
+        <Reanimated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }, backdropStyle]} />
+      </TouchableOpacity>
+      <Reanimated.View style={[styles.sheetWrap, sheetStyle]}>
+        <View style={[styles.sheetBody, { backgroundColor: theme.background, borderColor: (accent || theme.primary) + '55' }]}>
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} />
+          <GestureDetector gesture={pan}>
+            <View style={styles.handleWrap} hitSlop={{ top: 8, bottom: 8 }}>
+              <View style={[styles.handleBar, { backgroundColor: theme.textSecondary + '80' }]} />
+            </View>
+          </GestureDetector>
+          {visible ? children : lastChildren.current}
+        </View>
+      </Reanimated.View>
+    </GestureHandlerRootView>
+  );
+};
+
 // My Week: everything scheduled, from every source, on one screen. Prayers,
 // reminders, workouts, EyeCandy events and your own calendar events can all
 // be moved from here (nudge, pick a free time, another day). Calendar-sourced
@@ -751,13 +820,9 @@ const MyWeekScreen = ({ navigation }) => {
         {loading ? <ActivityIndicator style={{ marginTop: 24 }} color={accent} /> : null}
       </ScrollView>
 
-      {/* Make it fit: the plan in words, before anything moves */}
-      {fitPlan ? (
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={cancelFit} accessibilityRole="button" accessibilityLabel="Close plan" />
-      ) : null}
-      {fitPlan ? (
-        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: accent + '55' }]}>
-          <View style={[styles.panelSurface, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} pointerEvents="none" />
+      {/* Make it fit: the plan in words, before anything moves. Pull the handle down to dismiss. */}
+      <PullSheet visible={!!fitPlan} onClose={cancelFit} accent={accent}>
+        {fitPlan ? (<>
           <View style={styles.panelHead}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={[styles.panelTitle, { color: theme.text }]}>Make it fit</Text>
@@ -808,16 +873,12 @@ const MyWeekScreen = ({ navigation }) => {
             <MaterialIcons name="check" size={20} color="#fff" />
             <Text style={styles.saveBtnText}>{saving ? 'Working' : fitCount === 1 ? 'Apply 1 change' : `Apply ${fitCount} changes`}</Text>
           </TouchableOpacity>
-        </View>
-      ) : null}
+        </>) : null}
+      </PullSheet>
 
-      {/* Move panel: dims the day behind it and sits on its own lighter surface */}
-      {moving ? (
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={cancelMove} accessibilityRole="button" accessibilityLabel="Cancel move" />
-      ) : null}
-      {moving ? (
-        <View style={[styles.panel, { backgroundColor: theme.background, borderColor: panelAccent + '55' }]}>
-          <View style={[styles.panelSurface, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} pointerEvents="none" />
+      {/* Move panel. Pull the handle down to dismiss. */}
+      <PullSheet visible={!!moving} onClose={cancelMove} accent={panelAccent}>
+        {moving ? (<>
           <View style={styles.panelHead}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={[styles.panelTitle, { color: theme.text }]}>Move {moving.title}</Text>
@@ -927,8 +988,8 @@ const MyWeekScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => confirmRemove(moving)} disabled={saving} style={[styles.removeBtn, { marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Remove ${moving.title}`}>
             <Text style={styles.removeText}>{isSeriesReminder(moving) ? 'Skip today or delete' : moving.kind === 'eyecandy' ? 'Skip today' : 'Remove'}</Text>
           </TouchableOpacity>
-        </View>
-      ) : null}
+        </>) : null}
+      </PullSheet>
     </View>
   );
 };
@@ -1001,6 +1062,10 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14, lineHeight: 20, marginTop: 6 },
   footnote: { fontSize: 13, lineHeight: 18, marginTop: 16 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  sheetBody: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1.5, overflow: 'hidden', paddingHorizontal: 20, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } },
+  handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
+  handleBar: { width: 36, height: 4, borderRadius: 2 },
   panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1.5, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } },
   panelSurface: { ...StyleSheet.absoluteFillObject },
   exactBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 14, borderWidth: 1.5, marginTop: 12 },
