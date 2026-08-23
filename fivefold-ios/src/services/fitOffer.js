@@ -6,7 +6,7 @@ import { Alert, InteractionManager } from 'react-native';
 import { loadDayItems, fmtClock } from '../utils/dayItems';
 import { dateKeyOf } from '../utils/dayBusy';
 import { planDay } from './schedulePlanner';
-import { applyPlanRow } from './rescheduleItem';
+import { applyPlanRow, removeItem } from './rescheduleItem';
 
 const parseKey = (k) => {
   const [y, m, d] = String(k).split('-').map(Number);
@@ -29,7 +29,7 @@ export const nextDateFor = (days, time, from = new Date()) => {
 
 // One preview row in words.
 export const rowText = (l) => {
-  if (l.action === 'drop') return 'skipped today';
+  if (l.action === 'drop') return l.kind === 'eyecandy' || l.todayOnly ? 'skipped today' : 'removed';
   if (l.action === 'trim') return l.to !== l.from && l.endTo !== l.endFrom ? `${fmtClock(l.to)} to ${fmtClock(l.endTo)}` : l.to !== l.from ? `starts at ${fmtClock(l.to)}` : `ends at ${fmtClock(l.endTo)}`;
   return `${fmtClock(l.from)} to ${fmtClock(l.to)}${l.todayOnly ? ' (this day only)' : ''}`;
 };
@@ -62,25 +62,31 @@ export const offerFit = async ({ anchorId, date, onDone }) => {
     if (!plan || !plan.lines.length) return 0;
     const key = dateKeyOf(day);
     await settle(startedAt);
+    const run = async (rows) => {
+      let n = 0;
+      for (const line of rows) {
+        const it = items.find((i) => i.id === line.id);
+        if (!it) continue;
+        try { if (await applyPlanRow(it, line, key)) n++; } catch {}
+      }
+      try { onDone && onDone(n); } catch {}
+      return n;
+    };
+    // One bumped workout or reminder: offer both ways out, the move the
+    // rules found and taking it off the day.
+    const one = plan.lines.length === 1 ? plan.lines[0] : null;
+    const bumped = one && one.action === 'move' && (one.kind === 'gym' || one.kind === 'reminder') ? one : null;
     return await new Promise((resolve) => {
       Alert.alert(
-        `${anchor.title} lands on other things`,
-        offerText(plan, anchorId),
-        [
+        `${anchor.title} lands on ${bumped ? bumped.title : 'other things'}`,
+        bumped ? `${bumped.title} is at ${fmtClock(bumped.from)}${bumped.todayOnly ? ' (repeats)' : ''}. ${plan.note}` : offerText(plan, anchorId),
+        bumped ? [
           { text: 'Leave it', style: 'cancel', onPress: () => resolve(0) },
-          {
-            text: plan.lines.length === 1 ? 'Do it' : `Do all ${plan.lines.length}`,
-            onPress: async () => {
-              let n = 0;
-              for (const line of plan.lines) {
-                const it = items.find((i) => i.id === line.id);
-                if (!it) continue;
-                try { if (await applyPlanRow(it, line, key)) n++; } catch {}
-              }
-              try { onDone && onDone(n); } catch {}
-              resolve(n);
-            },
-          },
+          { text: `${bumped.todayOnly ? 'Skip' : 'Remove'} ${bumped.title} today`, style: 'destructive', onPress: async () => resolve(await run([{ ...bumped, action: 'drop' }])) },
+          { text: `Move ${bumped.title} to ${fmtClock(bumped.to)}`, onPress: async () => resolve(await run(plan.lines)) },
+        ] : [
+          { text: 'Leave it', style: 'cancel', onPress: () => resolve(0) },
+          { text: plan.lines.length === 1 ? 'Do it' : `Do all ${plan.lines.length}`, onPress: async () => resolve(await run(plan.lines)) },
         ],
       );
     });

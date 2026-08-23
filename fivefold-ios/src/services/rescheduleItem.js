@@ -6,6 +6,7 @@ import * as Calendar from 'expo-calendar';
 import { updatePrayer } from './simplePrayersService';
 import { updateReminder, moveReminderForDay, skipReminderDay, deleteReminder } from './reminderService';
 import { deletePrayerById } from './simplePrayersService';
+import { skipWorkoutDay, moveWorkoutForDay } from './workoutExceptions';
 import notificationService from './notificationService';
 import WorkoutService from './workoutService';
 import { scheduleWorkoutNotifications } from './workoutSchedule';
@@ -129,6 +130,13 @@ export const moveItem = async (item, to) => {
     return true;
   }
   if (item.kind === 'gym') {
+    // A repeating workout moved for one day: the series skips `from`, a
+    // one-time copy takes `date`.
+    if (!oneTime && to.todayOnly && (to.from || to.date)) {
+      const from = to.from || to.date;
+      const copy = await moveWorkoutForDay(raw.id, { from, to: to.date || from, time: to.time });
+      return copy ? { newId: `gym:${copy.id}` } : false;
+    }
     await WorkoutService.updateScheduledWorkout(raw.id, { time: to.time, ...(oneTime && to.date ? { date: to.date } : {}) });
     const list = await WorkoutService.getScheduledWorkouts();
     const fresh = list.find((s) => String(s.id) === String(raw.id));
@@ -189,7 +197,7 @@ export const removeItem = async (item, { scope = 'all', from = null } = {}) => {
     return true;
   }
   if (item.kind === 'gym') {
-    if (!oneTime && scope === 'today') return false; // no per-day skip for workouts yet
+    if (!oneTime && scope === 'today') return skipWorkoutDay(raw.id, from);
     await WorkoutService.deleteScheduledWorkout(raw.id);
     try { const ws = require('./workoutSchedule'); if (typeof ws.cancelWorkoutNotifications === 'function') await ws.cancelWorkoutNotifications(raw.id); } catch {}
     try { DeviceEventEmitter.emit('workoutScheduled', null); } catch {}
@@ -215,11 +223,30 @@ export const removeItem = async (item, { scope = 'all', from = null } = {}) => {
   return false;
 };
 
+// Pin: plans never move this (you still can, by hand).
+export const setPinned = async (item, pinned) => {
+  const raw = item?.raw || {};
+  if (item.kind === 'reminder') { await updateReminder(raw.id, { pinned: !!pinned }); return true; }
+  if (item.kind === 'gym') { await WorkoutService.updateScheduledWorkout(raw.id, { pinned: !!pinned }); try { DeviceEventEmitter.emit('workoutScheduled', null); } catch {} return true; }
+  if (item.kind === 'task') {
+    const todos = (await getStoredData('todos')) || [];
+    const updated = todos.map((t) => (String(t.id) === String(raw.id) ? { ...t, pinned: !!pinned } : t));
+    await saveData('todos', updated);
+    try { pushToCloud('todos', updated); } catch {}
+    try { DeviceEventEmitter.emit('todosChanged'); } catch {}
+    return true;
+  }
+  return false;
+};
+
 const minToTime = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
 // One preview row (from utils/fitPlan describePlan) -> the right write.
 export const applyPlanRow = async (item, row, dayKey) => {
-  if (row.action === 'drop') return dropItem(item);
+  if (row.action === 'drop') {
+    if (item.kind === 'eyecandy') return dropItem(item);
+    return removeItem(item, { scope: row.todayOnly ? 'today' : 'all', from: dayKey });
+  }
   if (row.action === 'trim') return trimItem(item, { startMin: row.to, endMin: row.endTo });
   return moveItem(item, { time: minToTime(row.to), date: dayKey, from: dayKey, todayOnly: !!row.todayOnly });
 };

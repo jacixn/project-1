@@ -1,3 +1,4 @@
+import { workoutsOnDay } from './workoutDays';
 // Pure helpers behind the Scheduled Workouts screen. Days use JS getDay()
 // indices (0 = Sun .. 6 = Sat). Times are 'HH:MM'. Durations are minutes.
 
@@ -142,9 +143,7 @@ export const scheduledOn = (list, date = new Date()) => {
   const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const dow = d.getDay();
   const mins = (s) => { const { h, m } = parseTime(s.time); return h * 60 + m; };
-  return (Array.isArray(list) ? list : [])
-    .filter((s) => s && (s.type === 'one-time' ? s.date === key : (Array.isArray(s.days) && s.days.includes(dow))))
-    .sort((a, b) => mins(a) - mins(b));
+  return workoutsOnDay(list, key, dow).sort((a, b) => mins(a) - mins(b));
 };
 
 export const hoursLabel = (mins) => {

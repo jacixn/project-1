@@ -125,6 +125,20 @@ check(/const isOfficial = isEyeCandy && \/official release time\/i\.test\(e\.not
 check(/if \(item\.raw\?\.official\) \{/.test(screen) && /This is the official release time/.test(screen), 'tapping one explains it is the official time');
 check(/raw\.official \? 'official release time'/.test(read('utils/fitPlan.js')), 'the planner labels it as the official release time');
 
+// ---- new thing wins: bumped workouts/reminders move or come off the day; pins ----
+const wd = read('utils/workoutDays.js');
+check(/export const workoutOnDay/.test(wd) && /export const workoutsOnDay/.test(wd) && /s\.skipDates\.includes\(dateKey\)/.test(wd) && /copied\.has\(String\(s\.id\)\)/.test(wd), 'one day rule for workouts, with skipped days and moved-copy hiding');
+for (const f of ['utils/dayItems.js', 'utils/dayBusy.js', 'utils/scheduleAgenda.js', 'screens/GymTab.js']) check(/workoutsOnDay\(/.test(read(f)), `${f} reads workouts through the shared day rule`);
+check(/const \{ workoutsOnDay \} = require\('\.\.\/utils\/workoutDays'\);/.test(read('services/workoutService.js')), 'WorkoutService date lookup uses the same rule');
+const wx = read('services/workoutExceptions.js');
+check(/export const skipWorkoutDay/.test(wx) && /export const moveWorkoutForDay/.test(wx) && /parentId: parent\.id/.test(wx) && /skipDates: Array\.from\(new Set\(\[\.\.\.\(parent\.skipDates \|\| \[\]\), from\]\)\)/.test(wx), 'repeating workouts can skip or move one day');
+check(/if \(skipDates\.includes\(nextKey\)\)/.test(read('services/workoutSchedule.js')), 'a skipped weekday gets a one-off for the following week instead of the weekly ping');
+check(/moveWorkoutForDay\(raw\.id, \{ from, to: to\.date \|\| from, time: to\.time \}\)/.test(resrc) && /return skipWorkoutDay\(raw\.id, from\);/.test(resrc) && /export const setPinned/.test(resrc) && /return removeItem\(item, \{ scope: row\.todayOnly \? 'today' : 'all', from: dayKey \}\);/.test(resrc), 'moveItem/removeItem/applyPlanRow handle workouts just-today, pins, and life removals');
+check(/\/social media\/i\.test\(out\.title/.test(rem), 'Social Media time is pinned by default');
+check(/const bumped = one && one\.action === 'move' && \(one\.kind === 'gym' \|\| one\.kind === 'reminder'\)/.test(offer) && /\$\{bumped\.todayOnly \? 'Skip' : 'Remove'\} \$\{bumped\.title\} today/.test(offer) && /Move \$\{bumped\.title\} to \$\{fmtClock\(bumped\.to\)\}/.test(offer), 'the add-time alert offers Move or Remove for one bumped workout/reminder');
+check(/const toggleFitRemove = \(id\)/.test(screen) && /it today instead/.test(screen) && /\.map\(effectiveRow\)/.test(screen) && /setPinned\(moving, !moving\.raw\?\.pinned\)/.test(screen) && /Pinned: plans never move this/.test(screen), 'My Week: remove-instead per row, pin toggle in the Move panel');
+
+
 
 
 

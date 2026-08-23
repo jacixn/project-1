@@ -14,7 +14,7 @@ import { dateKeyOf } from '../utils/dayBusy';
 import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS, Easing } from 'react-native-reanimated';
-import { moveItem, applyPlanRow, removeItem } from '../services/rescheduleItem';
+import { moveItem, applyPlanRow, removeItem, setPinned } from '../services/rescheduleItem';
 import { rowText } from '../services/fitOffer';
 import { planDay } from '../services/schedulePlanner';
 import { toModel, fixableOverlaps, pickAnchor, cascadePlan, planSize } from '../utils/fitPlan';
@@ -64,6 +64,7 @@ const MyWeekScreen = ({ navigation }) => {
   const [fitting, setFitting] = useState(false);
   const [fitPlan, setFitPlan] = useState(null);
   const [fitSkipped, setFitSkipped] = useState(() => new Set()); // moves the user unticked
+  const [fitRemove, setFitRemove] = useState(() => new Set()); // life moves the user turned into "remove today"
   const lastMovedRef = useRef(null); // the thing just added/moved stays put when planning
   const autoOfferedRef = useRef(new Set()); // anchors already offered a plan this visit
   const RECENT_MS = 30 * 60 * 1000; // something added in the last half hour counts as "just added"
@@ -380,7 +381,7 @@ const MyWeekScreen = ({ navigation }) => {
     try {
       const dayLabel = isTodaySelected ? 'today' : anchor.toLocaleDateString('en', { weekday: 'long' });
       const plan = await planDay(items, { anchorId, dayLabel });
-      if (plan && plan.lines.length) { hapticFeedback.selection(); setFitSkipped(new Set()); setFitPlan(plan); }
+      if (plan && plan.lines.length) { hapticFeedback.selection(); setFitSkipped(new Set()); setFitRemove(new Set()); setFitPlan(plan); }
     } catch {}
   };
   const makeItFit = async () => {
@@ -391,7 +392,7 @@ const MyWeekScreen = ({ navigation }) => {
       const dayLabel = isTodaySelected ? 'today' : anchor.toLocaleDateString('en', { weekday: 'long' });
       const plan = await planDay(dayItems, { anchorId: lastMovedRef.current, dayLabel });
       if (!plan) setStatus('Nothing overlaps today.');
-      else { hapticFeedback.selection(); setFitSkipped(new Set()); setFitPlan(plan); }
+      else { hapticFeedback.selection(); setFitSkipped(new Set()); setFitRemove(new Set()); setFitPlan(plan); }
     } catch (e) {
       hapticFeedback.error();
       Alert.alert('Could not plan the day', e?.message || 'Please try again.');
@@ -403,12 +404,19 @@ const MyWeekScreen = ({ navigation }) => {
     hapticFeedback.selection();
     setFitSkipped((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   };
+  // A bumped workout or reminder: the rules found a move, the user may
+  // prefer it off the day instead.
+  const toggleFitRemove = (id) => {
+    hapticFeedback.selection();
+    setFitRemove((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  };
+  const effectiveRow = (l) => (fitRemove.has(l.id) ? { ...l, action: 'drop' } : l);
   const fitCount = fitPlan ? fitPlan.lines.filter((l) => !fitSkipped.has(l.id)).length : 0;
   const applyFit = async () => {
     if (!fitPlan || saving || !fitCount) return;
     setSaving(true);
     let n = 0;
-    const chosen = fitPlan.lines.filter((l) => !fitSkipped.has(l.id));
+    const chosen = fitPlan.lines.filter((l) => !fitSkipped.has(l.id)).map(effectiveRow);
     const key = dateKeyOf(anchor);
     for (const line of chosen) {
       const it = dayItems.find((i) => i.id === line.id);
@@ -759,18 +767,27 @@ const MyWeekScreen = ({ navigation }) => {
           </View>
 
           {fitPlan.lines.length ? <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Moves, tap one to leave it where it is</Text> : null}
-          {fitPlan.lines.map((l) => {
+          {fitPlan.lines.map((raw) => {
+            const l = effectiveRow(raw);
             const off = fitSkipped.has(l.id);
+            const canRemove = raw.action === 'move' && (raw.kind === 'gym' || raw.kind === 'reminder');
             return (
-              <TouchableOpacity key={l.id} onPress={() => toggleFitRow(l.id)} style={[styles.fitRow, { opacity: off ? 0.45 : 1 }]} activeOpacity={0.7} accessibilityRole="checkbox" accessibilityState={{ checked: !off }} accessibilityLabel={`${l.title}, ${fmtClock(l.from)} to ${fmtClock(l.to)}`}>
-                <View style={[styles.fitBar, { backgroundColor: l.color }]} />
-                <Text style={[styles.fitRowTitle, { color: theme.text }]}>{l.title}</Text>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={[styles.fitRowTime, { color: l.action === 'drop' ? theme.textSecondary : l.color }]}>{l.action === 'move' ? `${fmtClock(l.from)} to ${fmtClock(l.to)}` : rowText(l)}</Text>
-                  {l.todayOnly ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>this day only</Text> : l.action === 'trim' ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>was {fmtClock(l.from)} to {fmtClock(l.endFrom)}</Text> : null}
-                </View>
-                <MaterialIcons name={off ? 'check-box-outline-blank' : 'check-box'} size={22} color={off ? theme.textSecondary : accent} />
-              </TouchableOpacity>
+              <View key={l.id}>
+                <TouchableOpacity onPress={() => toggleFitRow(l.id)} style={[styles.fitRow, { opacity: off ? 0.45 : 1 }]} activeOpacity={0.7} accessibilityRole="checkbox" accessibilityState={{ checked: !off }} accessibilityLabel={`${l.title}, ${rowText(l)}`}>
+                  <View style={[styles.fitBar, { backgroundColor: l.color }]} />
+                  <Text style={[styles.fitRowTitle, { color: theme.text }]}>{l.title}</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.fitRowTime, { color: l.action === 'drop' ? theme.textSecondary : l.color }]}>{l.action === 'move' ? `${fmtClock(l.from)} to ${fmtClock(l.to)}` : rowText(l)}</Text>
+                    {l.todayOnly && l.action !== 'drop' ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>this day only</Text> : l.action === 'trim' ? <Text style={[styles.fitRowNote, { color: theme.textSecondary }]}>was {fmtClock(l.from)} to {fmtClock(l.endFrom)}</Text> : null}
+                  </View>
+                  <MaterialIcons name={off ? 'check-box-outline-blank' : 'check-box'} size={22} color={off ? theme.textSecondary : accent} />
+                </TouchableOpacity>
+                {canRemove && !off ? (
+                  <TouchableOpacity onPress={() => toggleFitRemove(l.id)} style={styles.fitAltBtn} activeOpacity={0.7} accessibilityRole="button">
+                    <Text style={[styles.fitAltText, { color: fitRemove.has(l.id) ? accent : theme.textSecondary }]}>{fitRemove.has(l.id) ? `Move it to ${fmtClock(raw.to)} instead` : `${raw.todayOnly ? 'Skip' : 'Remove'} it today instead`}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             );
           })}
           {fitPlan.stays.length ? (
@@ -898,6 +915,13 @@ const MyWeekScreen = ({ navigation }) => {
             <MaterialIcons name="check" size={20} color="#fff" />
             <Text style={styles.saveBtnText}>{saving ? 'Saving' : `Save ${fmtClock(draftMin)}`}</Text>
           </TouchableOpacity>
+          {moving.kind === 'reminder' || moving.kind === 'task' || moving.kind === 'gym' ? (
+            <TouchableOpacity onPress={async () => { hapticFeedback.selection(); try { await setPinned(moving, !moving.raw?.pinned); const fresh = await loadWeek(); const again = fresh && fresh[dateKeyOf(anchor)] && fresh[dateKeyOf(anchor)].find((x) => x.id === moving.id); if (again) setMoving(again); } catch {} }} style={[styles.pinRow, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: !!moving.raw?.pinned }}>
+              <MaterialIcons name={moving.raw?.pinned ? 'push-pin' : 'push-pin'} size={18} color={moving.raw?.pinned ? panelAccent : theme.textSecondary} />
+              <Text style={[styles.pinText, { color: theme.text }]}>{moving.raw?.pinned ? 'Pinned: plans never move this' : 'Pin: plans never move this'}</Text>
+              <Text style={[styles.pinState, { color: moving.raw?.pinned ? panelAccent : theme.textSecondary }]}>{moving.raw?.pinned ? 'On' : 'Off'}</Text>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity onPress={() => confirmRemove(moving)} disabled={saving} style={[styles.removeBtn, { marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Remove ${moving.title}`}>
             <Text style={styles.removeText}>{isSeriesReminder(moving) ? 'Skip today or delete' : moving.kind === 'eyecandy' ? 'Skip today' : 'Remove'}</Text>
           </TouchableOpacity>
@@ -1007,6 +1031,11 @@ const styles = StyleSheet.create({
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, borderRadius: 16, marginTop: 18 },
   saveBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
   removeBtn: { alignItems: 'center', justifyContent: 'center', height: 40, marginTop: -6, marginBottom: 2 },
+  pinRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, borderRadius: 12, paddingHorizontal: 12, marginTop: 10 },
+  pinText: { flex: 1, fontSize: 14, fontWeight: '700' },
+  pinState: { fontSize: 13, fontWeight: '800' },
+  fitAltBtn: { alignSelf: 'flex-start', paddingLeft: 14, paddingBottom: 6, marginTop: -4 },
+  fitAltText: { fontSize: 13, fontWeight: '700' },
   removeText: { color: '#FF453A', fontSize: 14.5, fontWeight: '800' },
 });
 

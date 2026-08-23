@@ -511,16 +511,9 @@ class WorkoutService {
       const dayOfWeek = targetDate.getDay(); // 0=Sun, 1=Mon, etc.
       const dateStr = targetDate.toISOString().split('T')[0]; // "2025-01-25"
 
-      const workoutsForDate = scheduled.filter(schedule => {
-        if (schedule.type === 'recurring') {
-          // Check if this day is in the recurring days
-          return schedule.days && schedule.days.includes(dayOfWeek);
-        } else if (schedule.type === 'one-time') {
-          // Check if this is the specific date
-          return schedule.date === dateStr;
-        }
-        return false;
-      });
+      // One rule for every reader, including skipped / moved-just-today days.
+      const { workoutsOnDay } = require('../utils/workoutDays');
+      const workoutsForDate = workoutsOnDay(scheduled, dateStr, dayOfWeek);
 
       return workoutsForDate;
     } catch (error) {

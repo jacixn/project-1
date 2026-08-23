@@ -116,9 +116,14 @@ export const loadReminders = async () => {
     if (!data || !data.reminders) return [];
     // Back-fill duration on reminders created before the field existed so cards,
     // the timeline block and the calendar mirror all have a length to work with.
-    return data.reminders.map(r => (
-      r && r.duration == null ? { ...r, duration: DEFAULT_DURATION } : r
-    ));
+    return data.reminders.map(r => {
+      if (!r) return r;
+      const out = r.duration == null ? { ...r, duration: DEFAULT_DURATION } : r;
+      // The user's "Social Media time" is a fixed part of the day: pinned
+      // unless they ever unpin it themselves.
+      if (out.pinned == null && /social media/i.test(out.title || '')) return { ...out, pinned: true };
+      return out;
+    });
   } catch (e) {
     console.error('Error loading reminders:', e);
     return [];

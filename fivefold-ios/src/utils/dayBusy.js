@@ -9,6 +9,7 @@ import { getPrayers } from '../services/simplePrayersService';
 import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { getStoredData } from './localStorage';
+import { workoutsOnDay } from './workoutDays';
 
 const BIBLELY_CAL = 'Biblely';
 const DAY_MIN = 24 * 60;
@@ -64,10 +65,8 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
   } catch {}
 
   try {
-    for (const s of await WorkoutService.getScheduledWorkouts()) {
-      if (!s || (excludeGymId != null && String(s.id) === String(excludeGymId))) continue;
-      const on = s.type === 'one-time' ? s.date === key : (s.days || []).includes(dow);
-      if (!on) continue;
+    for (const s of workoutsOnDay(await WorkoutService.getScheduledWorkouts(), key, dow)) {
+      if (excludeGymId != null && String(s.id) === String(excludeGymId)) continue;
       push(out, s.templateName || 'Workout', minutesOf(s.time), Number(s.duration) > 0 ? s.duration : 60, 'gym');
     }
   } catch {}

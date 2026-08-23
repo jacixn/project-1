@@ -47,7 +47,36 @@ const tiers = (ids) => ids.map((id) => byId[id].tier).join(',');
 check(tiers(['cal:mc', 'cal:tr', 'prayer:1']) === 'fixed,fixed,fixed', 'fixtures, weekly shows and prayers are fixed');
 check(tiers(['reminder:hc', 'reminder:l', 'gym:p', 'reminder:sh']) === 'life,life,life,life' && byId['reminder:l'].todayOnly && !byId['reminder:hc'].todayOnly, 'tasks, reminders (repeats this day only) and one-time workouts are life');
 check(tiers(['cal:fc', 'cal:fp', 'cal:sl', 'cal:cj']) === 'fun,fun,fun,fun' && byId['cal:fp'].droppable, 'one-time shows and games are fun and can be skipped');
-check(tierOf({ kind: 'gym', movable: true, raw: { type: 'recurring' } }) === 'fixed' && tierOf({ kind: 'calendar', movable: true, raw: { type: 'one-time' } }) === 'life', 'weekly workouts fixed, your own calendar events are life');
+check(tierOf({ kind: 'gym', movable: true, raw: { type: 'recurring' } }) === 'life' && toModel([it('gym:w', 'gym', 'Pull', T(16), T(17), true, 'recurring')])[0].todayOnly && tierOf({ kind: 'calendar', movable: true, raw: { type: 'one-time' } }) === 'life', 'weekly workouts are life (they can give way for one day); your own calendar events are life');
+check(tierOf({ kind: 'reminder', movable: true, raw: { type: 'one-time', pinned: true } }) === 'fixed' && toModel([it('reminder:s', 'reminder', 'Social Media time', T(20), T(21), true, 'one-time', { pinned: true })])[0].why === 'pinned', 'a pinned item is fixed: plans never move it');
+
+// The user's case: Haircut (new) at 4 PM on Pull (weekly), Newcastle ignored.
+const haircutDay = toModel([
+  it('gym:p', 'gym', 'Pull', T(16), T(17), true, 'recurring', { createdAt: '2026-06-01T00:00:00Z', days: [0] }),
+  it('reminder:h', 'reminder', 'Haircut', T(16), T(17), true, 'one-time', { createdAt: '2026-08-23T13:00:00Z' }),
+  it('cal:nl', 'eyecandySports', 'Newcastle United vs Liverpool', T(16, 30), T(18, 30), false, 'one-time'),
+  it('prayer:4', 'prayer', '4th Prayer', T(17, 30), T(17, 35), true, 'recurring'),
+  it('cal:sl', 'eyecandy', 'Solo Leveling', T(17, 45), T(19, 25), true, 'one-time'),
+  it('reminder:d', 'reminder', 'eat dinner', T(19, 25), T(19, 45), true, 'recurring'),
+]);
+const hp = cascadePlan(haircutDay);
+const hrows = Object.fromEntries(describePlan(haircutDay, hp).map((r) => [r.id, r]));
+check(hp.anchorId === 'reminder:h' && hrows['gym:p'] && hrows['gym:p'].action === 'move' && hrows['gym:p'].to === T(17) && hrows['gym:p'].todayOnly, `the haircut stays; Pull slides to 5 PM, this day only (${hrows['gym:p'] ? hm(hrows['gym:p'].to || 0) : 'untouched'})`);
+check(hrows['cal:sl'] && hrows['cal:sl'].action === 'trim' && hrows['cal:sl'].to === T(18) && !hrows['cal:nl'] && !hrows['reminder:d'], 'Solo Leveling starts at 6 PM for the moved Pull; the match and dinner untouched');
+check(validatePlan(haircutDay, { moves: [], drops: ['gym:p'] }, null, hp).reason === 'Pull can move instead of being removed', 'the AI may not remove Pull when the rules found room for it');
+
+// No room at all: the bumped workout comes off the day.
+const packed = toModel([
+  it('gym:p', 'gym', 'Pull', T(16), T(17), true, 'recurring', { createdAt: '2026-06-01T00:00:00Z' }),
+  it('reminder:h', 'reminder', 'Haircut', T(16), T(17), true, 'one-time', { createdAt: '2026-08-23T13:00:00Z' }),
+  it('cal:w', 'calendar', 'Work', T(8), T(16), true, 'recurring'),
+  it('reminder:s', 'reminder', 'Social Media time', T(17), T(21), true, 'one-time', { pinned: true }),
+  it('cal:x', 'calendar', 'Dinner out', T(21), T(23, 30), true, 'one-time', { createdAt: '2026-06-02T00:00:00Z' }),
+]);
+const pp = cascadePlan(packed);
+const prows = Object.fromEntries(describePlan(packed, pp).map((r) => [r.id, r]));
+check(prows['gym:p'] && prows['gym:p'].action === 'drop' && prows['gym:p'].todayOnly && !prows['reminder:s'] && !prows['cal:w'] && !pp.overflow.length, 'nothing within 2 hours: Pull is skipped today; Work and the pinned Social Media time never move');
+check(validatePlan(packed, pp).ok && /Social Media time must not/.test(validatePlan(packed, { moves: [], drops: ['reminder:s'] }, null, pp).reason), 'the rules plan validates; a pinned item can never be removed by a plan');
 
 check(pickAnchor(model) === 'reminder:hc', 'with no anchor given, the newest life item in a conflict (the haircut) is what stays');
 check(pickAnchor(model, 'gym:p') === 'gym:p' && pickAnchor(model, 'nope') === 'reminder:hc', 'an explicit anchor wins; an unknown one falls back');

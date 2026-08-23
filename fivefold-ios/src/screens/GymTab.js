@@ -45,6 +45,7 @@ import nutritionService from '../services/nutritionService';
 import bodyCompositionService from '../services/bodyCompositionService';
 import scaleService from '../services/scaleService';
 import ManualWeighInModal from '../components/ManualWeighInModal';
+import { workoutsOnDay } from '../utils/workoutDays';
 
 
 // const { width } = Dimensions.get('window');
@@ -544,15 +545,8 @@ const GymTab = () => {
   const getScheduledForDate = (dateKey) => {
     const date = new Date(dateKey);
     const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, etc.
-    
-    return scheduledWorkouts.filter(schedule => {
-      if (schedule.type === 'recurring') {
-        return schedule.days && schedule.days.includes(dayOfWeek);
-      } else if (schedule.type === 'one-time') {
-        return schedule.date === dateKey;
-      }
-      return false;
-    });
+    // One rule for every reader, including skipped / moved-just-today days.
+    return workoutsOnDay(scheduledWorkouts, dateKey, dayOfWeek);
   };
 
   // Get calendar month data

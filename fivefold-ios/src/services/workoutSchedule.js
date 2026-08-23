@@ -73,7 +73,27 @@ export const scheduleWorkoutNotifications = async (schedule) => {
       if (schedule.type === 'recurring') {
         // Schedule recurring notifications for each day
         // Using weekly trigger with proper format
+        const skipDates = Array.isArray(schedule.skipDates) ? schedule.skipDates : [];
+        const content = {
+          title: atStart ? 'Workout Time' : 'Workout Reminder',
+          body: atStart ? `Time for ${schedule.templateName}!` : `${schedule.templateName} starts in ${reminderText}!`,
+          data: { type: 'workout_reminder', scheduleId: schedule.id, templateId: schedule.templateId },
+          sound: soundSetting,
+        };
         for (const day of schedule.days) {
+          // This weekday's next occurrence was skipped (moved or removed just
+          // that day): a weekly trigger would still fire, so use a one-off
+          // for the occurrence after it; the next reschedule normalises.
+          const next = new Date();
+          next.setHours(notifyHours, notifyMins, 0, 0);
+          while (next.getDay() !== day || next <= new Date()) next.setDate(next.getDate() + 1);
+          const nextKey = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
+          if (skipDates.includes(nextKey)) {
+            const after = new Date(next); after.setDate(after.getDate() + 7);
+            console.log(`⏭️ Day ${day} skipped on ${nextKey}; one-off for ${after.toLocaleString()}`);
+            await notificationService.scheduleNotif({ identifier: `${schedule.id}_${day}`, content, trigger: { type: 'date', date: after } });
+            continue;
+          }
           console.log(`📅 Scheduling notification for day ${day} at ${notifyHours}:${notifyMins}`);
           
           await notificationService.scheduleNotif({

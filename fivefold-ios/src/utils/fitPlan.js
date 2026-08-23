@@ -47,13 +47,18 @@ export const tierOf = (it) => {
   const raw = it.raw || {};
   const oneTime = raw.type === 'one-time';
   if (it.kind === 'eyecandySports' || !it.movable) return 'fixed';
+  if (raw.pinned) return 'fixed'; // the user said: never moved by plans
   if (it.kind === 'eyecandy') return oneTime ? 'fun' : 'fixed';
   if (it.kind === 'prayer') return 'fixed';
-  if (it.kind === 'gym') return oneTime ? 'life' : 'fixed';
-  if (it.kind === 'reminder' || it.kind === 'task') return 'life';
+  // Repeating workouts and reminders can give way for one day (the series
+  // skips it, a one-time copy takes the new time), so they are life too.
+  if (it.kind === 'gym' || it.kind === 'reminder' || it.kind === 'task') return 'life';
   if (it.kind === 'calendar') return oneTime ? 'life' : 'fixed';
   return 'fixed';
 };
+
+// Life items that may be taken off the day when nothing nearby fits.
+const canDropLife = (m) => m.tier === 'life' && (m.kind === 'gym' || m.kind === 'reminder');
 
 export const toModel = (items) => (items || []).map((it, i) => {
   const raw = it.raw || {};
@@ -62,11 +67,12 @@ export const toModel = (items) => (items || []).map((it, i) => {
   const durationMin = Math.max(5, (it.endMin || 0) - (it.startMin || 0));
   const days = Array.isArray(raw.days) ? raw.days : [];
   const daily = !days.length || days.length === 7;
-  const todayOnly = tier === 'life' && it.kind === 'reminder' && !oneTime;
+  const todayOnly = tier === 'life' && (it.kind === 'reminder' || it.kind === 'gym') && !oneTime;
   const why = it.kind === 'eyecandySports' ? 'match'
     : raw.official ? 'official release time'
     : !it.movable ? 'read-only'
-    : tier === 'fixed' ? (it.kind === 'prayer' ? 'daily prayer' : it.kind === 'gym' && daily ? 'repeats every day' : 'repeats every week')
+    : raw.pinned ? 'pinned'
+    : tier === 'fixed' ? (it.kind === 'prayer' ? 'daily prayer' : daily ? 'repeats every day' : 'repeats every week')
     : null;
   return {
     id: it.id,
@@ -83,6 +89,7 @@ export const toModel = (items) => (items || []).map((it, i) => {
     tier,
     movable: tier !== 'fixed',
     todayOnly,
+    pinned: !!raw.pinned,
     droppable: tier === 'fun',
     createdAt: msOf(raw.createdAt) ?? (typeof raw.id === 'number' && raw.id > 1e12 ? raw.id : null),
     why,
@@ -205,6 +212,9 @@ const placeLife = (model, anchorId) => {
   const hard = blockingOf(model, anchorId).filter((m) => !m.show && !moverIds.has(m.id)).map(({ startMin, endMin }) => ({ startMin, endMin }));
   const shows = model.filter((m) => m.show && !m.soft).map(({ startMin, endMin }) => ({ startMin, endMin }));
   const funCostOf = (iv) => { let c = 0; for (const f of shows) c += Math.max(0, overlapMin(iv, f)); return FUN_PENALTY * c; };
+  // Things bumped by something new go after it by preference: moving
+  // earlier costs a quarter more than moving later by the same amount.
+  const shiftCost = (m, s) => Math.abs(s - m.startMin) * (s < m.startMin ? 1.25 : 1);
   const edges = [...hard, ...shows, ...movers.map(({ startMin, endMin }) => ({ startMin, endMin }))];
   const cands = movers.map((m) => candidatesFor(m, edges));
   let best = null; let bestCost = Infinity;
@@ -217,29 +227,30 @@ const placeLife = (model, anchorId) => {
       if (!clearAgainst(hard, s, m.durationMin) || !clearAgainst(placed, s, m.durationMin)) continue;
       const iv = { startMin: s, endMin: s + m.durationMin };
       placed.push({ id: m.id, startMin: s, endMin: iv.endMin });
-      dfs(i + 1, cost + Math.abs(s - m.startMin) + funCostOf(iv));
+      dfs(i + 1, cost + shiftCost(m, s) + funCostOf(iv));
       placed.pop();
     }
   };
   dfs(0, 0);
-  const moves = []; const stuck = []; let total = 0;
+  const moves = []; const stuck = []; const drops = []; let total = 0;
   if (best) {
     for (const p of best) { const m = movers.find((x) => x.id === p.id); if (p.startMin !== m.startMin) moves.push({ id: m.id, startMin: p.startMin }); }
     total = bestCost;
   } else {
     // No arrangement clears everything within 2 hours: place what can be
-    // placed one by one, and say which stay put.
+    // placed one by one. What cannot be placed gives way to the new thing:
+    // a workout or reminder comes off the day (a task is only reported).
     const placedAll = [];
     movers.forEach((m, i) => {
       const opts = cands[i].filter((s) => clearAgainst(hard, s, m.durationMin) && clearAgainst(placedAll, s, m.durationMin));
-      if (!opts.length) { stuck.push(m.title); return; }
-      const s = opts.sort((a, b) => (Math.abs(a - m.startMin) + funCostOf({ startMin: a, endMin: a + m.durationMin })) - (Math.abs(b - m.startMin) + funCostOf({ startMin: b, endMin: b + m.durationMin })))[0];
+      if (!opts.length) { if (canDropLife(m)) drops.push(m.id); else stuck.push(m.title); return; }
+      const s = opts.sort((a, b) => (shiftCost(m, a) + funCostOf({ startMin: a, endMin: a + m.durationMin })) - (shiftCost(m, b) + funCostOf({ startMin: b, endMin: b + m.durationMin })))[0];
       if (s !== m.startMin) moves.push({ id: m.id, startMin: s });
       placedAll.push({ id: m.id, startMin: s, endMin: s + m.durationMin });
       total += Math.abs(s - m.startMin);
     });
   }
-  return { moves, stuck, cost: total };
+  return { moves, stuck, drops, cost: total };
 };
 
 const clearMiddle = (s, e, obstacles) => {
@@ -311,7 +322,7 @@ export const cascadePlan = (model, anchorArg = null) => {
     anchorId,
     moves: [...life.moves, ...fun.moves],
     trims: fun.trims,
-    drops: fun.drops,
+    drops: [...life.drops, ...fun.drops],
     overflow: [...life.stuck, ...fun.stuck],
     lifeCost: life.cost,
   };
@@ -404,6 +415,15 @@ export const validatePlan = (model, plan, anchorArg = null, baseline = null) => 
     if (tr.startMin < m.startMin || tr.endMin > m.endMin || tr.endMin - tr.startMin < Math.max(TRIM_MIN, m.durationMin * TRIM_KEEP)) return { ok: false, reason: `${m.title}: cut too much` };
   }
   for (const id of plan.drops || []) {
+    const m = byId.get(id);
+    if (m && m.tier === 'life') {
+      // A workout or reminder may come off the day only when it is in the
+      // way of the new thing and the rules' own plan takes it off too.
+      const dup = seen(m); if (dup) return { ok: false, reason: dup };
+      if (isLocked(m, anchorId) || !lifeOk.has(id) || !canDropLife(m)) return { ok: false, reason: `${m.title} must not be removed` };
+      if (baseline && !(baseline.drops || []).includes(id)) return { ok: false, reason: `${m.title} can move instead of being removed` };
+      continue;
+    }
     const bad = funTouch(id, 'drop'); if (bad) return { ok: false, reason: bad };
     if (!byId.get(id).droppable) return { ok: false, reason: `${byId.get(id).title} cannot be skipped` };
   }
@@ -464,6 +484,7 @@ export const buildMessages = (model, anchorArg = null, dayLabel = 'today') => {
     'Make room for the new thing and touch NOTHING else: only items marked movable or "in the way" may change. Matches are ignored; they never block anything.',
     'Life items (meals, tasks, workouts, appointments) must happen: move them at most 2 hours, only as far as needed, never because of a show or game, never before 08:00.',
     'Shows and games give way: end early, start late (keep at least half and 20 minutes), move at most 3 hours, or skip today.',
+    'A workout or reminder in the way that has no room within 2 hours comes off the day ("skip"), but only when the given plan already does that.',
     'Afterwards the new thing and whatever moved must not overlap anything longer than 15 minutes by 10 minutes or more. Keep every life item\'s length. Times in 5-minute steps.',
     'You are given a plan that already works; return it in full, or a better one that changes life items no more than it does. Leaving out one of its changes is not a better plan.',
     'Reply with ONE JSON object and nothing else: {"moves":[{"id":"k3","start":"13:40"}],"trims":[{"id":"k5","start":"12:05","end":"13:40"}],"skip":["k6"],"note":"one short plain sentence for the user"}.',
@@ -513,7 +534,7 @@ export const describePlan = (model, plan) => {
   const rows = [];
   for (const mv of plan?.moves || []) { const m = byId.get(mv.id); if (m) rows.push({ id: m.id, title: m.title, color: m.color, kind: m.kind, tier: m.tier, action: 'move', from: m.startMin, to: mv.startMin, durationMin: m.durationMin, todayOnly: !!m.todayOnly }); }
   for (const tr of plan?.trims || []) { const m = byId.get(tr.id); if (m) rows.push({ id: m.id, title: m.title, color: m.color, kind: m.kind, tier: m.tier, action: 'trim', from: m.startMin, to: tr.startMin, endFrom: m.endMin, endTo: tr.endMin, durationMin: m.durationMin, todayOnly: false }); }
-  for (const id of plan?.drops || []) { const m = byId.get(id); if (m) rows.push({ id: m.id, title: m.title, color: m.color, kind: m.kind, tier: m.tier, action: 'drop', from: m.startMin, to: null, durationMin: m.durationMin, todayOnly: false }); }
+  for (const id of plan?.drops || []) { const m = byId.get(id); if (m) rows.push({ id: m.id, title: m.title, color: m.color, kind: m.kind, tier: m.tier, action: 'drop', from: m.startMin, to: null, durationMin: m.durationMin, todayOnly: !!m.todayOnly }); }
   return rows;
 };
 

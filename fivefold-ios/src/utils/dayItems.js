@@ -11,6 +11,7 @@ import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { minutesOf, dateKeyOf } from './dayBusy';
 import { getStoredData } from './localStorage';
+import { workoutsOnDay } from './workoutDays';
 
 // Colour = where it comes from, matching how the iPhone Calendar shows the
 // same items: Biblely green (three close shades so the legend still tells
@@ -99,10 +100,7 @@ export const loadDayItems = async (date) => {
   } catch {}
 
   try {
-    for (const s of await WorkoutService.getScheduledWorkouts()) {
-      if (!s) continue;
-      const on = s.type === 'one-time' ? s.date === key : (s.days || []).includes(dow);
-      if (!on) continue;
+    for (const s of workoutsOnDay(await WorkoutService.getScheduledWorkouts(), key, dow)) {
       out.push(mk('gym', s.id, s.templateName || 'Workout', minutesOf(s.time), Number(s.duration) > 0 ? s.duration : 60, s, { subtitle: patternOf(s) }));
     }
   } catch {}
