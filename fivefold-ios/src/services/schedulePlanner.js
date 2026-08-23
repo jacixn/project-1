@@ -49,7 +49,7 @@ export const planDay = async (items, { anchorId = null, dayLabel = 'today', ask 
 
   if (!plan) plan = { moves: base.moves, trims: base.trims, drops: base.drops, overflow: base.overflow, source: 'rules' };
   const lines = describePlan(model, plan);
-  return { ...plan, note: noteFor(plan, lines), anchorId: anchor, lines, stays: staysFor(model, anchor) };
+  return { ...plan, note: noteFor(plan, lines), anchorId: anchor, lines, stays: staysFor(model, anchor, plan) };
 };
 
 export default planDay;

@@ -131,7 +131,7 @@ check(!act['cal:sl'] && !act['cal:cj'] && !act['reminder:sh'] && !act['gym:p'] &
 check(rows.every((r) => r.action !== 'move' || r.tier !== 'life' || r.to >= T(8)), 'no life item lands before 8 AM');
 check(validatePlan(model, plan).ok, 'the rules plan passes its own validator');
 const stays = staysFor(model).map((s) => `${s.title}:${s.why}`);
-check(stays.join('|') === 'Haircut:just added', `stays list names only the haircut; matches are never listed (${stays.join(' | ')})`);
+check(stays.length === 0, `stays list is empty here: nothing fixed under the haircut, matches never listed (${stays.join(' | ')})`);
 
 // matches are ignored, full stop
 const pullDay = toModel([
@@ -164,6 +164,21 @@ const pinnedCal = toModel([
 ]);
 const pcp = describePlan(pinnedCal, cascadePlan(pinnedCal));
 check(pcp.length === 1 && pcp[0].id === 'reminder:d' && pcp[0].to === T(20) && !staysFor(pinnedCal).some((x) => x.title === 'Social Media time'), 'a pinned calendar event is invisible: dinner lands on it, it is never listed');
+
+// A weekly anime under the new haircut ends early today; a weekly film cannot.
+const weeklyAnime = toModel([
+  it('cal:sl', 'eyecandy', 'Solo Leveling', T(17, 45), T(19, 25), true, 'recurring', { mediaType: 'anime' }),
+  it('reminder:h', 'reminder', 'Haircut', T(19), T(20), true, 'one-time', { createdAt: '2026-08-23T13:20:00Z' }),
+]);
+const wap = cascadePlan(weeklyAnime);
+const war = describePlan(weeklyAnime, wap);
+check(war.length === 1 && war[0].id === 'cal:sl' && war[0].action === 'trim' && war[0].endTo === T(19) && !staysFor(weeklyAnime, null, wap).length, `weekly Solo Leveling ends at 7 PM today (${war[0] ? `${war[0].action} ${hm(war[0].endTo || 0)}` : 'untouched'})`);
+check(validatePlan(weeklyAnime, wap).ok && /must not move/.test(validatePlan(weeklyAnime, { moves: [{ id: 'cal:sl', startMin: T(17) }] }, null, wap).reason) && /must not move/.test(validatePlan(weeklyAnime, { moves: [], drops: ['cal:sl'] }, null, wap).reason), 'a weekly show may be cut, never moved or skipped');
+const weeklyFilm = toModel([
+  it('cal:f', 'eyecandy', 'Friday Film', T(17, 45), T(19, 25), true, 'recurring', { mediaType: 'movie' }),
+  it('reminder:h', 'reminder', 'Haircut', T(19), T(20), true, 'one-time', { createdAt: '2026-08-23T13:20:00Z' }),
+]);
+check(cascadePlan(weeklyFilm).trims.length === 0 && staysFor(weeklyFilm).some((x) => x.title === 'Friday Film'), 'a weekly film is never cut; it is listed under stays');
 
 // Simple day: an errand on a workout slides the workout next door.
 const simple = toModel([

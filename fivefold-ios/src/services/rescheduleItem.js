@@ -155,11 +155,13 @@ export const trimItem = async (item, { startMin, endMin }) => {
   if (!CALENDAR_KINDS.has(item.kind) || !raw.eventId) return false;
   const base = new Date(raw.startDate);
   const at = (min) => { const d = new Date(base); d.setHours(Math.floor(min / 60), min % 60, 0, 0); return d; };
-  const options = calendarMoveOptions(item.kind, raw);
+  // A cut is for this occurrence only, even on a weekly show (next week's
+  // episode block is untouched; EyeCandy's series stays as it is).
+  const options = raw.recurring ? { futureEvents: false, instanceStartDate: new Date(raw.startDate) } : undefined;
   let ev = null;
-  try { ev = await Calendar.getEventAsync(raw.eventId, options && options.instanceStartDate ? { instanceStartDate: options.instanceStartDate } : undefined); } catch {}
+  try { ev = await Calendar.getEventAsync(raw.eventId, options ? { instanceStartDate: options.instanceStartDate } : undefined); } catch {}
   if (!ev) throw new Error('That event is no longer in your Calendar.');
-  const details = calendarMoveDetails(ev, { startDate: at(startMin), endDate: at(endMin) }, !!(options && options.futureEvents));
+  const details = calendarMoveDetails(ev, { startDate: at(startMin), endDate: at(endMin) }, false);
   await Calendar.updateEventAsync(raw.eventId, details, options);
   return true;
 };

@@ -143,6 +143,7 @@ check(/const toggleFitRemove = \(id\)/.test(screen) && /it today instead/.test(s
 const pins = read('services/pins.js');
 check(/const DEFAULT_PIN = \/social media\/i;/.test(pins) && /raw\.recurring \? titleKey\(item\)/.test(pins) && /return raw\.type === 'one-time' \? `own:\$\{item\.kind\}:\$\{raw\.id\}` : titleKey\(item\);/.test(pins) && /if \(raw\.pinned != null\) continue;/.test(pins) && /DEFAULT_PIN\.test\(String\(it\.title \|\| ''\)\)/.test(pins), 'pins apply to every kind: stored pin wins, then the list, then Social Media by default');
 check(/await applyCalendarPins\(out\);/.test(src) && /if \(raw\.calendar\) return setCalendarPinned\(item, pinned\);/.test(resrc) && /moving\.kind === 'calendar' \|\| moving\.kind === 'eyecandy' \? \(/.test(screen), 'loader applies pins; Move panel can pin calendar and EyeCandy items');
+check(/const options = raw\.recurring \? \{ futureEvents: false, instanceStartDate: new Date\(raw\.startDate\) \} : undefined;/.test(resrc) && /calendarMoveDetails\(ev, \{ startDate: at\(startMin\), endDate: at\(endMin\) \}, false\)/.test(resrc), 'a cut on a weekly show is this occurrence only');
 
 
 

@@ -92,7 +92,10 @@ export const toModel = (items) => (items || []).map((it, i) => {
     movable: tier !== 'fixed',
     todayOnly,
     pinned: !!raw.pinned,
-    movie: tier === 'fun' && raw.mediaType === 'movie', // a film keeps its full length: move whole or skip
+    movie: it.kind === 'eyecandy' && raw.mediaType === 'movie', // a film keeps its full length: move whole or skip
+    // A weekly show (anime, tv, game) may still end early or start late
+    // TODAY (this occurrence only); it is never moved or skipped.
+    cuttable: it.kind === 'eyecandy' && !!it.movable && raw.mediaType !== 'movie' && raw.mediaType !== 'sports' && !raw.official,
     droppable: tier === 'fun',
     createdAt: msOf(raw.createdAt) ?? (typeof raw.id === 'number' && raw.id > 1e12 ? raw.id : null),
     why,
@@ -303,7 +306,8 @@ const placeFun = (model, anchorId, lifeMoves) => {
   const moves = []; const trims = []; const drops = []; const stuck = [];
   for (const f of shows) {
     if (!inWay.has(f.id)) continue;
-    if (f.tier !== 'fun') continue; // a weekly show cannot change for one day; it is listed under "stays"
+    const weekly = f.tier !== 'fun';
+    if (weekly && !f.cuttable) continue; // a weekly film: listed under "stays"
     const obstacles = [...hard, ...shows.filter((o) => o.id !== f.id && settled.has(o.id)).map((o) => settled.get(o.id))];
     const mid = clearMiddle(f.startMin, f.endMin, obstacles);
     const cs = mid ? r5up(mid[0]) : 0; const ce = mid ? r5dn(mid[1]) : 0;
@@ -311,6 +315,11 @@ const placeFun = (model, anchorId, lifeMoves) => {
     const lost = 1 - keep / f.durationMin;
     const canCut = !f.movie; // a film is watched whole or not today
     if (canCut && keep >= TRIM_MIN && lost <= 0.34) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
+    if (weekly) {
+      // Weekly: cutting today is all we may do; a bigger cut is still better than nothing.
+      if (keep >= Math.max(TRIM_MIN, f.durationMin * TRIM_KEEP)) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); }
+      continue;
+    }
     const s = nearestGap(f, obstacles, MAX_FUN_SHIFT);
     if (s != null) { moves.push({ id: f.id, startMin: s }); settled.set(f.id, { startMin: s, endMin: s + f.durationMin }); continue; }
     if (canCut && keep >= Math.max(TRIM_MIN, f.durationMin * TRIM_KEEP)) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
@@ -405,6 +414,7 @@ export const validatePlan = (model, plan, anchorArg = null, baseline = null) => 
   const funTouch = (id, what) => {
     const m = byId.get(id);
     if (!m) return `unknown item ${id}`;
+    if (m.tier === 'fixed' && what === 'trim' && m.cuttable && m.id !== anchorId) return funOk.has(id) ? seen(m) : `${m.title} is not in the way`;
     if (m.tier === 'fixed' || m.id === anchorId) return `${m.title} must not move`;
     if (m.tier === 'life') return `${m.title} must not ${what === 'trim' ? 'be cut' : what === 'drop' ? 'be skipped' : 'move'}`;
     if (!funOk.has(id)) return `${m.title} is not in the way`;
@@ -484,7 +494,7 @@ export const buildMessages = (model, anchorArg = null, dayLabel = 'today') => {
       : m.sport ? 'match, ignore'
       : m.pinned ? 'pinned, ignore (never moved, never in the way)'
       : m.soft ? 'short, ignore'
-      : m.tier === 'fixed' ? (comp.has(m.id) || inWay.has(m.id) ? `FIXED (${m.why || 'cannot move'})` : 'leave as is')
+      : m.tier === 'fixed' ? (m.cuttable && inWay.has(m.id) ? 'weekly show, in the way: may end early or start late today only, never moved or skipped' : comp.has(m.id) || inWay.has(m.id) ? `FIXED (${m.why || 'cannot move'})` : 'leave as is')
       : m.tier === 'life' ? (movers.has(m.id) ? `life, movable${m.todayOnly ? ' (this day only)' : ''}` : 'life, leave as is')
       : inWay.has(m.id) ? (m.movie ? 'film, in the way: move whole (at most 3 hours) or skip today, never cut' : 'show or game, in the way: move a little, cut, or skip today') : (m.movie ? 'film, leave as is' : 'show or game, leave as is');
     return `${m.key} | ${m.title} | ${hm(m.startMin)}-${hm(m.endMin)} | ${m.durationMin} min | ${tag}`;
@@ -495,7 +505,7 @@ export const buildMessages = (model, anchorArg = null, dayLabel = 'today') => {
     'You plan one day of a person\'s schedule inside the Biblely app. Something was just added and it lands on other things.',
     'Make room for the new thing and touch NOTHING else: only items marked movable or "in the way" may change. Matches are ignored; they never block anything.',
     'Life items (meals, tasks, workouts, appointments) must happen: move them at most 2 hours, only as far as needed, never because of a show or game, never before 08:00.',
-    'Shows and games give way: end early, start late (keep at least half and 20 minutes), move at most 3 hours, or skip today. A film is never cut: it moves whole or is skipped.',
+    'Shows and games give way: end early, start late (keep at least half and 20 minutes), move at most 3 hours, or skip today. A film is never cut: it moves whole or is skipped. A weekly show may only be cut today, never moved or skipped.',
     'A workout or reminder in the way that has no room within 2 hours comes off the day ("skip"), but only when the given plan already does that.',
     'Afterwards the new thing and whatever moved must not overlap anything longer than 15 minutes by 10 minutes or more. Keep every life item\'s length. Times in 5-minute steps.',
     'You are given a plan that already works; return it in full, or a better one that changes life items no more than it does. Leaving out one of its changes is not a better plan.',
@@ -550,16 +560,26 @@ export const describePlan = (model, plan) => {
   return rows;
 };
 
-// What stays and why: the anchor, and fixed things it (or a mover) sits on.
-export const staysFor = (model, anchorArg = null) => {
+// What stays and why: fixed things the new thing (or a mover) sits on, with
+// the reason, minus anything the plan changed.
+export const staysFor = (model, anchorArg = null, plan = null) => {
   const anchorId = pickAnchor(model, anchorArg);
+  if (!anchorId) return [];
+  const touched = new Set([...(plan?.moves || []).map((x) => x.id), ...(plan?.trims || []).map((x) => x.id), ...(plan?.drops || [])]);
+  const list = blockingOf(model, anchorId);
+  const anchor = list.find((m) => m.id === anchorId);
+  const movers = lifeMovers(model, anchorId);
+  const moved = new Map((plan?.moves || []).map((mv) => [mv.id, mv.startMin]));
+  const probes = [anchor, ...list.filter((m) => movers.has(m.id)).map((m) => {
+    const s = moved.has(m.id) ? moved.get(m.id) : m.startMin;
+    return { ...m, startMin: s, endMin: s + m.durationMin };
+  })].filter(Boolean);
   const out = []; const seen = new Set();
-  for (const [a, b] of fixableOverlaps(model, anchorId)) {
-    for (const m of [a, b]) {
-      if (!isLocked(m, anchorId) || seen.has(m.id)) continue;
-      seen.add(m.id);
-      out.push({ id: m.id, title: m.title, why: m.id === anchorId ? 'just added' : (m.why || 'cannot move') });
-    }
+  for (const m of list) {
+    if (!isLocked(m, anchorId) || m.id === anchorId || seen.has(m.id) || touched.has(m.id)) continue;
+    if (!probes.some((p) => p.id !== m.id && conflicts(p, m))) continue;
+    seen.add(m.id);
+    out.push({ id: m.id, title: m.title, why: m.why || 'cannot move' });
   }
   return out;
 };
