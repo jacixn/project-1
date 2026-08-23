@@ -95,7 +95,10 @@ export const normalizeTemplate = (t) => {
     // calendar ("Work" in the Work calendar): that event stands in for the
     // block on days it occurs, nothing is mirrored, so nothing shows twice.
     const source = b.source && b.source.kind === 'calendar' && b.source.title ? { kind: 'calendar', title: String(b.source.title), calendarTitle: b.source.calendarTitle ? String(b.source.calendarTitle) : null } : null;
-    blocks.push({ id: b.id || newId('b'), title: String(b.title || 'Block').trim() || 'Block', start: minToHm(s), end: minToHm(Math.min(e, DAY_MIN)), fixed: !!b.fixed, ...(overnight ? { overnight: true } : {}), ...(source ? { source } : {}) });
+    // notify: rings at the start like a reminder. Default on, except fixed
+    // blocks (Work, School) and calendar-backed ones (the Calendar alerts).
+    const notify = b.notify != null ? !!b.notify : !(b.fixed || source);
+    blocks.push({ id: b.id || newId('b'), title: String(b.title || 'Block').trim() || 'Block', start: minToHm(s), end: minToHm(Math.min(e, DAY_MIN)), fixed: !!b.fixed, notify, ...(overnight ? { overnight: true } : {}), ...(source ? { source } : {}) });
   }
   blocks.sort((a, b) => hmToMin(a.start) - hmToMin(b.start) || hmToMin(a.end) - hmToMin(b.end));
   return { id: (t && t.id) || newId('t'), name: String((t && t.name) || 'Day').trim() || 'Day', blocks, keeps: normalizeKeeps(t && t.keeps) };
@@ -145,7 +148,7 @@ export const blocksForDay = (templates, plan, dateKey, dow) => {
     const s = hmToMin(o && o.start ? o.start : start);
     const e = hmToMin(o && o.end ? o.end : end);
     if (s == null || e == null || e <= s) return;
-    out.push({ blockId: id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(start), fixed: !!b.fixed, moved: !!o, icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}), ...extra });
+    out.push({ blockId: id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(start), fixed: !!b.fixed, notify: b.notify !== false, moved: !!o, icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}), ...extra });
   };
   for (const b of t.blocks || []) {
     if (b.overnight) {

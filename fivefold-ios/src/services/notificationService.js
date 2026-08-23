@@ -14,7 +14,7 @@ const TAB_NOTIFICATION_MAP = {
   },
   Todos: {
     settingsKeys: ['taskReminders', 'habitReminders', 'visionExpiryReminders', 'reminderNotifications'],
-    notificationTypes: ['task_reminder', 'habit_reminder', 'vision_expiry', 'user_reminder'],
+    notificationTypes: ['task_reminder', 'habit_reminder', 'vision_expiry', 'user_reminder', 'block_reminder'],
   },
   Gym: {
     settingsKeys: ['workoutReminders', 'weeklyBodyCheckIn'],
@@ -1303,6 +1303,9 @@ class NotificationService {
       if (settings.reminderNotifications !== false && !scheduledTypes.has('user_reminder')) {
         await this.rescheduleAllReminderNotifications();
       }
+      if (settings.reminderNotifications !== false && !scheduledTypes.has('block_reminder')) {
+        await this.rescheduleBlockNotifications();
+      }
 
       if (settings.taskReminders !== false && !scheduledTypes.has('task_reminder')) {
         await this._rescheduleTaskNotifications();
@@ -1975,6 +1978,45 @@ class NotificationService {
       }
     } catch (error) {
       console.error('Failed to schedule reminder notification:', error);
+    }
+  }
+
+  // Day template blocks ring at their start like a reminder (Eat dinner at
+  // 7), unless the block says not to (notify: false; Work-type and
+  // calendar-backed blocks default to quiet: the Calendar app alerts those).
+  // One-offs for the next 7 days; re-armed on every plan/template change.
+  async rescheduleBlockNotifications() {
+    try {
+      await this.cancelNotificationsByType('block_reminder');
+      const settings = await getStoredData('notificationSettings') || { sound: true, pushNotifications: true, reminderNotifications: true };
+      if (settings.pushNotifications === false || settings.reminderNotifications === false) return;
+      const dt = require('./dayTemplates');
+      const soundSetting = settings.sound ? 'default' : false;
+      const now = Date.now();
+      let count = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+        const blocks = await dt.getBlocksForDay(d);
+        for (const b of blocks) {
+          if (b.notify === false || b.source || b.overnight === 'am') continue;
+          const fire = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.startMin, 0, 0);
+          if (fire.getTime() <= now) continue;
+          await this.scheduleNotif({
+            identifier: `block_${dateKeyOfLocal(d)}_${b.blockId}`,
+            content: {
+              title: b.title,
+              body: `Time for: ${b.title}`,
+              data: { type: 'block_reminder', blockId: b.blockId, templateId: b.templateId, date: dateKeyOfLocal(d) },
+              sound: soundSetting,
+            },
+            trigger: { type: 'date', date: fire },
+          });
+          count++;
+        }
+      }
+      console.log(`[Notif] Armed ${count} day-plan block reminders`);
+    } catch (error) {
+      console.error('Failed to schedule block notifications:', error);
     }
   }
 

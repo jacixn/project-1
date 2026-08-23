@@ -215,7 +215,7 @@ const DayTemplatesScreen = ({ navigation, route }) => {
                 <MaterialIcons name={iconForTitle(b.title)} size={22} color={ACCENT} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.blockTitle, { color: theme.text }]}>{b.title}</Text>
-                  <Text style={[styles.blockTime, { color: bad ? '#FF453A' : theme.textSecondary }]}>{`${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${overnight ? ' next morning' : ''}${b.fixed ? '  ·  fixed' : ''}${b.source ? `  ·  your ${b.source.calendarTitle || 'Calendar'} event` : ''}`}</Text>
+                  <Text style={[styles.blockTime, { color: bad ? '#FF453A' : theme.textSecondary }]}>{`${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${overnight ? ' next morning' : ''}${b.fixed ? '  ·  fixed' : ''}${(b.notify != null ? b.notify : !(b.fixed || b.source)) ? '  ·  rings' : ''}${b.source ? `  ·  your ${b.source.calendarTitle || 'Calendar'} event` : ''}`}</Text>
                 </View>
                 <MaterialIcons name={open ? 'expand-less' : 'expand-more'} size={22} color={theme.textSecondary} />
               </TouchableOpacity>
@@ -275,6 +275,13 @@ const DayTemplatesScreen = ({ navigation, route }) => {
                     <Text style={[styles.fixedText, { color: theme.text }]}>{b.fixed ? 'Fixed: plans never move this' : 'Can give way for a day (like lunch)'}</Text>
                     <Text style={[styles.fixedState, { color: b.fixed ? ACCENT : theme.textSecondary }]}>{b.fixed ? 'Fixed' : 'Flexible'}</Text>
                   </TouchableOpacity>
+                  {(() => { const on = b.notify != null ? !!b.notify : !b.fixed; return (
+                    <TouchableOpacity onPress={() => { hapticFeedback.selection(); setBlock(b.id, { notify: !on }); }} style={[styles.fixedRow, { borderColor: hairline }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: on }}>
+                      <MaterialIcons name={on ? 'notifications-active' : 'notifications-off'} size={18} color={on ? ACCENT : theme.textSecondary} />
+                      <Text style={[styles.fixedText, { color: theme.text }]}>{on ? `Rings at ${fmtClock(hmToMin(b.start))}, like a reminder` : 'Quiet: no notification'}</Text>
+                      <Text style={[styles.fixedState, { color: on ? ACCENT : theme.textSecondary }]}>{on ? 'On' : 'Off'}</Text>
+                    </TouchableOpacity>
+                  ); })()}
                   <TouchableOpacity onPress={() => removeBlock(b.id)} style={styles.removeBtn} activeOpacity={0.7} accessibilityRole="button">
                     <Text style={styles.removeText}>Remove {b.title}</Text>
                   </TouchableOpacity>

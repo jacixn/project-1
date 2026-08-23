@@ -145,5 +145,16 @@ check(/if \(b\.overnight === 'am'\) continue;/.test(fs.readFileSync(path.join(ro
 check(/next morning/.test(fs.readFileSync(path.join(root, 'screens', 'DayTemplatesScreen.js'), 'utf8')) && /hmToMin\(b\.end\) === hmToMin\(b\.start\)/.test(fs.readFileSync(path.join(root, 'screens', 'DayTemplatesScreen.js'), 'utf8')), 'editor shows "next morning", only equal times are an error');
 check(/replace\(\/_am\$\/, ''\)/.test(fs.readFileSync(path.join(root, 'services', 'rescheduleItem.js'), 'utf8')), 'removing / fixing the morning piece edits the one template block');
 
+// Blocks ring like reminders
+const ringT = T.normalizeTemplate({ id: 'r', name: 'R', blocks: [{ id: 'd', title: 'eat dinner', start: '19:00', end: '19:20' }, { id: 'w', title: 'Work', start: '09:00', end: '17:00', fixed: true }, { id: 'q', title: 'Lunch', start: '13:00', end: '13:30', notify: false }, { id: 'c', title: 'Work', start: '09:00', end: '17:00', source: { kind: 'calendar', title: 'Work' } }] });
+check(ringT.blocks.find((b) => b.id === 'd').notify === true && ringT.blocks.find((b) => b.id === 'w').notify === false && ringT.blocks.find((b) => b.id === 'q').notify === false && ringT.blocks.find((b) => b.id === 'c').notify === false, 'notify defaults: flexible blocks ring, fixed and calendar-backed stay quiet, explicit off respected');
+check(T.blocksForDay([ringT], { dates: { d: 'r' }, weekdays: {}, overrides: {} }, 'd', 1).find((b) => b.blockId === 'd').notify === true, 'blocksForDay carries notify');
+const nsrc2 = fs.readFileSync(path.join(root, 'services', 'notificationService.js'), 'utf8');
+check(/async rescheduleBlockNotifications\(\)/.test(nsrc2) && /type: 'block_reminder'/.test(nsrc2) && /if \(b\.notify === false \|\| b\.source \|\| b\.overnight === 'am'\) continue;/.test(nsrc2) && /!scheduledTypes\.has\('block_reminder'\)/.test(nsrc2), 'block reminders armed for 7 days, re-armed when missing');
+check(/ns\.rescheduleBlockNotifications\(\)/.test(fs.readFileSync(path.join(root, 'services', 'dayTemplates.js'), 'utf8')), 'plan/template saves re-arm block reminders');
+const rs = fs.readFileSync(path.join(root, 'components', 'RemindersScreen.js'), 'utf8');
+check(/isBlock: true/.test(rs) && /Day plan · \$\{reminder\.templateName\}/.test(rs) && /dayPlanChanged/.test(rs), 'Reminders screen lists the day\'s ringing blocks');
+check(/Rings at \$\{fmtClock\(hmToMin\(b\.start\)\)\}, like a reminder/.test(fs.readFileSync(path.join(root, 'screens', 'DayTemplatesScreen.js'), 'utf8')), 'editor: per-block Remind me toggle');
+
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

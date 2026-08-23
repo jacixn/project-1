@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
   FlatList,
+  DeviceEventEmitter,
   ScrollView,
   Alert,
   Animated,
@@ -52,6 +53,8 @@ const RemindersScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [reminders, setReminders] = useState([]);
+  // Day template blocks that ring (Eat dinner at 7 on a Work Remote day): shown with the reminders, by date.
+  const [blocksByDate, setBlocksByDate] = useState({});
   const [activePage, setActivePage] = useState(0);
   const flatListRef = useRef(null);
   const [floatingPoints, setFloatingPoints] = useState([]);
@@ -63,6 +66,16 @@ const RemindersScreen = ({ navigation }) => {
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
   const refresh = useCallback(async () => {
+    try {
+      const { getBlocksForDay } = require('../services/dayTemplates');
+      const map = {};
+      for (let i = 0; i < DAY_RANGE; i++) {
+        const d = getDateForDayOffset(i);
+        const blocks = (await getBlocksForDay(d)).filter((b) => b.notify && !b.source && b.overnight !== 'am');
+        if (blocks.length) map[getDateStr(i)] = blocks;
+      }
+      setBlocksByDate(map);
+    } catch {}
     const data = await loadReminders();
     setReminders(data);
   }, []);
@@ -70,8 +83,9 @@ const RemindersScreen = ({ navigation }) => {
   useEffect(() => { refresh(); }, [refresh]);
 
   useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('dayPlanChanged', refresh);
     const unsubscribe = navigation.addListener('focus', refresh);
-    return unsubscribe;
+    return () => { sub.remove(); unsubscribe(); };
   }, [navigation, refresh]);
 
   // Open the schedule wizard (native modal screen); pass an existing reminder to edit.
@@ -138,7 +152,19 @@ const RemindersScreen = ({ navigation }) => {
     const dayName = DAY_NAMES[dayIndex];
     const dateStr = getDateStr(offset);
     const isToday = offset === 0;
-    const dayReminders = getRemindersForDay(reminders, dayIndex, dateStr);
+    const blockRows = (blocksByDate[dateStr] || []).map((b) => ({
+      id: `block:${dateStr}:${b.blockId}`,
+      title: b.title,
+      time: `${String(Math.floor(b.startMin / 60)).padStart(2, '0')}:${String(b.startMin % 60).padStart(2, '0')}`,
+      duration: b.endMin - b.startMin,
+      icon: b.icon || 'schedule',
+      color: '#5AC8FA',
+      isBlock: true,
+      templateId: b.templateId,
+      templateName: b.templateName,
+    }));
+    const dayReminders = [...getRemindersForDay(reminders, dayIndex, dateStr), ...blockRows]
+      .sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
     const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     return (
@@ -202,9 +228,10 @@ const RemindersScreen = ({ navigation }) => {
                   {/* Card */}
                   <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => handleToggleComplete(reminder, dateStr)}
+                    onPress={() => { if (reminder.isBlock) { hapticFeedback.light(); navigation.navigate('DayTemplates', { editId: reminder.templateId }); return; } handleToggleComplete(reminder, dateStr); }}
                     onLongPress={() => {
                       hapticFeedback.medium();
+                      if (reminder.isBlock) { navigation.navigate('DayTemplates', { editId: reminder.templateId }); return; }
                       Alert.alert(reminder.title, null, [
                         { text: 'Edit', onPress: () => openSchedule(reminder) },
                         {
@@ -250,11 +277,13 @@ const RemindersScreen = ({ navigation }) => {
                       {reminder.title}
                     </Text>
                     <Text style={[styles.reminderMeta, { color: isDark ? 'rgba(255,255,255,0.55)' : '#6B7280' }]}>
-                      {reminder.type === 'recurring'
-                        ? (reminder.days || []).length === 7
-                          ? 'Every day'
-                          : (reminder.days || []).map(d => DAY_SHORT[d]).join(', ')
-                        : 'One-time'}
+                      {reminder.isBlock
+                        ? `Day plan · ${reminder.templateName}`
+                        : reminder.type === 'recurring'
+                          ? (reminder.days || []).length === 7
+                            ? 'Every day'
+                            : (reminder.days || []).map(d => DAY_SHORT[d]).join(', ')
+                          : 'One-time'}
                     </Text>
                     {isCompleted ? (
                       <View style={[styles.checkDone, { backgroundColor: rColor }]}>

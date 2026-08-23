@@ -28,6 +28,7 @@ const requiet = () => {
     ns.scheduleStoredPrayerReminders().catch(() => {});
     ns._rescheduleTaskNotifications().catch(() => {});
     ns._rescheduleWorkoutNotifications().catch(() => {});
+    ns.rescheduleBlockNotifications().catch(() => {});
   } catch {}
 };
 const emit = () => { try { DeviceEventEmitter.emit(DAY_PLAN_CHANGED); } catch {} try { require('../utils/widgetBridge').updateMyWeekWidget().catch(() => {}); } catch {} };
