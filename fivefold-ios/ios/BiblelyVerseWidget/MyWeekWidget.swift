@@ -127,16 +127,27 @@ struct MyWeekProvider: TimelineProvider {
             let start = Calendar.current.startOfDay(for: d0)
             let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
             let live = store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
+            // expo-calendar hands the app `calendarItemIdentifier`; EventKit's
+            // `eventIdentifier` is a different string. Accept either.
             var present = Set<String>()
             for e in live {
-                if let id = e.eventIdentifier { present.insert(id); present.insert("\(id)@\(Int(e.startDate.timeIntervalSince1970 / 60))") }
+                let minute = Int(e.startDate.timeIntervalSince1970 / 60)
+                for id in [e.eventIdentifier, e.calendarItemIdentifier].compactMap({ $0 }) {
+                    present.insert(id); present.insert("\(id)@\(minute)")
+                }
             }
+            let backed = day.items.filter { $0.eventId != nil }
             let kept = day.items.filter { it in
                 guard let id = it.eventId else { return true }
                 if let s = it.eventStart, let date = iso.date(from: s) ?? isoPlain.date(from: s) {
-                    return present.contains("\(id)@\(Int(date.timeIntervalSince1970 / 60))")
+                    return present.contains("\(id)@\(Int(date.timeIntervalSince1970 / 60))") || (present.contains(id) && !live.contains { $0.hasRecurrenceRules && ($0.eventIdentifier == id || $0.calendarItemIdentifier == id) })
                 }
                 return present.contains(id)
+            }
+            // Nothing matched at all while the calendar has events: that is an
+            // id mismatch, not a mass deletion. Keep everything rather than blank the day.
+            if !backed.isEmpty && !live.isEmpty && kept.count == day.items.count - backed.count {
+                days.append(day); continue
             }
             days.append(MyWeekDay(key: day.key, weekday: day.weekday, day: day.day, month: day.month, template: day.template, items: kept))
         }
