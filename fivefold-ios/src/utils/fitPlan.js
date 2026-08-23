@@ -7,6 +7,8 @@
 // count as overlaps. Short things (a 5-minute prayer) likewise.
 //
 // Tiers for what IS in scope:
+//   (pinned things, like "Social Media time", are invisible to planning:
+//   never moved, never in the way, like a match)
 //   fixed  read-only calendars, repeating workouts/prayers, weekly shows
 //   life   tasks, reminders (this day only for repeats), one-time workouts,
 //          your own calendar events: they must happen, they move at most
@@ -90,13 +92,14 @@ export const toModel = (items) => (items || []).map((it, i) => {
     movable: tier !== 'fixed',
     todayOnly,
     pinned: !!raw.pinned,
+    movie: tier === 'fun' && raw.mediaType === 'movie', // a film keeps its full length: move whole or skip
     droppable: tier === 'fun',
     createdAt: msOf(raw.createdAt) ?? (typeof raw.id === 'number' && raw.id > 1e12 ? raw.id : null),
     why,
   };
 });
 
-const ignored = (m) => m.soft || m.sport;
+const ignored = (m) => m.soft || m.sport || m.pinned;
 const blockingOf = (model, anchorId) => model.filter((m) => !ignored(m) || m.id === anchorId);
 const isLocked = (m, anchorId) => m.tier === 'fixed' || m.id === anchorId;
 
@@ -213,17 +216,23 @@ const placeLife = (model, anchorId) => {
   const shows = model.filter((m) => m.show && !m.soft).map(({ startMin, endMin }) => ({ startMin, endMin }));
   const funCostOf = (iv) => { let c = 0; for (const f of shows) c += Math.max(0, overlapMin(iv, f)); return FUN_PENALTY * c; };
   // Things bumped by something new go after it by preference: moving
-  // earlier costs a quarter more than moving later by the same amount.
-  const shiftCost = (m, s) => Math.abs(s - m.startMin) * (s < m.startMin ? 1.25 : 1);
+  // earlier costs half as much again as moving later by the same amount.
+  const shiftCost = (m, s) => Math.abs(s - m.startMin) * (s < m.startMin ? 1.5 : 1);
   const edges = [...hard, ...shows, ...movers.map(({ startMin, endMin }) => ({ startMin, endMin }))];
   const cands = movers.map((m) => candidatesFor(m, edges));
+  // Right after (or before) something already placed in this search is a
+  // candidate too: "dinner after the haircut, then the shower after dinner".
+  const withPlaced = (m, base, placedNow) => {
+    if (!placedNow.length) return base;
+    return [...new Set([...base, ...candidatesFor(m, placedNow)])].sort((a, b) => Math.abs(a - m.startMin) - Math.abs(b - m.startMin) || a - b);
+  };
   let best = null; let bestCost = Infinity;
   const placed = [];
   const dfs = (i, cost) => {
     if (cost >= bestCost) return;
     if (i === movers.length) { bestCost = cost; best = placed.map((p) => ({ ...p })); return; }
     const m = movers[i];
-    for (const s of cands[i]) {
+    for (const s of withPlaced(m, cands[i], placed)) {
       if (!clearAgainst(hard, s, m.durationMin) || !clearAgainst(placed, s, m.durationMin)) continue;
       const iv = { startMin: s, endMin: s + m.durationMin };
       placed.push({ id: m.id, startMin: s, endMin: iv.endMin });
@@ -242,7 +251,7 @@ const placeLife = (model, anchorId) => {
     // a workout or reminder comes off the day (a task is only reported).
     const placedAll = [];
     movers.forEach((m, i) => {
-      const opts = cands[i].filter((s) => clearAgainst(hard, s, m.durationMin) && clearAgainst(placedAll, s, m.durationMin));
+      const opts = withPlaced(m, cands[i], placedAll).filter((s) => clearAgainst(hard, s, m.durationMin) && clearAgainst(placedAll, s, m.durationMin));
       if (!opts.length) { if (canDropLife(m)) drops.push(m.id); else stuck.push(m.title); return; }
       const s = opts.sort((a, b) => (shiftCost(m, a) + funCostOf({ startMin: a, endMin: a + m.durationMin })) - (shiftCost(m, b) + funCostOf({ startMin: b, endMin: b + m.durationMin })))[0];
       if (s !== m.startMin) moves.push({ id: m.id, startMin: s });
@@ -300,10 +309,11 @@ const placeFun = (model, anchorId, lifeMoves) => {
     const cs = mid ? r5up(mid[0]) : 0; const ce = mid ? r5dn(mid[1]) : 0;
     const keep = Math.max(0, ce - cs);
     const lost = 1 - keep / f.durationMin;
-    if (keep >= TRIM_MIN && lost <= 0.34) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
+    const canCut = !f.movie; // a film is watched whole or not today
+    if (canCut && keep >= TRIM_MIN && lost <= 0.34) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
     const s = nearestGap(f, obstacles, MAX_FUN_SHIFT);
     if (s != null) { moves.push({ id: f.id, startMin: s }); settled.set(f.id, { startMin: s, endMin: s + f.durationMin }); continue; }
-    if (keep >= Math.max(TRIM_MIN, f.durationMin * TRIM_KEEP)) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
+    if (canCut && keep >= Math.max(TRIM_MIN, f.durationMin * TRIM_KEEP)) { trims.push({ id: f.id, startMin: cs, endMin: ce }); settled.set(f.id, { startMin: cs, endMin: ce }); continue; }
     drops.push(f.id); settled.delete(f.id);
   }
   return { moves, trims, drops, stuck };
@@ -411,6 +421,7 @@ export const validatePlan = (model, plan, anchorArg = null, baseline = null) => 
   for (const tr of plan.trims || []) {
     const bad = funTouch(tr.id, 'trim'); if (bad) return { ok: false, reason: bad };
     const m = byId.get(tr.id);
+    if (m.movie) return { ok: false, reason: `${m.title} is a film: whole or skipped, never cut` };
     if (!grid(tr.startMin) || !grid(tr.endMin)) return { ok: false, reason: `${m.title}: cut not in 5-minute steps` };
     if (tr.startMin < m.startMin || tr.endMin > m.endMin || tr.endMin - tr.startMin < Math.max(TRIM_MIN, m.durationMin * TRIM_KEEP)) return { ok: false, reason: `${m.title}: cut too much` };
   }
@@ -471,10 +482,11 @@ export const buildMessages = (model, anchorArg = null, dayLabel = 'today') => {
   const lines = model.slice().sort((a, b) => a.startMin - b.startMin).map((m) => {
     const tag = m.id === anchorId ? 'JUST ADDED, must stay'
       : m.sport ? 'match, ignore'
+      : m.pinned ? 'pinned, ignore (never moved, never in the way)'
       : m.soft ? 'short, ignore'
       : m.tier === 'fixed' ? (comp.has(m.id) || inWay.has(m.id) ? `FIXED (${m.why || 'cannot move'})` : 'leave as is')
       : m.tier === 'life' ? (movers.has(m.id) ? `life, movable${m.todayOnly ? ' (this day only)' : ''}` : 'life, leave as is')
-      : inWay.has(m.id) ? 'show or game, in the way: move a little, cut, or skip today' : 'show or game, leave as is';
+      : inWay.has(m.id) ? (m.movie ? 'film, in the way: move whole (at most 3 hours) or skip today, never cut' : 'show or game, in the way: move a little, cut, or skip today') : (m.movie ? 'film, leave as is' : 'show or game, leave as is');
     return `${m.key} | ${m.title} | ${hm(m.startMin)}-${hm(m.endMin)} | ${m.durationMin} min | ${tag}`;
   });
   const confl = fixableOverlaps(model, anchorId).map(([a, b]) => `${a.title} (${a.key}) with ${b.title} (${b.key})`);
@@ -483,7 +495,7 @@ export const buildMessages = (model, anchorArg = null, dayLabel = 'today') => {
     'You plan one day of a person\'s schedule inside the Biblely app. Something was just added and it lands on other things.',
     'Make room for the new thing and touch NOTHING else: only items marked movable or "in the way" may change. Matches are ignored; they never block anything.',
     'Life items (meals, tasks, workouts, appointments) must happen: move them at most 2 hours, only as far as needed, never because of a show or game, never before 08:00.',
-    'Shows and games give way: end early, start late (keep at least half and 20 minutes), move at most 3 hours, or skip today.',
+    'Shows and games give way: end early, start late (keep at least half and 20 minutes), move at most 3 hours, or skip today. A film is never cut: it moves whole or is skipped.',
     'A workout or reminder in the way that has no room within 2 hours comes off the day ("skip"), but only when the given plan already does that.',
     'Afterwards the new thing and whatever moved must not overlap anything longer than 15 minutes by 10 minutes or more. Keep every life item\'s length. Times in 5-minute steps.',
     'You are given a plan that already works; return it in full, or a better one that changes life items no more than it does. Leaving out one of its changes is not a better plan.',

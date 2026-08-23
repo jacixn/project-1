@@ -918,7 +918,7 @@ const MyWeekScreen = ({ navigation }) => {
           {moving.kind === 'reminder' || moving.kind === 'task' || moving.kind === 'gym' ? (
             <TouchableOpacity onPress={async () => { hapticFeedback.selection(); try { await setPinned(moving, !moving.raw?.pinned); const fresh = await loadWeek(); const again = fresh && fresh[dateKeyOf(anchor)] && fresh[dateKeyOf(anchor)].find((x) => x.id === moving.id); if (again) setMoving(again); } catch {} }} style={[styles.pinRow, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: !!moving.raw?.pinned }}>
               <MaterialIcons name={moving.raw?.pinned ? 'push-pin' : 'push-pin'} size={18} color={moving.raw?.pinned ? panelAccent : theme.textSecondary} />
-              <Text style={[styles.pinText, { color: theme.text }]}>{moving.raw?.pinned ? 'Pinned: plans never move this' : 'Pin: plans never move this'}</Text>
+              <Text style={[styles.pinText, { color: theme.text }]}>{moving.raw?.pinned ? 'Pinned: plans ignore this' : 'Pin: plans ignore this (never moved, never in the way)'}</Text>
               <Text style={[styles.pinState, { color: moving.raw?.pinned ? panelAccent : theme.textSecondary }]}>{moving.raw?.pinned ? 'On' : 'Off'}</Text>
             </TouchableOpacity>
           ) : null}

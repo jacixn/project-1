@@ -133,6 +133,7 @@ export const loadDayItems = async (date) => {
           // A tracked release pinned to its official time (EyeCandy writes it
           // into the event notes): shown, never moved, like a kick-off.
           const isOfficial = isEyeCandy && /official release time/i.test(e.notes || '');
+          const mediaType = isEyeCandy ? ((/type:(movie|tv|anime|game|music|manga|book|comic|sports)\b/i.exec(e.notes || '') || [])[1] || '').toLowerCase() : '';
           const kind = isSports ? 'eyecandySports' : isEyeCandy ? 'eyecandy' : 'calendar';
           const s = new Date(e.startDate);
           const en = new Date(e.endDate);
@@ -156,6 +157,7 @@ export const loadDayItems = async (date) => {
             raw: {
               calendar: true,
               official: isOfficial,
+              mediaType,
               eventId: e.id,
               calendarTitle: cal.title,
               startDate: s.toISOString(),

@@ -124,6 +124,7 @@ check(/onPress=\{goToNow\}/.test(screen) && /const goToNow = \(\) =>/.test(scree
 check(/const isOfficial = isEyeCandy && \/official release time\/i\.test\(e\.notes \|\| ''\);/.test(src) && /movable: !!cal\.allowsModifications && !isSports && !isOfficial,/.test(src) && /official: isOfficial,/.test(src), 'a tracked release pinned by EyeCandy (Calendar notes) is never movable');
 check(/if \(item\.raw\?\.official\) \{/.test(screen) && /This is the official release time/.test(screen), 'tapping one explains it is the official time');
 check(/raw\.official \? 'official release time'/.test(read('utils/fitPlan.js')), 'the planner labels it as the official release time');
+check(/type:\(movie\|tv\|anime\|game\|music\|manga\|book\|comic\|sports\)/.test(src) && /mediaType,/.test(src) && /const ignored = \(m\) => m\.soft \|\| m\.sport \|\| m\.pinned;/.test(read('utils/fitPlan.js')) && /Pin: plans ignore this/.test(screen), 'media type read from EyeCandy notes; pinned items are invisible to plans');
 
 // ---- new thing wins: bumped workouts/reminders move or come off the day; pins ----
 const wd = read('utils/workoutDays.js');
@@ -136,7 +137,7 @@ check(/if \(skipDates\.includes\(nextKey\)\)/.test(read('services/workoutSchedul
 check(/moveWorkoutForDay\(raw\.id, \{ from, to: to\.date \|\| from, time: to\.time \}\)/.test(resrc) && /return skipWorkoutDay\(raw\.id, from\);/.test(resrc) && /export const setPinned/.test(resrc) && /return removeItem\(item, \{ scope: row\.todayOnly \? 'today' : 'all', from: dayKey \}\);/.test(resrc), 'moveItem/removeItem/applyPlanRow handle workouts just-today, pins, and life removals');
 check(/\/social media\/i\.test\(out\.title/.test(rem), 'Social Media time is pinned by default');
 check(/const bumped = one && one\.action === 'move' && \(one\.kind === 'gym' \|\| one\.kind === 'reminder'\)/.test(offer) && /\$\{bumped\.todayOnly \? 'Skip' : 'Remove'\} \$\{bumped\.title\} today/.test(offer) && /Move \$\{bumped\.title\} to \$\{fmtClock\(bumped\.to\)\}/.test(offer), 'the add-time alert offers Move or Remove for one bumped workout/reminder');
-check(/const toggleFitRemove = \(id\)/.test(screen) && /it today instead/.test(screen) && /\.map\(effectiveRow\)/.test(screen) && /setPinned\(moving, !moving\.raw\?\.pinned\)/.test(screen) && /Pinned: plans never move this/.test(screen), 'My Week: remove-instead per row, pin toggle in the Move panel');
+check(/const toggleFitRemove = \(id\)/.test(screen) && /it today instead/.test(screen) && /\.map\(effectiveRow\)/.test(screen) && /setPinned\(moving, !moving\.raw\?\.pinned\)/.test(screen) && /Pin: plans ignore this/.test(screen), 'My Week: remove-instead per row, pin toggle in the Move panel');
 
 
 

@@ -65,17 +65,49 @@ check(hp.anchorId === 'reminder:h' && hrows['gym:p'] && hrows['gym:p'].action ==
 check(hrows['cal:sl'] && hrows['cal:sl'].action === 'trim' && hrows['cal:sl'].to === T(18) && !hrows['cal:nl'] && !hrows['reminder:d'], 'Solo Leveling starts at 6 PM for the moved Pull; the match and dinner untouched');
 check(validatePlan(haircutDay, { moves: [], drops: ['gym:p'] }, null, hp).reason === 'Pull can move instead of being removed', 'the AI may not remove Pull when the rules found room for it');
 
+// The 7 PM haircut evening: Social Media time is pinned (invisible), Candy Jar is a film.
+const evening = toModel([
+  it('gym:p', 'gym', 'Pull', T(16), T(17), true, 'recurring', { createdAt: '2026-06-01', days: [0] }),
+  it('cal:nl', 'eyecandySports', 'Newcastle vs Liverpool', T(16, 30), T(18, 30), false, 'one-time'),
+  it('cal:sl', 'eyecandy', 'Solo Leveling', T(17, 45), T(19, 25), true, 'one-time', { mediaType: 'anime' }),
+  it('reminder:h', 'reminder', 'Haircut', T(19), T(20), true, 'one-time', { createdAt: '2026-08-23T13:20:00Z' }),
+  it('reminder:d', 'reminder', 'eat dinner', T(19, 25), T(19, 45), true, 'recurring', { createdAt: '2026-06-01' }),
+  it('cal:st', 'eyecandySports', 'Stade Rennais vs PSG', T(19, 45), T(21, 45), false, 'one-time'),
+  it('reminder:sh', 'reminder', 'take shower', T(19, 45), T(20, 15), true, 'one-time', { createdAt: '2026-08-21' }),
+  it('reminder:sm', 'reminder', 'Social Media time', T(20), T(21), true, 'one-time', { createdAt: '2026-08-21', pinned: true }),
+  it('cal:cj', 'eyecandy', 'Candy Jar', T(20, 15), T(21, 50), true, 'one-time', { mediaType: 'movie' }),
+  it('cal:el', 'eyecandySports', 'Elche vs Barcelona', T(20, 30), T(22, 30), false, 'one-time'),
+]);
+const ep = cascadePlan(evening);
+const er = Object.fromEntries(describePlan(evening, ep).map((r) => [r.id, r]));
+console.log('  evening:', describePlan(evening, ep).map((r) => `${r.title}: ${r.action === 'drop' ? 'skip' : r.action === 'trim' ? `${hm(r.to)}-${hm(r.endTo)}` : hm(r.to)}`).join(' | '));
+check(er['reminder:d'] && er['reminder:d'].action === 'move' && er['reminder:d'].to === T(20) && er['reminder:d'].todayOnly, `dinner goes right after the haircut, on top of the invisible Social Media time (${er['reminder:d'] ? hm(er['reminder:d'].to) : 'untouched'})`);
+check(er['reminder:sh'] && er['reminder:sh'].action === 'move' && er['reminder:sh'].to === T(20, 20), `shower follows dinner at 8:20 PM, Social Media time ignored (${er['reminder:sh'] ? hm(er['reminder:sh'].to) : 'untouched'})`);
+check(!er['reminder:sm'], 'Social Media time is never touched');
+check(er['cal:sl'] && er['cal:sl'].action === 'trim' && er['cal:sl'].endTo === T(19), 'the anime ends early for the haircut');
+check(er['cal:cj'] && er['cal:cj'].action === 'move' && er['cal:cj'].to === T(20, 50) && evening.find((m) => m.id === 'cal:cj').movie, `the film moves whole to 8:50 PM, never cut (${er['cal:cj'] ? `${er['cal:cj'].action} ${hm(er['cal:cj'].to || 0)}` : 'untouched'})`);
+check(validatePlan(evening, { moves: ep.moves.filter((x) => x.id !== 'cal:cj'), trims: [...ep.trims, { id: 'cal:cj', startMin: T(20, 50), endMin: T(21, 50) }], drops: [] }, null, ep).reason === 'Candy Jar is a film: whole or skipped, never cut', 'the AI may not cut a film');
+const noRoom = toModel([
+  it('reminder:h', 'reminder', 'Haircut', T(19), T(21), true, 'one-time', { createdAt: '2026-08-23T13:20:00Z' }),
+  it('cal:cj', 'eyecandy', 'Candy Jar', T(20, 15), T(21, 50), true, 'one-time', { mediaType: 'movie' }),
+  it('cal:w', 'calendar', 'Late shift', T(21), T(23, 59), true, 'recurring'),
+  it('cal:w2', 'calendar', 'Afternoon', T(14), T(19), true, 'recurring'),
+]);
+const nr = describePlan(noRoom, cascadePlan(noRoom));
+check(nr.length === 1 && nr[0].id === 'cal:cj' && nr[0].action === 'drop', 'a film with no whole gap is skipped today, not cut');
+
 // No room at all: the bumped workout comes off the day.
 const packed = toModel([
   it('gym:p', 'gym', 'Pull', T(16), T(17), true, 'recurring', { createdAt: '2026-06-01T00:00:00Z' }),
   it('reminder:h', 'reminder', 'Haircut', T(16), T(17), true, 'one-time', { createdAt: '2026-08-23T13:00:00Z' }),
   it('cal:w', 'calendar', 'Work', T(8), T(16), true, 'recurring'),
-  it('reminder:s', 'reminder', 'Social Media time', T(17), T(21), true, 'one-time', { pinned: true }),
+  it('cal:f', 'calendar', 'Family dinner', T(17), T(21), true, 'recurring'),
+  it('reminder:s', 'reminder', 'Social Media time', T(17), T(18), true, 'one-time', { pinned: true }),
   it('cal:x', 'calendar', 'Dinner out', T(21), T(23, 30), true, 'one-time', { createdAt: '2026-06-02T00:00:00Z' }),
 ]);
 const pp = cascadePlan(packed);
 const prows = Object.fromEntries(describePlan(packed, pp).map((r) => [r.id, r]));
-check(prows['gym:p'] && prows['gym:p'].action === 'drop' && prows['gym:p'].todayOnly && !prows['reminder:s'] && !prows['cal:w'] && !pp.overflow.length, 'nothing within 2 hours: Pull is skipped today; Work and the pinned Social Media time never move');
+check(prows['gym:p'] && prows['gym:p'].action === 'drop' && prows['gym:p'].todayOnly && !prows['reminder:s'] && !prows['cal:w'] && !prows['cal:f'] && !pp.overflow.length, 'nothing within 2 hours: Pull is skipped today; Work, Family dinner and the pinned Social Media time never move');
 check(validatePlan(packed, pp).ok && /Social Media time must not/.test(validatePlan(packed, { moves: [], drops: ['reminder:s'] }, null, pp).reason), 'the rules plan validates; a pinned item can never be removed by a plan');
 
 check(pickAnchor(model) === 'reminder:hc', 'with no anchor given, the newest life item in a conflict (the haircut) is what stays');
