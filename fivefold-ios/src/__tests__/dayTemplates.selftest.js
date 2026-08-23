@@ -23,11 +23,11 @@ check(T.fmtClock(540) === '9 AM' && T.fmtClock(1050) === '5:30 PM' && T.fmtClock
 const t = T.normalizeTemplate({ id: 'wr', name: ' Work Remote ', blocks: [
   { id: 'lunch', title: 'Lunch', start: '13:00', end: '13:30' },
   { id: 'work', title: 'Work', start: '09:00', end: '17:30', fixed: true },
-  { id: 'bad', title: 'Backwards', start: '15:00', end: '14:00' },
+  { id: 'bad', title: 'Empty', start: '15:00', end: '15:00' },
   { id: 'bf', title: 'Breakfast', start: '08:00', end: '08:30' },
 ] });
 check(t.name === 'Work Remote', 'name trimmed');
-check(t.blocks.map((b) => b.id).join() === 'bf,work,lunch', `blocks sorted by start, backwards one dropped (${t.blocks.map((b) => b.id).join()})`);
+check(t.blocks.map((b) => b.id).join() === 'bf,work,lunch', `blocks sorted by start, zero-length one dropped (${t.blocks.map((b) => b.id).join()})`);
 check(t.blocks[1].fixed === true && t.blocks[0].fixed === false, 'fixed flag kept / defaulted');
 check(T.templateSummary(t) === 'Work 9 AM to 5:30 PM · Breakfast, Lunch', `summary (${T.templateSummary(t)})`);
 
@@ -131,6 +131,19 @@ const plan3 = T.withWeekdayTemplate(T.emptyPlan(), 0, 'q');
 check(T.groupHiddenOn('sports', [quiet], plan3, '2026-08-30', 0) === true && T.groupHiddenOn('prayers', [quiet], plan3, '2026-08-30', 0) === false && T.groupHiddenOn('sports', [quiet], plan3, '2026-08-31', 1) === false, 'groupHiddenOn');
 const oo = T.normalizeTemplate({ id: 'o', name: 'O', blocks: [{ id: 'w', title: 'Work', start: '09:00', end: '17:00' }], keeps: { oneOffs: false } });
 check(T.reminderHiddenOn({ title: 'Dentist', type: 'one-time' }, [oo], T.withWeekdayTemplate(T.emptyPlan(), 2, 'o'), '2026-08-25', 2) === true, 'one-off reminders go quiet when one-off things are off');
+
+// Overnight blocks: Sleep 10:30 PM to 6:30 AM
+const night = T.normalizeTemplate({ id: 'n', name: 'Night', blocks: [{ id: 'sl', title: 'Sleep', start: '22:30', end: '06:30', fixed: true }, { id: 'z', title: 'Zero', start: '09:00', end: '09:00' }] });
+check(night.blocks.length === 1 && night.blocks[0].overnight === true && night.blocks[0].end === '06:30', 'an end before the start means past midnight (kept, marked overnight); equal start/end dropped');
+const nightDay = T.blocksForDay([night], { dates: { d: 'n' }, weekdays: {}, overrides: {} }, 'd', 1);
+check(nightDay.map((b) => `${b.blockId}@${b.startMin}-${b.endMin}`).join() === 'sl_am@0-390,sl@1350-1440', `two pieces on the day: morning till 6:30, evening from 10:30 (${nightDay.map((b) => `${b.blockId}@${b.startMin}-${b.endMin}`).join()})`);
+check(nightDay[1].overnight === 'pm' && nightDay[1].overnightEnd === 390 && nightDay[0].overnight === 'am' && nightDay.every((b) => b.fixed && b.title === 'Sleep'), 'pieces carry the overnight end for the calendar event');
+const skippedAm = T.withOverride({ dates: { d: 'n' }, weekdays: {}, overrides: {} }, 'd', 'sl_am', null);
+check(T.blocksForDay([night], skippedAm, 'd', 1).map((b) => b.blockId).join() === 'sl', 'a piece can be skipped on its own');
+check(T.freeMinutes(nightDay) === 16 * 60 - 30, 'free time: only the 10:30 to 11 PM part is inside the waking day');
+check(/if \(b\.overnight === 'am'\) continue;/.test(fs.readFileSync(path.join(root, 'services', 'calendarSync.js'), 'utf8')) && /d\.getDate\(\) \+ 1, 0, b\.overnightEnd/.test(fs.readFileSync(path.join(root, 'services', 'calendarSync.js'), 'utf8')), 'calendar: one event from the evening into the next morning');
+check(/next morning/.test(fs.readFileSync(path.join(root, 'screens', 'DayTemplatesScreen.js'), 'utf8')) && /hmToMin\(b\.end\) === hmToMin\(b\.start\)/.test(fs.readFileSync(path.join(root, 'screens', 'DayTemplatesScreen.js'), 'utf8')), 'editor shows "next morning", only equal times are an error');
+check(/replace\(\/_am\$\/, ''\)/.test(fs.readFileSync(path.join(root, 'services', 'rescheduleItem.js'), 'utf8')), 'removing / fixing the morning piece edits the one template block');
 
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

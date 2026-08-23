@@ -495,8 +495,12 @@ const buildBlocks = (templates, plan) => {
     }
     for (const b of blocks) {
       if (b.source) continue; // the user's own calendar event already is this block
+      if (b.overnight === 'am') continue; // covered by last night's event
       const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.startMin, 0, 0);
-      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
+      // An overnight block (Sleep) is one event running into the next morning.
+      const end = b.overnight === 'pm'
+        ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, b.overnightEnd, 0, 0)
+        : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
       if (end.getTime() < now) continue;
       // "fixed" in the notes tells EyeCandy's planner to leave work alone too
       out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [], notes: b.fixed ? 'Added by Biblely · block · fixed' : 'Added by Biblely · block' });

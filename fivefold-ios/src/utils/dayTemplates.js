@@ -88,12 +88,14 @@ export const normalizeTemplate = (t) => {
   for (const b of (t && Array.isArray(t.blocks)) ? t.blocks : []) {
     if (!b) continue;
     const s = hmToMin(b.start); const e = hmToMin(b.end);
-    if (s == null || e == null || e <= s) continue;
+    if (s == null || e == null || e === s) continue;
+    // end before start = runs past midnight (Sleep 10:30 PM to 6:30 AM)
+    const overnight = e < s;
     // source = the block IS an event the user already has in another iPhone
     // calendar ("Work" in the Work calendar): that event stands in for the
     // block on days it occurs, nothing is mirrored, so nothing shows twice.
     const source = b.source && b.source.kind === 'calendar' && b.source.title ? { kind: 'calendar', title: String(b.source.title), calendarTitle: b.source.calendarTitle ? String(b.source.calendarTitle) : null } : null;
-    blocks.push({ id: b.id || newId('b'), title: String(b.title || 'Block').trim() || 'Block', start: minToHm(s), end: minToHm(Math.min(e, DAY_MIN)), fixed: !!b.fixed, ...(source ? { source } : {}) });
+    blocks.push({ id: b.id || newId('b'), title: String(b.title || 'Block').trim() || 'Block', start: minToHm(s), end: minToHm(Math.min(e, DAY_MIN)), fixed: !!b.fixed, ...(overnight ? { overnight: true } : {}), ...(source ? { source } : {}) });
   }
   blocks.sort((a, b) => hmToMin(a.start) - hmToMin(b.start) || hmToMin(a.end) - hmToMin(b.end));
   return { id: (t && t.id) || newId('t'), name: String((t && t.name) || 'Day').trim() || 'Day', blocks, keeps: normalizeKeeps(t && t.keeps) };
@@ -137,13 +139,23 @@ export const blocksForDay = (templates, plan, dateKey, dow) => {
   if (!t) return [];
   const ov = (normalizePlan(plan).overrides || {})[dateKey] || {};
   const out = [];
+  const piece = (b, id, start, end, extra = {}) => {
+    const o = Object.prototype.hasOwnProperty.call(ov, id) ? ov[id] : undefined;
+    if (o === null) return; // skipped today
+    const s = hmToMin(o && o.start ? o.start : start);
+    const e = hmToMin(o && o.end ? o.end : end);
+    if (s == null || e == null || e <= s) return;
+    out.push({ blockId: id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(start), fixed: !!b.fixed, moved: !!o, icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}), ...extra });
+  };
   for (const b of t.blocks || []) {
-    const o = Object.prototype.hasOwnProperty.call(ov, b.id) ? ov[b.id] : undefined;
-    if (o === null) continue; // skipped today
-    const s = hmToMin(o && o.start ? o.start : b.start);
-    const e = hmToMin(o && o.end ? o.end : b.end);
-    if (s == null || e == null || e <= s) continue;
-    out.push({ blockId: b.id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(b.start), fixed: !!b.fixed, moved: !!o, icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}) });
+    if (b.overnight) {
+      // Two pieces on this day: the evening until midnight, the morning
+      // from midnight. One block in the template, one event in the Calendar.
+      piece(b, b.id, b.start, '24:00', { overnight: 'pm', overnightEnd: hmToMin(b.end) });
+      piece(b, `${b.id}_am`, '00:00', b.end, { overnight: 'am' });
+      continue;
+    }
+    piece(b, b.id, b.start, b.end);
   }
   out.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
   return out;
@@ -206,6 +218,7 @@ export const templateSummary = (t) => {
   const rest = blocks.filter((b) => !b.fixed);
   const parts = [];
   for (const b of fixed.slice(0, 2)) parts.push(`${b.title} ${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}`);
+  // (an overnight block reads "10:30 PM to 6:30 AM" on its own)
   if (rest.length) parts.push(rest.map((b) => b.title).join(', '));
   return parts.join(' · ');
 };

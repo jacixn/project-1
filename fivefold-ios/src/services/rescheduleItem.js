@@ -209,7 +209,8 @@ export const removeItem = async (item, { scope = 'all', from = null } = {}) => {
     const list = await dt.getTemplates();
     const t = list.find((x) => x.id === raw.templateId);
     if (!t) return false;
-    await dt.upsertTemplate({ ...t, blocks: (t.blocks || []).filter((b) => b.id !== raw.blockId) });
+    const baseId = String(raw.blockId).replace(/_am$/, ''); // the morning piece of an overnight block
+    await dt.upsertTemplate({ ...t, blocks: (t.blocks || []).filter((b) => b.id !== baseId) });
     return true;
   }
   if (item.kind === 'reminder') {
@@ -267,7 +268,8 @@ export const setPinned = async (item, pinned) => {
     const dt = require('./dayTemplates');
     const t = (await dt.getTemplates()).find((x) => x.id === raw.templateId);
     if (!t) return false;
-    await dt.upsertTemplate({ ...t, blocks: (t.blocks || []).map((b) => (b.id === raw.blockId ? { ...b, fixed: !!pinned } : b)) });
+    const baseId = String(raw.blockId).replace(/_am$/, '');
+    await dt.upsertTemplate({ ...t, blocks: (t.blocks || []).map((b) => (b.id === baseId ? { ...b, fixed: !!pinned } : b)) });
     return true;
   }
   if (item.kind === 'task') {

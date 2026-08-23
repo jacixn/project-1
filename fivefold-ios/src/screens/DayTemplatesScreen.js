@@ -20,6 +20,12 @@ import { normalizeKeeps } from '../utils/dayTemplates';
 import * as Calendar from 'expo-calendar';
 
 const ACCENT = KINDS.block.color;
+// Busy spans of a block list on one day (an overnight block = evening + morning)
+const piecesOf = (blocks) => (blocks || []).flatMap((b) => {
+  const s = hmToMin(b.start); const e = hmToMin(b.end);
+  if (s == null || e == null || s === e) return [];
+  return e > s ? [{ startMin: s, endMin: e }] : [{ startMin: s, endMin: 24 * 60 }, { startMin: 0, endMin: e }];
+});
 
 const DayTemplatesScreen = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
@@ -119,7 +125,7 @@ const DayTemplatesScreen = ({ navigation, route }) => {
     if (!editing) return [];
     const out = [];
     if (!String(editing.name || '').trim()) out.push('Give it a name.');
-    for (const b of editing.blocks || []) if (hmToMin(b.end) <= hmToMin(b.start)) out.push(`${b.title}: the end must be after the start.`);
+    for (const b of editing.blocks || []) if (hmToMin(b.end) === hmToMin(b.start)) out.push(`${b.title}: the end is the same as the start.`);
     return out;
   }, [editing]);
 
@@ -162,7 +168,7 @@ const DayTemplatesScreen = ({ navigation, route }) => {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: theme.text }]}>{t.name}</Text>
                 <Text style={[styles.rowSub, { color: theme.textSecondary }]}>{templateSummary(t)}</Text>
-                <Text style={[styles.rowFree, { color: ACCENT }]}>{`${fmtDur(freeMinutes((t.blocks || []).map((b) => ({ startMin: hmToMin(b.start), endMin: hmToMin(b.end) }))))} free between 7 AM and 11 PM`}</Text>
+                <Text style={[styles.rowFree, { color: ACCENT }]}>{`${fmtDur(freeMinutes(piecesOf(t.blocks)))} free between 7 AM and 11 PM`}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
@@ -177,7 +183,7 @@ const DayTemplatesScreen = ({ navigation, route }) => {
   }
 
   const blocks = editing.blocks || [];
-  const free = freeMinutes(blocks.map((b) => ({ startMin: hmToMin(b.start), endMin: hmToMin(b.end) })));
+  const free = freeMinutes(piecesOf(blocks));
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SheetHeader title={editing.name ? editing.name : 'New template'} leftLabel="Back" onLeft={leaveEditor} rightLabel="Save" onRight={save} rightColor={ACCENT} rightDisabled={!dirty && list.some((t) => t.id === editing.id)} />
@@ -198,14 +204,15 @@ const DayTemplatesScreen = ({ navigation, route }) => {
         {blocks.length === 0 ? <Text style={[styles.empty, { color: theme.textSecondary }]}>Nothing yet. Add work, meals, or anything that happens on this kind of day.</Text> : null}
         {blocks.map((b) => {
           const open = openBlock === b.id;
-          const bad = hmToMin(b.end) <= hmToMin(b.start);
+          const bad = hmToMin(b.end) === hmToMin(b.start);
+          const overnight = hmToMin(b.end) < hmToMin(b.start); // Sleep 10:30 PM to 6:30 AM
           return (
             <View key={b.id} style={[styles.block, { backgroundColor: tile, borderColor: open ? ACCENT : 'transparent' }]}>
               <TouchableOpacity onPress={() => { hapticFeedback.light(); setOpenBlock(open ? null : b.id); setWhich('start'); }} style={styles.blockHead} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${b.title}, ${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${b.fixed ? ', fixed' : ''}`}>
                 <MaterialIcons name={iconForTitle(b.title)} size={22} color={ACCENT} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.blockTitle, { color: theme.text }]}>{b.title}</Text>
-                  <Text style={[styles.blockTime, { color: bad ? '#FF453A' : theme.textSecondary }]}>{`${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${b.fixed ? '  ·  fixed' : ''}${b.source ? `  ·  your ${b.source.calendarTitle || 'Calendar'} event` : ''}`}</Text>
+                  <Text style={[styles.blockTime, { color: bad ? '#FF453A' : theme.textSecondary }]}>{`${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${overnight ? ' next morning' : ''}${b.fixed ? '  ·  fixed' : ''}${b.source ? `  ·  your ${b.source.calendarTitle || 'Calendar'} event` : ''}`}</Text>
                 </View>
                 <MaterialIcons name={open ? 'expand-less' : 'expand-more'} size={22} color={theme.textSecondary} />
               </TouchableOpacity>
@@ -254,8 +261,8 @@ const DayTemplatesScreen = ({ navigation, route }) => {
                         if (!d) return;
                         const m = d.getHours() * 60 + d.getMinutes();
                         if (which === 'start') {
-                          const len = Math.max(5, hmToMin(b.end) - hmToMin(b.start));
-                          setBlock(b.id, { start: minToHm(m), end: minToHm(Math.min(24 * 60, m + len)) }); // keep the length, move the whole block
+                          const len = (((hmToMin(b.end) - hmToMin(b.start)) % 1440) + 1440) % 1440 || 60;
+                          setBlock(b.id, { start: minToHm(m), end: minToHm((m + len) % 1440) }); // keep the length, move the whole block (wraps past midnight)
                         } else setBlock(b.id, { end: minToHm(m) });
                       }}
                     />
