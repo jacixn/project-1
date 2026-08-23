@@ -503,16 +503,22 @@ struct MyWeekBlock: View {
         let alpha: Double = p.past ? 0.45 : 1
         Group {
             if strip {
-                HStack(alignment: .center, spacing: 5) {
-                    RoundedRectangle(cornerRadius: 1.5).fill(tint).frame(width: 3, height: max(3, height))
-                    Text(p.item.title)
-                        .font(.system(size: 9.5, weight: .bold)).foregroundColor(tint)
-                        .lineLimit(1).minimumScaleFactor(0.6).allowsTightening(true)
-                        .layoutPriority(1)
-                    Text(MyWeekFlow.clock(p.item.start)).font(.system(size: 8.5, weight: .semibold)).foregroundColor(tint.opacity(0.8)).lineLimit(1).minimumScaleFactor(0.6)
+                // The bar starts exactly on the start minute and runs for the
+                // real length; the title hangs off its top edge.
+                HStack(alignment: .top, spacing: 5) {
+                    RoundedRectangle(cornerRadius: 1.5).fill(tint).frame(width: 3, height: max(4, height))
+                    HStack(spacing: 5) {
+                        Text(p.item.title)
+                            .font(.system(size: 9.5, weight: .bold)).foregroundColor(tint)
+                            .lineLimit(1).minimumScaleFactor(0.6).allowsTightening(true)
+                            .layoutPriority(1)
+                        Text(MyWeekFlow.clock(p.item.start)).font(.system(size: 8.5, weight: .semibold)).foregroundColor(tint.opacity(0.8)).lineLimit(1).minimumScaleFactor(0.6)
+                    }
+                    .frame(height: 11, alignment: .center)
+                    .offset(y: -1)
                     Spacer(minLength: 0)
                 }
-                .frame(height: 11, alignment: .center)
+                .frame(height: max(11, height), alignment: .top)
                 .opacity(alpha)
             } else {
                 ZStack(alignment: .topLeading) {
@@ -604,7 +610,7 @@ struct MyWeekLargeView: View {
                     ForEach(laid.placed) { p in
                         let w = p.strip ? colW : (colW - CGFloat(p.cols - 1) * 3) / CGFloat(p.cols)
                         let x = gutter + (p.strip ? 0 : CGFloat(p.col) * (w + 3))
-                        let y = inset + CGFloat(p.start) * pxPerMin + (p.strip ? CGFloat(p.lane) * 12 - 4 : 1)
+                        let y = inset + CGFloat(p.start) * pxPerMin + (p.strip ? CGFloat(p.lane) * 12 : 1)
                         let h = max(3, CGFloat(p.end - p.start) * pxPerMin - 2)
                         MyWeekBlock(p: p, height: h)
                             .frame(width: w, alignment: .leading)
