@@ -21,7 +21,7 @@ check(rows[1].label === '55 min free' && rows[3].label === '30 min free' && rows
 check(countByKind(day).eyecandy === 1 && countByKind(day).calendar === 1 && countByKind(day).prayer === 1, 'counts per kind');
 const K = mod.KINDS;
 check([K.prayer, K.reminder, K.gym].every((k) => /^#(34C759|30D158|4CD964)$/.test(k.color)) && K.eyecandy.color === '#7C5CFF' && K.eyecandySports.color === '#FF9500', 'colours by source: Biblely greens, EyeCandy purple, EyeCandy sports orange');
-check(/isSports \? 'eyecandySports' : isEyeCandy \? 'eyecandy' : 'calendar'/.test(src) && /kind === 'calendar' \? \(cal\.color \|\| KINDS\.calendar\.color\) : KINDS\[kind\]\.color/.test(src), 'EyeCandy calendars take the source colour; other calendars keep their own, like iOS');
+check(/isSports \? 'eyecandySports' : isEyeCandy \? 'eyecandy' : 'calendar'/.test(src) && /color: cal\.color \|\| KINDS\[kind\]\.color,/.test(src) && /export const syncKindColors/.test(src) && /syncKindColors\(cals\);/.test(src), 'every calendar event wears its iPhone Calendar colour; Biblely kinds take the Biblely calendar colour');
 check(busyMinutes([it('a', 0, 60), it('b', 30, 90), it('c', 200, 230)]) === 120, 'overlaps do not double count busy minutes');
 check(daySummary(day) === '5 things  ·  5 hr 10 min busy  ·  first at 7:10 AM', `day summary (${daySummary(day)})`);
 check(daySummary([]) === 'Nothing scheduled', 'empty summary');

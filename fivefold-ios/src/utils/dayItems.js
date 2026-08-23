@@ -30,6 +30,18 @@ export const KINDS = {
   calendar: { label: 'Calendar', color: '#D946EF', icon: 'event' },
 };
 export const KIND_ORDER = ['block', 'prayer', 'reminder', 'task', 'gym', 'eyecandy', 'eyecandySports', 'calendar'];
+
+// The iPhone Calendar is the colour truth: the Biblely calendar's colour is
+// what every Biblely kind uses here, EyeCandy's calendars colour theirs, so
+// this screen, EyeCandy's My Week and the Calendar app always agree.
+const CAL_KINDS = { Biblely: ['prayer', 'reminder', 'task', 'gym', 'block'], EyeCandy: ['eyecandy'], 'EyeCandy Sports': ['eyecandySports'] };
+export const syncKindColors = (cals) => {
+  for (const c of cals || []) {
+    const kinds = CAL_KINDS[c && c.title];
+    if (kinds && c.color) for (const k of kinds) KINDS[k].color = c.color;
+  }
+  return KINDS;
+};
 // Tasks have no length of their own; 30 min matches the Calendar mirror.
 export const TASK_MINUTES = 30;
 
@@ -129,6 +141,9 @@ export const loadDayItems = async (date) => {
     if (!perm.granted && perm.status === 'undetermined') perm = await Calendar.requestCalendarPermissionsAsync();
     if (perm.granted) {
       const cals = (await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT)) || [];
+      syncKindColors(cals);
+      // Own items were built before the calendars were read: recolour them.
+      for (const it of out) if (KINDS[it.kind]) it.color = KINDS[it.kind].color;
       const byId = {};
       for (const c of cals) byId[c.id] = c;
       const ids = cals.filter((c) => c.title !== BIBLELY_CAL).map((c) => c.id);
@@ -157,7 +172,7 @@ export const loadDayItems = async (date) => {
             startMin,
             endMin,
             // Other calendars keep their own colour (Work magenta, etc.), like iOS
-            color: kind === 'calendar' ? (cal.color || KINDS.calendar.color) : KINDS[kind].color,
+            color: cal.color || KINDS[kind].color,
             icon: KINDS[kind].icon,
             // Writable calendars (EyeCandy's, your own) can be moved right here:
             // the event is changed in the iPhone Calendar and EyeCandy adopts
