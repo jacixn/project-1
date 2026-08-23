@@ -324,7 +324,7 @@ struct MyWeekPlaced: Identifiable {
 }
 
 enum MyWeekTimeline {
-    static let hours = 7
+    static let hours = 5   // 6 PM to 11 PM: big enough to read, long enough to plan
 
     // Window start: the hour that keeps "now" near the top (half an hour of
     // context above it), so 5:52 PM shows 5 PM to 12 AM.
