@@ -522,6 +522,9 @@ struct MyWeekLargeView: View {
                         .offset(y: y - 3)
                     }
                 }
+                // Offset children do not size the stack: pin it to the full
+                // timeline area or the clip cuts everything below the first hour.
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
                 .clipped()
             }
         }
