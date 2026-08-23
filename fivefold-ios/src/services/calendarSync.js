@@ -127,10 +127,11 @@ const localDateAt = (dateStr, h, m) => {
 // with no/invalid time.
 // Event notes carry what EyeCandy's My Week cannot see otherwise: the kind,
 // and whether plans must leave it alone (pinned; fixed for template blocks).
+const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const notesFor = (kind, pinned) => `Added by Biblely · ${kind}${pinned ? ' · pinned' : ''}`;
 
 const buildPrayers = (list) => {
-  const now = Date.now();
+  const now = startOfToday(); // one-time things stay in the calendar until their day is over (EyeCandy's My Week and the widget read it)
   const out = [];
   for (const p of list || []) {
     const t = parseTime(p && p.time);
@@ -191,7 +192,7 @@ const buildPrayers = (list) => {
 // toggling one off removes its events). Recurring reminders emit one WEEKLY
 // series per selected weekday; one-time reminders use their date.
 const buildReminders = (list) => {
-  const now = Date.now();
+  const now = startOfToday(); // one-time things stay in the calendar until their day is over (EyeCandy's My Week and the widget read it)
   const out = [];
   for (const r of list || []) {
     if (!r || !r.enabled || r.id == null) continue;
@@ -237,7 +238,7 @@ const buildReminders = (list) => {
 // Gym: scheduledWorkouts array. Same shape as reminders (recurring days[] or a
 // one-time date), 60-min events titled after the template.
 const buildGym = (list) => {
-  const now = Date.now();
+  const now = startOfToday(); // one-time things stay in the calendar until their day is over (EyeCandy's My Week and the widget read it)
   const out = [];
   for (const s of list || []) {
     if (!s || s.id == null) continue;
@@ -435,7 +436,7 @@ let FORCE = false;
 // To-dos: only SCHEDULED ones (with a date+time) can be placed. Quick dateless
 // to-dos and completed ones contribute nothing. 30-min timed block each.
 const buildTodos = (list) => {
-  const now = Date.now();
+  const now = startOfToday(); // one-time things stay in the calendar until their day is over (EyeCandy's My Week and the widget read it)
   const out = [];
   for (const t of list || []) {
     if (!t || t.id == null || t.completed) continue;
@@ -478,7 +479,7 @@ const buildBlocks = (templates, plan) => {
   const { blocksForDay } = require('../utils/dayTemplates');
   const out = [];
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const now = Date.now();
+  const now = startOfToday(); // one-time things stay in the calendar until their day is over (EyeCandy's My Week and the widget read it)
   const { templateForDay, hideGroupsFor } = require('../utils/dayTemplates');
   const { keepNotes } = require('../utils/takeover');
   for (let i = 0; i < BLOCK_HORIZON_DAYS; i++) {
