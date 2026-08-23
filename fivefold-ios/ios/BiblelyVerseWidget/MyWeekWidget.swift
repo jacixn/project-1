@@ -303,30 +303,229 @@ struct MyWeekDayHeaderRow: View {
 
 // MARK: - Views per family
 
-struct MyWeekLargeView: View {
-    let entry: MyWeekEntry
-    var body: some View {
-        let flow = MyWeekFlow.rows(entry.data, now: entry.date, limit: 8, includePastToday: 1)
-        VStack(alignment: .leading, spacing: 6) {
-            MyWeekHeader(day: MyWeekFlow.today(entry.data, now: entry.date), now: entry.date, leftToday: flow.leftToday)
-            if flow.rows.isEmpty {
-                Spacer()
-                MyWeekEmpty()
-                Spacer()
-            } else {
-                VStack(alignment: .leading, spacing: 5) {
-                    ForEach(flow.rows) { row in
-                        switch row {
-                        case .header(_, let t, let s): MyWeekDayHeaderRow(title: t, sub: s)
-                        case .item(let it, _, let now, let past, let p): MyWeekItemRow(item: it, now: now, past: past, progress: p)
-                        case .free(_, let s, let m): MyWeekFreeRow(start: s, minutes: m)
-                        }
-                    }
-                }
-                Spacer(minLength: 0)
+// MARK: - Large: a real 7-hour timeline, one column, nothing cut off
+
+// Where each block sits: overlapping items share the width side by side
+// (like the app's My Week), short ones become a strip with the title beside.
+struct MyWeekPlaced: Identifiable {
+    let id: String
+    let item: MyWeekItem
+    let start: Int      // minutes from window start
+    let end: Int
+    let col: Int
+    let cols: Int
+    let now: Bool
+    let past: Bool
+    let tomorrow: Bool
+}
+
+enum MyWeekTimeline {
+    static let hours = 7
+
+    // Window start: the hour that keeps "now" near the top (half an hour of
+    // context above it), so 5:52 PM shows 5 PM to 12 AM.
+    static func windowStart(now: Date) -> Int {
+        let m = MyWeekFlow.minuteOfDay(now)
+        return max(0, ((m - 30) / 60) * 60)
+    }
+
+    // Items inside the window, from today and (past midnight) tomorrow,
+    // with their columns assigned. Minutes are relative to the window.
+    static func place(_ data: MyWeekData?, now: Date) -> (placed: [MyWeekPlaced], free: [(start: Int, end: Int)]) {
+        guard let data = data else { return ([], []) }
+        let nowMin = MyWeekFlow.minuteOfDay(now)
+        let ws = windowStart(now: now)
+        let we = ws + hours * 60
+        let tKey = MyWeekFlow.todayKey(now)
+        guard let tIdx = data.days.firstIndex(where: { $0.key == tKey }) else { return ([], []) }
+        var raw: [(MyWeekItem, Int, Int, Bool)] = [] // item, start, end, tomorrow
+        for it in data.days[tIdx].items {
+            let s = it.start; let e = it.end
+            if e <= ws || s >= we { continue }
+            raw.append((it, max(ws, s) - ws, min(we, e) - ws, false))
+        }
+        if we > 24 * 60, data.days.count > tIdx + 1 {
+            for it in data.days[tIdx + 1].items {
+                let s = it.start + 24 * 60; let e = it.end + 24 * 60
+                if e <= ws || s >= we { continue }
+                raw.append((it, max(ws, s) - ws, min(we, e) - ws, true))
             }
         }
-        .padding(.horizontal, 2).padding(.vertical, 2)
+        raw.sort { $0.1 == $1.1 ? $0.2 > $1.2 : $0.1 < $1.1 }
+
+        // Overlap groups -> columns (greedy, first free column).
+        var placed: [MyWeekPlaced] = []
+        var i = 0
+        while i < raw.count {
+            var groupEnd = raw[i].2
+            var j = i
+            while j + 1 < raw.count && raw[j + 1].1 < groupEnd { j += 1; groupEnd = max(groupEnd, raw[j].2) }
+            let group = Array(raw[i...j])
+            var colEnds: [Int] = []
+            var assigned: [(Int, (MyWeekItem, Int, Int, Bool))] = []
+            for g in group {
+                var col = colEnds.firstIndex { $0 <= g.1 }
+                if col == nil { colEnds.append(g.2); col = colEnds.count - 1 } else { colEnds[col!] = g.2 }
+                assigned.append((col!, g))
+            }
+            let cols = colEnds.count
+            for (col, g) in assigned {
+                let absStart = g.1 + ws, absEnd = g.2 + ws
+                let onNow = !g.3 && absStart <= nowMin && absEnd > nowMin
+                let past = !g.3 && absEnd <= nowMin
+                placed.append(MyWeekPlaced(id: "\(g.3 ? "t" : "d")-\(g.0.id)", item: g.0, start: g.1, end: g.2, col: col, cols: cols, now: onNow, past: past, tomorrow: g.3))
+            }
+            i = j + 1
+        }
+
+        // Free stretches (30 min+) from now onward, inside the window.
+        var free: [(start: Int, end: Int)] = []
+        var cursor = max(0, nowMin - ws)
+        for p in placed.sorted(by: { $0.start < $1.start }) {
+            if p.start - cursor >= 30 { free.append((cursor, p.start)) }
+            cursor = max(cursor, p.end)
+        }
+        if hours * 60 - cursor >= 30 { free.append((cursor, hours * 60)) }
+        return (placed, free)
+    }
+
+    static func hourLabel(_ absMin: Int) -> String {
+        let h = (absMin / 60) % 24
+        if h == 0 { return "12 AM" }
+        if h == 12 { return "12 PM" }
+        return h < 12 ? "\(h) AM" : "\(h - 12) PM"
+    }
+}
+
+struct MyWeekBlock: View {
+    let p: MyWeekPlaced
+    let height: CGFloat
+    var body: some View {
+        let tint = Color(hex: p.item.color)
+        let strip = height < 17          // too short for text inside: a line with the title beside it
+        let twoLines = height >= 40
+        let showTime = height >= 28
+        let alpha: Double = p.past ? 0.45 : 1
+        Group {
+            if strip {
+                HStack(alignment: .center, spacing: 5) {
+                    RoundedRectangle(cornerRadius: 1.5).fill(tint).frame(width: 3, height: max(3, height))
+                    Text(p.item.title)
+                        .font(.system(size: 9.5, weight: .bold)).foregroundColor(tint)
+                        .lineLimit(1).minimumScaleFactor(0.6).allowsTightening(true)
+                    Text(MyWeekFlow.clock(p.item.start)).font(.system(size: 8.5, weight: .semibold)).foregroundColor(tint.opacity(0.8)).lineLimit(1).minimumScaleFactor(0.6)
+                    Spacer(minLength: 0)
+                }
+                .frame(height: max(10, height), alignment: .center)
+                .opacity(alpha)
+            } else {
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(tint.opacity(p.now ? 0.34 : 0.2))
+                    RoundedRectangle(cornerRadius: 7)
+                        .strokeBorder(tint.opacity(p.now ? 0.9 : 0.45), lineWidth: p.now ? 1.2 : 0.8)
+                    HStack(alignment: .top, spacing: 0) {
+                        RoundedRectangle(cornerRadius: 1.5).fill(tint).frame(width: 3).padding(.vertical, 4).padding(.leading, 4)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(p.item.title)
+                                .font(.system(size: twoLines ? 11.5 : 10.5, weight: .bold)).foregroundColor(tint)
+                                .lineLimit(twoLines ? 2 : 1).minimumScaleFactor(0.6).allowsTightening(true)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if showTime {
+                                Text(p.now ? "now · until \(MyWeekFlow.clock(p.item.end))" : "\(MyWeekFlow.clock(p.item.start)) to \(MyWeekFlow.clock(p.item.end))")
+                                    .font(.system(size: 9, weight: .semibold)).foregroundColor(tint.opacity(0.85))
+                                    .lineLimit(1).minimumScaleFactor(0.6).allowsTightening(true)
+                            }
+                        }
+                        .padding(.leading, 5).padding(.trailing, 4).padding(.top, 4)
+                        Spacer(minLength: 0)
+                    }
+                }
+                .frame(height: height)
+                .opacity(alpha)
+            }
+        }
+    }
+}
+
+struct MyWeekLargeView: View {
+    let entry: MyWeekEntry
+    private let gutter: CGFloat = 36
+
+    var body: some View {
+        let today = MyWeekFlow.today(entry.data, now: entry.date)
+        let leftToday = today?.items.filter { $0.end > MyWeekFlow.minuteOfDay(entry.date) }.count ?? 0
+        let ws = MyWeekTimeline.windowStart(now: entry.date)
+        VStack(alignment: .leading, spacing: 6) {
+            MyWeekHeader(day: today, now: entry.date, leftToday: leftToday)
+            GeometryReader { geo in
+                let totalMin = CGFloat(MyWeekTimeline.hours * 60)
+                let inset: CGFloat = 7 // room for the first and last hour labels
+                let pxPerMin = (geo.size.height - inset * 2) / totalMin
+                let colW = geo.size.width - gutter
+                let laid = MyWeekTimeline.place(entry.data, now: entry.date)
+                let nowRel = CGFloat(MyWeekFlow.minuteOfDay(entry.date) - ws)
+                ZStack(alignment: .topLeading) {
+                    // Hour lines + labels
+                    ForEach(0...MyWeekTimeline.hours, id: \.self) { h in
+                        let y = inset + CGFloat(h * 60) * pxPerMin
+                        let abs = ws + h * 60
+                        HStack(spacing: 6) {
+                            Text(MyWeekTimeline.hourLabel(abs))
+                                .font(.system(size: 9.5, weight: abs % 1440 == 0 ? .heavy : .semibold))
+                                .foregroundColor(abs % 1440 == 0 ? MyWeekPalette.accent : MyWeekPalette.faint)
+                                .frame(width: gutter - 6, alignment: .trailing)
+                                .lineLimit(1).minimumScaleFactor(0.7)
+                            Rectangle().fill(abs % 1440 == 0 ? MyWeekPalette.accent.opacity(0.5) : MyWeekPalette.hairline).frame(height: 1)
+                        }
+                        .offset(y: y - 6)
+                        if abs % 1440 == 0 && h > 0 {
+                            Text("TOMORROW").font(.system(size: 8.5, weight: .heavy)).tracking(0.8).foregroundColor(MyWeekPalette.accent)
+                                .offset(x: gutter + 2, y: y + 2)
+                        }
+                    }
+                    // Free stretches
+                    ForEach(Array(laid.free.enumerated()), id: \.offset) { _, f in
+                        let y = inset + CGFloat(f.start) * pxPerMin
+                        let h = CGFloat(f.end - f.start) * pxPerMin
+                        RoundedRectangle(cornerRadius: 7)
+                            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundColor(MyWeekPalette.accent.opacity(0.35))
+                            .frame(width: colW, height: max(8, h - 4))
+                            .overlay(
+                                Text("\(MyWeekFlow.dur(f.end - f.start)) free")
+                                    .font(.system(size: h >= 26 ? 10 : 8.5, weight: .bold)).foregroundColor(MyWeekPalette.accent.opacity(0.85))
+                                    .lineLimit(1).minimumScaleFactor(0.7)
+                            )
+                            .offset(x: gutter, y: y + 2)
+                    }
+                    // Blocks
+                    ForEach(laid.placed) { p in
+                        let w = (colW - CGFloat(p.cols - 1) * 3) / CGFloat(p.cols)
+                        let x = gutter + CGFloat(p.col) * (w + 3)
+                        let y = inset + CGFloat(p.start) * pxPerMin
+                        let h = max(3, CGFloat(p.end - p.start) * pxPerMin - 2)
+                        MyWeekBlock(p: p, height: h)
+                            .frame(width: w, alignment: .leading)
+                            .offset(x: x, y: y + 1)
+                    }
+                    // Now line
+                    if nowRel >= 0 && nowRel <= totalMin {
+                        let y = inset + nowRel * pxPerMin
+                        HStack(spacing: 4) {
+                            Text(MyWeekFlow.short(MyWeekFlow.minuteOfDay(entry.date)))
+                                .font(.system(size: 9, weight: .heavy)).foregroundColor(Color(hex: "FF5A5F"))
+                                .frame(width: gutter - 6, alignment: .trailing)
+                            RoundedRectangle(cornerRadius: 1).fill(Color(hex: "FF5A5F")).frame(width: 4, height: 6)
+                            Rectangle().fill(Color(hex: "FF5A5F")).frame(height: 1.5)
+                        }
+                        .offset(y: y - 3)
+                    }
+                }
+                .clipped()
+            }
+        }
+        .padding(2)
         .widgetURL(URL(string: "biblely://myweek"))
     }
 }
