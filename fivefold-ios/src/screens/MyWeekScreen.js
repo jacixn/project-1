@@ -23,7 +23,8 @@ import WorkoutService from '../services/workoutService';
 import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
 import { addPrayer } from '../services/simplePrayersService';
 import { getTemplates as getDayTemplates, getPlan as getDayPlan, useTemplateOn, clearWeekday, DAY_PLAN_CHANGED } from '../services/dayTemplates';
-import { templateForDay, templateIdForDay, templateSummary, freeMinutes, blocksForDay } from '../utils/dayTemplates';
+import { templateForDay, templateIdForDay, templateSummary, freeMinutes, blocksForDay, hideGroupsFor } from '../utils/dayTemplates';
+import { GROUP_LABELS } from '../utils/takeover';
 import { DeviceEventEmitter as Emitter } from 'react-native';
 
 // Things you can put on the timeline from the Add button: your reminder
@@ -849,6 +850,14 @@ const MyWeekScreen = ({ navigation }) => {
           <Text style={[styles.planText, { color: theme.text }]}>{dayTemplate ? `${dayTemplate.name} day` : 'Plan this day'}</Text>
           <Text style={[styles.planLink, { color: accent }]}>{dayTemplate ? 'Change' : 'Use a template'}</Text>
         </TouchableOpacity>
+        {dayTemplate && hideGroupsFor(dayTemplate).length ? (
+          <TouchableOpacity onPress={() => { hapticFeedback.light(); navigation.navigate('DayTemplates', { editId: dayTemplate.id }); }} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Edit what this template turns off">
+            <Text style={[styles.planHidden, { color: theme.textSecondary }]}>
+              {`${dayTemplate.name} turns off today: ${hideGroupsFor(dayTemplate).map((g) => (GROUP_LABELS[g] || g).split(':')[0].split(' (')[0]).join(', ')}. `}
+              <Text style={{ color: accent, fontWeight: '800' }}>Edit</Text>
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Kind filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.chipsScroll, { marginTop: 14 }]} contentContainerStyle={styles.chipsRow}>
@@ -1385,6 +1394,7 @@ const styles = StyleSheet.create({
   planText: { flex: 1, fontSize: 15, fontWeight: '700' },
   planLink: { fontSize: 14, fontWeight: '800' },
   planSummary: { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  planHidden: { fontSize: 13, fontWeight: '600', marginTop: 2, lineHeight: 18 },
   addRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 14, marginBottom: 8 },
   addIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   addRowTitle: { flex: 1, fontSize: 17, fontWeight: '700' },
