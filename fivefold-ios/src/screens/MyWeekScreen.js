@@ -915,7 +915,7 @@ const MyWeekScreen = ({ navigation }) => {
             <MaterialIcons name="check" size={20} color="#fff" />
             <Text style={styles.saveBtnText}>{saving ? 'Saving' : `Save ${fmtClock(draftMin)}`}</Text>
           </TouchableOpacity>
-          {moving.kind === 'reminder' || moving.kind === 'task' || moving.kind === 'gym' ? (
+          {moving.kind === 'reminder' || moving.kind === 'task' || moving.kind === 'gym' || moving.kind === 'calendar' || moving.kind === 'eyecandy' ? (
             <TouchableOpacity onPress={async () => { hapticFeedback.selection(); try { await setPinned(moving, !moving.raw?.pinned); const fresh = await loadWeek(); const again = fresh && fresh[dateKeyOf(anchor)] && fresh[dateKeyOf(anchor)].find((x) => x.id === moving.id); if (again) setMoving(again); } catch {} }} style={[styles.pinRow, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: !!moving.raw?.pinned }}>
               <MaterialIcons name={moving.raw?.pinned ? 'push-pin' : 'push-pin'} size={18} color={moving.raw?.pinned ? panelAccent : theme.textSecondary} />
               <Text style={[styles.pinText, { color: theme.text }]}>{moving.raw?.pinned ? 'Pinned: plans ignore this' : 'Pin: plans ignore this (never moved, never in the way)'}</Text>

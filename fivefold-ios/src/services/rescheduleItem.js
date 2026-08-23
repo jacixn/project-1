@@ -7,6 +7,7 @@ import { updatePrayer } from './simplePrayersService';
 import { updateReminder, moveReminderForDay, skipReminderDay, deleteReminder } from './reminderService';
 import { deletePrayerById } from './simplePrayersService';
 import { skipWorkoutDay, moveWorkoutForDay } from './workoutExceptions';
+import { setCalendarPinned } from './pins';
 import notificationService from './notificationService';
 import WorkoutService from './workoutService';
 import { scheduleWorkoutNotifications } from './workoutSchedule';
@@ -236,6 +237,7 @@ export const setPinned = async (item, pinned) => {
     try { DeviceEventEmitter.emit('todosChanged'); } catch {}
     return true;
   }
+  if (raw.calendar) return setCalendarPinned(item, pinned); // other calendars, EyeCandy: a local pin
   return false;
 };
 

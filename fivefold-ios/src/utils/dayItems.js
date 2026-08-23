@@ -12,6 +12,7 @@ import { isPrayerDayEnabled } from './prayerDays';
 import { minutesOf, dateKeyOf } from './dayBusy';
 import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
+import { applyCalendarPins } from '../services/pins';
 
 // Colour = where it comes from, matching how the iPhone Calendar shows the
 // same items: Biblely green (three close shades so the legend still tells
@@ -171,6 +172,8 @@ export const loadDayItems = async (date) => {
     }
   } catch {}
 
+  // Pins for things Biblely does not own (other calendars, EyeCandy slots).
+  try { await applyCalendarPins(out); } catch {}
   return out.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };
 
