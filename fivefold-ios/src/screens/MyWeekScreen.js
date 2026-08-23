@@ -73,6 +73,8 @@ const MyWeekScreen = ({ navigation }) => {
   const scrollRef = useRef(null);
   const scrollYRef = useRef(0);
   const timelineTopRef = useRef(0);
+  const scrollHRef = useRef(0);          // viewport height, for placing "now" a third of the way down
+  const pendingNowRef = useRef(true);    // scroll to the current time once today's timeline is laid out
   const pinchStartRef = useRef({ px: PX_PER_HOUR, focalContentY: 0, focalScreenY: 0 });
   const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 60000); return () => clearInterval(t); }, []);
@@ -222,6 +224,26 @@ const MyWeekScreen = ({ navigation }) => {
       </TouchableOpacity>
     );
   };
+
+  // Today = this day AND this minute: the timeline scrolls so the now line
+  // sits a third of the way down the screen. Also runs on first open.
+  const goToNow = () => {
+    hapticFeedback.light();
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    pendingNowRef.current = true;
+    if (view !== 'timeline') setView('timeline');
+    setAnchor(d);
+  };
+  useEffect(() => {
+    if (!pendingNowRef.current || loading || !isTodaySelected || view !== 'timeline') return;
+    if (layout.nowY == null) { pendingNowRef.current = false; return; }
+    pendingNowRef.current = false;
+    const t = setTimeout(() => {
+      const y = Math.max(0, timelineTopRef.current + layout.nowY - Math.max(120, scrollHRef.current * 0.35));
+      scrollRef.current?.scrollTo({ y, animated: true });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [anchor, layout.nowY, view, isTodaySelected, loading]);
 
   // Zoom keeps the time under your fingers where it is: remember where the
   // pinch started inside the timeline, then scroll so that point stays put.
@@ -522,7 +544,7 @@ const MyWeekScreen = ({ navigation }) => {
         <Text style={[styles.headerTitle, { color: theme.text }]}>My Week</Text>
         <TouchableOpacity
           style={[styles.headerBtn, { backgroundColor: tile, width: 'auto', paddingHorizontal: 14 }]}
-          onPress={() => { hapticFeedback.light(); const d = new Date(); d.setHours(0, 0, 0, 0); setAnchor(d); }}
+          onPress={goToNow}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Jump to today"
@@ -565,7 +587,7 @@ const MyWeekScreen = ({ navigation }) => {
         </GestureDetector>
       </GestureHandlerRootView>
 
-      <ScrollView ref={scrollRef} onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16} contentContainerStyle={[styles.body, moving && { paddingBottom: showWheel ? 560 : 380 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} onLayout={(e) => { scrollHRef.current = e.nativeEvent.layout.height; }} onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={16} contentContainerStyle={[styles.body, moving && { paddingBottom: showWheel ? 560 : 380 }]} showsVerticalScrollIndicator={false}>
         <Text style={[styles.kicker, { color: theme.textSecondary }]}>{relDay(anchor)}</Text>
         <Text style={[styles.headline, { color: theme.text }]}>{anchor.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'short' })}</Text>
         <Text style={[styles.summary, { color: theme.textSecondary }]}>{loading ? 'Checking every source...' : daySummary(dayItems)}</Text>

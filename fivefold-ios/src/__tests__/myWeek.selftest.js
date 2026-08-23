@@ -117,6 +117,10 @@ check(/export const removeItem = async \(item, \{ scope = 'all', from = null \} 
 check(/export const skipReminderDay = async \(id, date\)/.test(rem), 'reminderService can skip a single day');
 check(/const confirmRemove = \(item\)/.test(screen) && /'Skip today', onPress: \(\) => finishRemove\(item, 'today'\)/.test(screen) && /'Delete every day', style: 'destructive'/.test(screen) && /Daily prayers are managed in Faith/.test(screen) && /Weekly shows are managed in EyeCandy/.test(screen) && /onPress=\{\(\) => confirmRemove\(moving\)\}/.test(screen) && /removeText/.test(screen), 'Move panel has a Remove link with a confirm that fits the kind');
 
+// ---- Today = this day and this minute ---------------------------------------
+check(/onPress=\{goToNow\}/.test(screen) && /const goToNow = \(\) =>/.test(screen) && /pendingNowRef\.current = true;/.test(screen) && /timelineTopRef\.current \+ layout\.nowY - Math\.max\(120, scrollHRef\.current \* 0\.35\)/.test(screen) && /scrollHRef\.current = e\.nativeEvent\.layout\.height/.test(screen), 'Today jumps to today and scrolls the now line a third of the way down; also on first open');
+
+
 
 
 
