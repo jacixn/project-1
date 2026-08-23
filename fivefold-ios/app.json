@@ -2,7 +2,7 @@
   "expo": {
     "name": "Biblely",
     "slug": "fivefold-ios",
-    "version": "1.82",
+    "version": "1.83",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.jesusxoi.biblely",
-      "buildNumber": "82",
+      "buildNumber": "83",
       "infoPlist": {
         "NSCalendarsFullAccessUsageDescription": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
         "NSCalendarsUsageDescription": "Biblely adds your prayers, reminders and workouts to your calendar when you turn on calendar sync.",
