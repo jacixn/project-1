@@ -127,6 +127,9 @@ struct MyWeekProvider: TimelineProvider {
             let start = Calendar.current.startOfDay(for: d0)
             let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
             let live = store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
+            // Nothing readable (access quirk inside the extension): cannot
+            // verify, so keep the day exactly as the app sent it.
+            if live.isEmpty { days.append(day); continue }
             // expo-calendar hands the app `calendarItemIdentifier`; EventKit's
             // `eventIdentifier` is a different string. Accept either.
             var present = Set<String>()
