@@ -193,6 +193,7 @@ check(gaps.startsWith('05:00-08:10') && gaps.includes('08:30-14:00') && gaps.inc
 
 // wiring
 const planner = read('services/schedulePlanner.js');
+check(/note: noteFor\(plan, lines\)/.test(planner) && !/parsed\.note/.test(planner) && /The new thing stays where you put it/.test(planner), 'the summary line is built from the rows, never the model\'s prose');
 check(/validatePlan\(model, parsed, anchor, base\)\.ok/.test(planner) && /pickAnchor\(model, anchorId\)/.test(planner) && /source: 'ai'/.test(planner) && /source: 'rules'/.test(planner) && /if \(!planSize\(base\)\) return null;/.test(planner), 'planner: AI plan only when it validates against the rules plan; no plan when nothing can change');
 const resrc = read('services/rescheduleItem.js');
 check(/export const trimItem/.test(resrc) && /export const dropItem/.test(resrc) && /Calendar\.deleteEventAsync\(raw\.eventId\)/.test(resrc) && /export const applyPlanRow/.test(resrc) && /row\.action === 'drop'/.test(resrc), 'trim and skip write through the Calendar; applyPlanRow routes each row');

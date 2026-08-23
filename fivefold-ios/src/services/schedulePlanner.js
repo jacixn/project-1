@@ -7,10 +7,20 @@ import {
   toModel, pickAnchor, fixableOverlaps, cascadePlan, validatePlan, buildMessages, parsePlanText, describePlan, staysFor, planSize,
 } from '../utils/fitPlan';
 
-const noteFor = (plan) => {
+// The one-line summary is always ours, built from the rows: the model's
+// free text once claimed the new thing itself had moved.
+const noteFor = (plan, lines = []) => {
   const n = (plan.moves || []).length + (plan.trims || []).length + (plan.drops || []).length;
   if (!n) return plan.overflow && plan.overflow.length ? 'Nothing close enough to move; see what stays.' : 'Nothing needs to change.';
-  return 'Smallest changes that clear the day.';
+  const moved = lines.filter((l) => l.action === 'move').map((l) => l.title);
+  const cut = lines.filter((l) => l.action === 'trim').map((l) => l.title);
+  const gone = lines.filter((l) => l.action === 'drop').map((l) => l.title);
+  const list = (arr) => (arr.length <= 2 ? arr.join(' and ') : `${arr.slice(0, -1).join(', ')} and ${arr[arr.length - 1]}`);
+  const parts = [];
+  if (moved.length) parts.push(`${list(moved)} ${moved.length === 1 ? 'moves' : 'move'}`);
+  if (cut.length) parts.push(`${list(cut)} ${cut.length === 1 ? 'ends early' : 'end early'}`);
+  if (gone.length) parts.push(`${list(gone)} ${gone.length === 1 ? 'comes' : 'come'} off today`);
+  return `${parts.join('; ')}. The new thing stays where you put it.`;
 };
 
 // items: My Week day items; anchorId: the thing just added or moved (stays
@@ -33,12 +43,13 @@ export const planDay = async (items, { anchorId = null, dayLabel = 'today', ask 
     const parsed = parsePlanText(text, model);
     const any = parsed && (parsed.moves.length || parsed.trims.length || parsed.drops.length);
     if (any && validatePlan(model, parsed, anchor, base).ok) {
-      plan = { moves: parsed.moves, trims: parsed.trims, drops: parsed.drops, overflow: base.overflow, note: parsed.note || noteFor(parsed), source: 'ai' };
+      plan = { moves: parsed.moves, trims: parsed.trims, drops: parsed.drops, overflow: base.overflow, source: 'ai' };
     }
   } catch {}
 
-  if (!plan) plan = { moves: base.moves, trims: base.trims, drops: base.drops, overflow: base.overflow, note: noteFor(base), source: 'rules' };
-  return { ...plan, anchorId: anchor, lines: describePlan(model, plan), stays: staysFor(model, anchor) };
+  if (!plan) plan = { moves: base.moves, trims: base.trims, drops: base.drops, overflow: base.overflow, source: 'rules' };
+  const lines = describePlan(model, plan);
+  return { ...plan, note: noteFor(plan, lines), anchorId: anchor, lines, stays: staysFor(model, anchor) };
 };
 
 export default planDay;
