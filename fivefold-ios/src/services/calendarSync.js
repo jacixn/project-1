@@ -456,6 +456,37 @@ export const syncReminders = (list) => reconcile('reminder', buildReminders(list
 export const syncGym = (list) => reconcile('gym', buildGym(list || []));
 export const syncTodos = (list) => reconcile('todo', buildTodos(list || []));
 
+// Day templates: the day's blocks (Work, Lunch...) as one-time events for the
+// next three weeks, so EyeCandy and the Calendar app see the busy time and
+// the free time. No alarms: a work block is not something to be pinged about.
+// Key = date + block id, so a moved block on one day is adopted as that day's
+// exception and a template edit rewrites every day cleanly.
+export const BLOCK_HORIZON_DAYS = 21;
+const buildBlocks = (templates, plan) => {
+  const { blocksForDay } = require('../utils/dayTemplates');
+  const out = [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const now = Date.now();
+  for (let i = 0; i < BLOCK_HORIZON_DAYS; i++) {
+    const d = new Date(today.getTime() + i * 86400000);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    for (const b of blocksForDay(templates, plan, key, d.getDay())) {
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.startMin, 0, 0);
+      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
+      if (end.getTime() < now) continue;
+      out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [] });
+    }
+  }
+  return out;
+};
+export const syncBlocks = async () => {
+  try {
+    const dt = require('./dayTemplates');
+    const [templates, plan] = await Promise.all([dt.getTemplates(), dt.getPlan()]);
+    await reconcile('block', buildBlocks(templates, plan));
+  } catch {}
+};
+
 // Backfill every domain from its current stored data (used on enable + cloud pull).
 export const syncAll = async ({ force = false } = {}) => {
   FORCE = !!force;
@@ -473,6 +504,7 @@ export const syncAll = async ({ force = false } = {}) => {
     await syncReminders(reminders);
     await syncGym(scheduled);
     await syncTodos(todos);
+    await syncBlocks();
   } catch {}
   FORCE = false;
 };
@@ -513,6 +545,28 @@ const applyAdoption = async ({ ns, id }, change) => {
     if (change.kind === 'series') { await ps.updatePrayer(id, { time: change.time, ...(change.date ? { date: change.date } : {}) }); return true; }
     if (change.kind === 'gone') { await ps.deletePrayerById(id); return true; }
     return false; // no per-day exceptions for prayers
+  }
+  if (ns === 'block') {
+    // id = "<date>~<blockId>": a block moved in the Calendar (or EyeCandy's
+    // My Week) becomes that day's exception; deleted = skipped that day.
+    const [dateKey, blockId] = String(id).split('~');
+    if (!dateKey || !blockId) return false;
+    const dt = require('./dayTemplates');
+    if (change.kind === 'gone') { await dt.skipBlockForDay(dateKey, blockId); return true; }
+    if (change.kind === 'series' || change.kind === 'today') {
+      const [hh, mm] = String(change.time).split(':').map(Number);
+      const startMin = hh * 60 + mm;
+      const [eh, em] = String(change.end || '').split(':').map(Number);
+      const endMin = Number.isFinite(eh) && Number.isFinite(em) && eh * 60 + em > startMin ? eh * 60 + em : startMin + (change.minutes > 0 ? change.minutes : 30);
+      if (change.date && change.date !== dateKey) {
+        // Dragged to another day: skip it here, nothing to move it onto there.
+        await dt.skipBlockForDay(dateKey, blockId);
+        return true;
+      }
+      await dt.moveBlockForDay(dateKey, blockId, { startMin, endMin });
+      return true;
+    }
+    return false;
   }
   if (ns === 'todo') {
     const todos = (await getStoredData('todos')) || [];
@@ -577,9 +631,12 @@ export const adoptCalendarChanges = () => {
       }
       const evStart = new Date(ev.startDate);
       const startChanged = Math.abs(evStart.getTime() - entry.start) >= 60000;
+      const evEnd = ev.endDate ? new Date(ev.endDate) : null;
+      const endChanged = !!(evEnd && entry.end != null && Math.abs(evEnd.getTime() - entry.end) >= 60000);
       if (!entry.recurring) {
-        if (!startChanged) continue;
-        const change = { kind: 'series', time: hhmm(evStart), date: keyOfDate(evStart) };
+        // Blocks also follow a length change (work shortened in the Calendar).
+        if (!startChanged && !(k.ns === 'block' && endChanged)) continue;
+        const change = { kind: 'series', time: hhmm(evStart), date: keyOfDate(evStart), ...(evEnd ? { end: hhmm(evEnd), minutes: Math.round((evEnd.getTime() - evStart.getTime()) / 60000) } : {}) };
         if (await applyAdoption(k, change)) { adopted.push({ title: entry.title, kind: 'moved', time: change.time, date: change.date }); map[key] = { ...entry, start: evStart.getTime(), end: ev.endDate ? new Date(ev.endDate).getTime() : entry.end }; }
         continue;
       }

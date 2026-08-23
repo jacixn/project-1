@@ -1,0 +1,112 @@
+// Day templates: pure rules (utils/dayTemplates.js) + wiring checks.
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const load = (rel) => {
+  const src = fs.readFileSync(path.join(root, rel), 'utf8');
+  const pure = src.replace(/^import[^\n]*\n/gm, '').replace(/export const (\w+) =/g, 'const $1 = exports.$1 =');
+  const mod = {};
+  new Function('exports', pure)(mod);
+  return mod;
+};
+const T = load('utils/dayTemplates.js');
+let failures = 0;
+const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
+
+// Clock helpers
+check(T.hmToMin('09:00') === 540 && T.hmToMin('17:30') === 1050, 'hmToMin');
+check(T.hmToMin('9:5') === null && T.hmToMin('25:00') === null, 'hmToMin rejects bad input');
+check(T.minToHm(1050) === '17:30' && T.minToHm(0) === '00:00', 'minToHm');
+check(T.fmtClock(540) === '9 AM' && T.fmtClock(1050) === '5:30 PM' && T.fmtClock(0) === '12 AM', `fmtClock (${T.fmtClock(540)}, ${T.fmtClock(1050)})`);
+
+// Normalize: sorted, invalid dropped, ids kept
+const t = T.normalizeTemplate({ id: 'wr', name: ' Work Remote ', blocks: [
+  { id: 'lunch', title: 'Lunch', start: '13:00', end: '13:30' },
+  { id: 'work', title: 'Work', start: '09:00', end: '17:30', fixed: true },
+  { id: 'bad', title: 'Backwards', start: '15:00', end: '14:00' },
+  { id: 'bf', title: 'Breakfast', start: '08:00', end: '08:30' },
+] });
+check(t.name === 'Work Remote', 'name trimmed');
+check(t.blocks.map((b) => b.id).join() === 'bf,work,lunch', `blocks sorted by start, backwards one dropped (${t.blocks.map((b) => b.id).join()})`);
+check(t.blocks[1].fixed === true && t.blocks[0].fixed === false, 'fixed flag kept / defaulted');
+check(T.templateSummary(t) === 'Work 9 AM to 5:30 PM · Breakfast, Lunch', `summary (${T.templateSummary(t)})`);
+
+// Presets make valid templates
+for (const p of T.PRESET_TEMPLATES) {
+  const m = T.makeTemplate(p.name, p.blocks);
+  check(m.blocks.length === p.blocks.length && m.blocks.every((b) => b.id), `preset "${p.name}" keeps all ${p.blocks.length} blocks with ids`);
+}
+
+// Plan: date beats weekday, null means none on purpose
+let plan = T.emptyPlan();
+plan = T.withWeekdayTemplate(plan, 3, 'wr'); // Wednesdays
+check(T.templateIdForDay(plan, '2026-08-26', 3) === 'wr', 'weekday rule applies');
+check(T.templateIdForDay(plan, '2026-08-27', 4) === null, 'other weekday: nothing');
+plan = T.withDateTemplate(plan, '2026-08-26', null);
+check(T.templateIdForDay(plan, '2026-08-26', 3) === null, 'date says none: beats the weekday rule');
+plan = T.withoutDateChoice(plan, '2026-08-26');
+check(T.templateIdForDay(plan, '2026-08-26', 3) === 'wr', 'forgetting the date choice restores the weekday rule');
+plan = T.withDateTemplate(plan, '2026-08-27', 'off');
+check(T.templateIdForDay(plan, '2026-08-27', 4) === 'off', 'date choice on a day with no weekday rule');
+
+// Blocks for a day + overrides
+const templates = [t, T.normalizeTemplate({ id: 'off', name: 'Day off', blocks: [{ id: 'l2', title: 'Lunch', start: '13:00', end: '13:45' }] })];
+let day = T.blocksForDay(templates, plan, '2026-08-26', 3);
+check(day.map((b) => `${b.title}@${b.startMin}-${b.endMin}`).join() === 'Breakfast@480-510,Work@540-1050,Lunch@780-810', `Wednesday blocks (${day.map((b) => `${b.title}@${b.startMin}-${b.endMin}`).join()})`);
+check(day[1].fixed === true && day[1].templateName === 'Work Remote' && day[1].baseStartMin === 540, 'block carries fixed, template name, base start');
+plan = T.withOverride(plan, '2026-08-26', 'lunch', { start: '13:30', end: '14:00' });
+day = T.blocksForDay(templates, plan, '2026-08-26', 3);
+check(day.find((b) => b.blockId === 'lunch').startMin === 810 && day.find((b) => b.blockId === 'lunch').moved === true, 'override moves lunch on that day only');
+check(T.blocksForDay(templates, plan, '2026-09-02', 3).find((b) => b.blockId === 'lunch').startMin === 780, 'next Wednesday: lunch back at 1 PM');
+plan = T.withOverride(plan, '2026-08-26', 'bf', null);
+day = T.blocksForDay(templates, plan, '2026-08-26', 3);
+check(!day.some((b) => b.blockId === 'bf'), 'null override skips breakfast that day');
+plan = T.withOverride(plan, '2026-08-26', 'bf', undefined);
+check(T.blocksForDay(templates, plan, '2026-08-26', 3).some((b) => b.blockId === 'bf'), 'undefined override restores it');
+check(T.withOverride(plan, '2026-08-26', 'lunch', { start: '14:00', end: '13:00' }) === T.normalizePlan(plan) || JSON.stringify(T.withOverride(plan, '2026-08-26', 'lunch', { start: '14:00', end: '13:00' })) === JSON.stringify(T.normalizePlan(plan)), 'backwards override ignored');
+plan = T.withDateTemplate(plan, '2026-08-26', 'off');
+check(!plan.overrides['2026-08-26'], 'picking a new template for the day clears its old moves');
+check(T.blocksForDay(templates, plan, '2026-08-26', 3).map((b) => b.title).join() === 'Lunch', 'day now shows the Day off blocks');
+
+// Deleting a template clears its uses; pruning forgets the past
+plan = T.withWeekdayTemplate(plan, 0, 'off');
+plan = T.withoutTemplate(plan, 'off');
+check(!Object.values(plan.dates).includes('off') && !Object.values(plan.weekdays).includes('off'), 'deleted template removed from dates and weekdays');
+plan = T.withDateTemplate(plan, '2026-01-01', 'wr');
+plan = T.withOverride(plan, '2026-01-01', 'lunch', null);
+const pruned = T.prunePlan(plan, '2026-08-23');
+check(!pruned.dates['2026-01-01'] && !pruned.overrides['2026-01-01'] && pruned.weekdays['3'] === 'wr', 'prune drops past dates, keeps weekday rules');
+
+// Free time: 7 AM to 11 PM minus merged busy
+const free = T.freeMinutes([{ startMin: 480, endMin: 510 }, { startMin: 540, endMin: 1050 }, { startMin: 780, endMin: 810 }]);
+check(free === 16 * 60 - 30 - 510, `free minutes merge overlapping work/lunch (${free})`);
+check(T.freeMinutes([]) === 16 * 60, 'empty day: whole waking day free');
+check(T.iconForTitle('Lunch break') === 'lunch-dining' && T.iconForTitle('Piano') === 'schedule', 'icons by title');
+
+// Wiring: the other files know about blocks
+const src = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
+check(/block: \{ label: 'Day plan'/.test(src('utils/dayItems.js')) && /getBlocksForDay/.test(src('utils/dayItems.js')), 'dayItems loads blocks');
+check(/kind === 'block'/.test(src('utils/dayItems.js')) && /'block'/.test(src('utils/dayItems.js').match(/movable: [^\n]*/)[0]), 'blocks are movable in My Week');
+check(/getBlocksForDay/.test(src('utils/dayBusy.js')), 'dayBusy counts blocks as busy (free chips, planner offers)');
+check(/it\.kind === 'block'\) return raw\.fixed \? 'fixed' : 'life'/.test(src('utils/fitPlan.js')), 'planner: fixed blocks stay, flexible ones are life');
+check(/it\.kind === 'block'\)\)/.test(src('utils/fitPlan.js').match(/const todayOnly = [^\n]*/)[0]), 'planner moves a block today only');
+check(src('utils/fitPlan.js') === fs.readFileSync(path.join(root, '..', '..', '..', 'eyecandy', 'src', 'utils', 'fitPlan.js'), 'utf8'), 'fitPlan.js identical in EyeCandy');
+const cs = src('services/calendarSync.js');
+check(/export const syncBlocks/.test(cs) && /await syncBlocks\(\);/.test(cs) && /stableKey: `block__\$\{key\}~\$\{b\.blockId\}`/.test(cs), 'calendar mirror: block namespace, in syncAll');
+check(/if \(ns === 'block'\)/.test(cs) && /moveBlockForDay/.test(cs) && /skipBlockForDay/.test(cs), 'adoption: Calendar moves become that day\'s exception');
+check(/k\.ns === 'block' && endChanged/.test(cs), 'adoption: a block shortened in the Calendar is followed');
+check(!/syncBlocks = \(\) => serialize/.test(cs), 'syncBlocks does not nest serialize (would deadlock)');
+const ri = src('services/rescheduleItem.js');
+check(/item\.kind === 'block'/.test(ri.split('export const moveItem')[1].split('export const trimItem')[0]) && /moveBlockForDay/.test(ri), 'moveItem handles blocks');
+check(/item\.kind === 'block'/.test(ri.split('export const removeItem')[1].split('export const setPinned')[0]), 'removeItem: skip today / remove from template');
+check(/item\.kind === 'block'/.test(ri.split('export const setPinned')[1]), 'setPinned: block pin = fixed on the template');
+const mw = src('screens/MyWeekScreen.js');
+check(/styles\.planRow/.test(mw) && /visible=\{planOpen\}/.test(mw) && /pickTemplate\(/.test(mw) && /navigate\('DayTemplates'\)/.test(mw), 'My Week: day plan row + sheet + editor link');
+check(/moving\.kind === 'block'/.test(mw), 'My Week: Move panel knows blocks');
+check(/name="DayTemplates"/.test(src('navigation/RootNavigator.js')), 'DayTemplates route registered');
+check(fs.existsSync(path.join(root, 'screens', 'DayTemplatesScreen.js')), 'editor screen exists');
+const svc = src('services/dayTemplates.js');
+check(/syncBlocks/.test(svc) && /DAY_PLAN_CHANGED/.test(svc) && /prunePlan/.test(svc), 'service mirrors to the calendar, emits, prunes');
+
+console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
+process.exit(failures ? 1 : 0);

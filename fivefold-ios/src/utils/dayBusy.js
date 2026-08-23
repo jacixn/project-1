@@ -64,6 +64,12 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
     }
   } catch {}
 
+  // Day template blocks (Work, Lunch...) are busy like anything else.
+  try {
+    const { getBlocksForDay } = require('../services/dayTemplates');
+    for (const b of await getBlocksForDay(date)) push(out, b.title, b.startMin, b.endMin - b.startMin, 'block');
+  } catch {}
+
   try {
     for (const s of workoutsOnDay(await WorkoutService.getScheduledWorkouts(), key, dow)) {
       if (excludeGymId != null && String(s.id) === String(excludeGymId)) continue;

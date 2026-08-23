@@ -22,6 +22,8 @@ import { loadReminderPresets, addReminder } from '../services/reminderService';
 import WorkoutService from '../services/workoutService';
 import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
 import { addPrayer } from '../services/simplePrayersService';
+import { getTemplates as getDayTemplates, getPlan as getDayPlan, useTemplateOn, clearWeekday, DAY_PLAN_CHANGED } from '../services/dayTemplates';
+import { templateForDay, templateIdForDay, templateSummary, freeMinutes, blocksForDay } from '../utils/dayTemplates';
 import { DeviceEventEmitter as Emitter } from 'react-native';
 
 // Things you can put on the timeline from the Add button: your reminder
@@ -486,6 +488,39 @@ const MyWeekScreen = ({ navigation }) => {
     } catch {}
   };
   const closeAdd = () => { setAddOpen(false); setAddPick(null); };
+
+  // Day templates: the day's shape (Work Remote: work 9 to 5:30, meals).
+  const [templates, setTemplates] = useState([]);
+  const [dayPlan, setDayPlan] = useState(null);
+  const [planOpen, setPlanOpen] = useState(false);
+  const loadPlan = useCallback(async () => {
+    try { const [t, p] = await Promise.all([getDayTemplates(), getDayPlan()]); setTemplates(t); setDayPlan(p); } catch {}
+  }, []);
+  useEffect(() => { loadPlan(); }, [loadPlan]);
+  useEffect(() => navigation.addListener('focus', loadPlan), [navigation, loadPlan]);
+  useEffect(() => { const sub = DeviceEventEmitter.addListener(DAY_PLAN_CHANGED, () => { loadPlan(); loadWeek(); }); return () => sub.remove(); }, [loadPlan, loadWeek]);
+  const anchorKey = dateKeyOf(anchor);
+  const dayTemplate = useMemo(() => templateForDay(templates, dayPlan, anchorKey, anchor.getDay()), [templates, dayPlan, anchorKey, anchor]);
+  const weekdayTemplateId = dayPlan?.weekdays?.[String(anchor.getDay())] || null;
+  const weekdayName = anchor.toLocaleDateString('en', { weekday: 'long' });
+  const openPlan = () => { hapticFeedback.light(); loadPlan(); setPlanOpen(true); };
+  const pickTemplate = async (id) => {
+    hapticFeedback.selection();
+    try {
+      await useTemplateOn(anchorKey, id);
+      setPlanOpen(false);
+      const t = templates.find((x) => x.id === id);
+      setStatus(t ? `${t.name} is on for ${relDay(anchor) === 'Today' ? 'today' : relDay(anchor)}. Its blocks are on your day now.` : `No template ${relDay(anchor) === 'Today' ? 'today' : relDay(anchor)}.`);
+      setTimeout(() => setStatus(null), 4000);
+    } catch (e) { Alert.alert('Could not set that', e?.message || 'Please try again.'); }
+  };
+  const toggleWeekday = async () => {
+    hapticFeedback.selection();
+    try {
+      if (weekdayTemplateId) await clearWeekday(anchor.getDay());
+      else if (dayTemplate) await useTemplateOn(anchorKey, dayTemplate.id, { everyWeek: true, dow: anchor.getDay() });
+    } catch {}
+  };
   const pickFromLibrary = (item) => { hapticFeedback.selection(); setAddPick(item); setAddRepeat('once'); setAddDays([anchor.getDay()]); };
   const toggleAddDay = (d) => { hapticFeedback.selection(); setAddDays((prev) => (prev.includes(d) ? (prev.length > 1 ? prev.filter((x) => x !== d) : prev) : [...prev, d].sort())); };
   const startPlacing = () => {
@@ -661,6 +696,14 @@ const MyWeekScreen = ({ navigation }) => {
       Alert.alert(item.title, 'Daily prayers are managed in Faith.', [{ text: 'OK' }]);
       return;
     }
+    if (item.kind === 'block') {
+      Alert.alert(item.title, `Part of your ${raw.templateName || 'day plan'}. Skip it just today, or take it out of the template for every day it is used?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Skip today', onPress: () => finishRemove(item, 'today') },
+        { text: 'Remove from template', style: 'destructive', onPress: () => finishRemove(item, 'all') },
+      ]);
+      return;
+    }
     if (item.kind === 'eyecandy' && raw.recurring) {
       Alert.alert(item.title, 'Weekly shows are managed in EyeCandy.', [
         { text: 'OK', style: 'cancel' },
@@ -798,6 +841,13 @@ const MyWeekScreen = ({ navigation }) => {
         <Text style={[styles.kicker, { color: theme.textSecondary }]}>{relDay(anchor)}</Text>
         <Text style={[styles.headline, { color: theme.text }]}>{anchor.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'short' })}</Text>
         <Text style={[styles.summary, { color: theme.textSecondary }]}>{loading ? 'Checking every source...' : daySummary(dayItems)}</Text>
+
+        {/* Day template: the shape of the day. Tap to pick or change it. */}
+        <TouchableOpacity onPress={openPlan} style={styles.planRow} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={dayTemplate ? `${dayTemplate.name} day, change the day template` : 'Plan this day with a template'}>
+          <MaterialIcons name="schedule" size={18} color={KINDS.block.color} />
+          <Text style={[styles.planText, { color: theme.text }]}>{dayTemplate ? `${dayTemplate.name} day` : 'Plan this day'}</Text>
+          <Text style={[styles.planLink, { color: accent }]}>{dayTemplate ? 'Change' : 'Use a template'}</Text>
+        </TouchableOpacity>
 
         {/* Kind filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.chipsScroll, { marginTop: 14 }]} contentContainerStyle={styles.chipsRow}>
@@ -1021,6 +1071,51 @@ const MyWeekScreen = ({ navigation }) => {
         </View>
       ) : null}
 
+      <PullSheet visible={planOpen} onClose={() => setPlanOpen(false)} accent={KINDS.block.color}>
+        {planOpen ? (<>
+          <View style={styles.panelHead}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={[styles.panelTitle, { color: theme.text }]}>{`What kind of day is ${relDay(anchor) === 'Today' ? 'today' : relDay(anchor) === 'Tomorrow' ? 'tomorrow' : anchor.toLocaleDateString('en', { weekday: 'long' })}?`}</Text>
+              <Text style={[styles.panelSub, { color: theme.textSecondary }]}>Tap one. Its blocks land on the day, so the free time is real for you and for EyeCandy.</Text>
+            </View>
+            <TouchableOpacity onPress={() => setPlanOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
+              <MaterialIcons name="close" size={22} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.addList} showsVerticalScrollIndicator={false}>
+            {templates.map((t) => {
+              const on = dayTemplate && dayTemplate.id === t.id;
+              const free = freeMinutes(blocksForDay([t], { dates: { x: t.id }, weekdays: {}, overrides: {} }, 'x', 0));
+              return (
+                <TouchableOpacity key={t.id} onPress={() => pickTemplate(t.id)} style={[styles.addRow, { backgroundColor: on ? KINDS.block.color + '33' : tile, borderWidth: on ? 1.5 : 0, borderColor: KINDS.block.color }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: !!on }} accessibilityLabel={`${t.name}, ${templateSummary(t)}`}>
+                  <View style={[styles.addIcon, { backgroundColor: KINDS.block.color + '22' }]}><MaterialIcons name={on ? 'check' : 'schedule'} size={22} color={KINDS.block.color} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.addRowTitle, { color: theme.text }]}>{t.name}</Text>
+                    <Text style={[styles.planSummary, { color: theme.textSecondary }]}>{templateSummary(t)}</Text>
+                  </View>
+                  <Text style={[styles.addRowDur, { color: theme.textSecondary }]}>{`${fmtDur(free)} free`}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity onPress={() => pickTemplate(null)} style={[styles.addRow, { backgroundColor: !dayTemplate ? KINDS.block.color + '33' : tile, borderWidth: !dayTemplate ? 1.5 : 0, borderColor: KINDS.block.color }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: !dayTemplate }}>
+              <View style={[styles.addIcon, { backgroundColor: tile }]}><MaterialIcons name={!dayTemplate ? 'check' : 'block'} size={22} color={theme.textSecondary} /></View>
+              <Text style={[styles.addRowTitle, { color: theme.text }]}>No template</Text>
+            </TouchableOpacity>
+          </ScrollView>
+          {dayTemplate ? (
+            <TouchableOpacity onPress={toggleWeekday} style={[styles.pinRow, { backgroundColor: tile, marginTop: 0 }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: !!weekdayTemplateId }}>
+              <MaterialIcons name="repeat" size={18} color={weekdayTemplateId ? KINDS.block.color : theme.textSecondary} />
+              <Text style={[styles.pinText, { color: theme.text }]}>{weekdayTemplateId ? `Every ${weekdayName} is a ${templates.find((t) => t.id === weekdayTemplateId)?.name || dayTemplate.name} day` : `Use ${dayTemplate.name} every ${weekdayName}`}</Text>
+              <Text style={[styles.pinState, { color: weekdayTemplateId ? KINDS.block.color : theme.textSecondary }]}>{weekdayTemplateId ? 'On' : 'Off'}</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity onPress={() => { hapticFeedback.light(); setPlanOpen(false); navigation.navigate('DayTemplates'); }} style={[styles.saveBtn, { backgroundColor: KINDS.block.color, marginTop: 12, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
+            <MaterialIcons name="edit" size={20} color="#fff" />
+            <Text style={styles.saveBtnText}>Make or edit templates</Text>
+          </TouchableOpacity>
+        </>) : null}
+      </PullSheet>
+
       <PullSheet visible={addOpen} onClose={closeAdd} accent={addPick ? (addPick.color || accent) : accent}>
         {addOpen ? (<>
           <View style={styles.panelHead}>
@@ -1191,15 +1286,15 @@ const MyWeekScreen = ({ navigation }) => {
             <MaterialIcons name="check" size={20} color="#fff" />
             <Text style={styles.saveBtnText}>{saving ? 'Saving' : `Save ${fmtClock(draftMin)}`}</Text>
           </TouchableOpacity>
-          {moving.kind === 'reminder' || moving.kind === 'task' || moving.kind === 'gym' || moving.kind === 'prayer' || moving.kind === 'calendar' || moving.kind === 'eyecandy' ? (
+          {moving.kind === 'reminder' || moving.kind === 'task' || moving.kind === 'gym' || moving.kind === 'prayer' || moving.kind === 'block' || moving.kind === 'calendar' || moving.kind === 'eyecandy' ? (
             <TouchableOpacity onPress={async () => { hapticFeedback.selection(); try { await setPinned(moving, !moving.raw?.pinned); const fresh = await loadWeek(); const again = fresh && fresh[dateKeyOf(anchor)] && fresh[dateKeyOf(anchor)].find((x) => x.id === moving.id); if (again) setMoving(again); } catch {} }} style={[styles.pinRow, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: !!moving.raw?.pinned }}>
               <MaterialIcons name={moving.raw?.pinned ? 'push-pin' : 'push-pin'} size={18} color={moving.raw?.pinned ? panelAccent : theme.textSecondary} />
-              <Text style={[styles.pinText, { color: theme.text }]}>{moving.raw?.pinned ? 'Pinned: plans ignore this' : 'Pin: plans ignore this (never moved, never in the way)'}</Text>
+              <Text style={[styles.pinText, { color: theme.text }]}>{moving.kind === 'block' ? (moving.raw?.pinned ? 'Fixed: plans never move this block' : 'Fix it: plans never move this block') : moving.raw?.pinned ? 'Pinned: plans ignore this' : 'Pin: plans ignore this (never moved, never in the way)'}</Text>
               <Text style={[styles.pinState, { color: moving.raw?.pinned ? panelAccent : theme.textSecondary }]}>{moving.raw?.pinned ? 'On' : 'Off'}</Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity onPress={() => confirmRemove(moving)} disabled={saving} style={[styles.removeBtn, { marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Remove ${moving.title}`}>
-            <Text style={styles.removeText}>{isSeriesReminder(moving) ? 'Skip today or delete' : moving.kind === 'eyecandy' ? 'Skip today' : 'Remove'}</Text>
+            <Text style={styles.removeText}>{isSeriesReminder(moving) || moving.kind === 'block' ? 'Skip today or remove' : moving.kind === 'eyecandy' ? 'Skip today' : 'Remove'}</Text>
           </TouchableOpacity>
         </>) : null}
       </PullSheet>
@@ -1282,6 +1377,10 @@ const styles = StyleSheet.create({
   addTab: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   addTabText: { fontSize: 15, fontWeight: '800' },
   addList: { maxHeight: 360, marginTop: 12, marginBottom: 16 },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingVertical: 4 },
+  planText: { flex: 1, fontSize: 15, fontWeight: '700' },
+  planLink: { fontSize: 14, fontWeight: '800' },
+  planSummary: { fontSize: 13, fontWeight: '600', marginTop: 2 },
   addRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 14, marginBottom: 8 },
   addIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   addRowTitle: { flex: 1, fontSize: 17, fontWeight: '700' },

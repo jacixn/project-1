@@ -708,6 +708,11 @@ const RootNavigator = () => {
         options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
+        name="DayTemplates"
+        component={require('../screens/DayTemplatesScreen').default}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
         name="ScheduleWorkout"
         component={require('../components/ScheduleWorkoutModal').default}
         options={{ presentation: 'modal', gestureResponseDistance: 140 }}

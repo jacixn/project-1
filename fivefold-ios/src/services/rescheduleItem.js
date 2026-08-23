@@ -94,6 +94,18 @@ export const moveItem = async (item, to) => {
     return true;
   }
   const oneTime = raw.type === 'one-time';
+  if (item.kind === 'block') {
+    // A template block moves for this day only (the template itself is
+    // edited from the Day plan sheet). Same length, new start.
+    const dt = require('./dayTemplates');
+    const [hh, mm] = String(to.time).split(':').map(Number);
+    const startMin = hh * 60 + mm;
+    const len = Math.max(5, (item.endMin || 0) - (item.startMin || 0));
+    const dayKey = raw.dateKey || to.from || to.date;
+    if (to.date && raw.dateKey && to.date !== raw.dateKey) return false; // a day's shape stays on its day
+    await dt.moveBlockForDay(dayKey, raw.blockId, { startMin, endMin: Math.min(24 * 60, startMin + len) });
+    return true;
+  }
   if (item.kind === 'prayer') {
     await updatePrayer(raw.id, { ...raw, time: to.time, date: oneTime ? (to.date || raw.date) : null });
     return true;
@@ -154,6 +166,10 @@ export const moveItem = async (item, to) => {
 // Same read-then-full-write as a move.
 export const trimItem = async (item, { startMin, endMin }) => {
   const raw = item.raw || {};
+  if (item.kind === 'block') {
+    await require('./dayTemplates').moveBlockForDay(raw.dateKey, raw.blockId, { startMin, endMin });
+    return true;
+  }
   if (!CALENDAR_KINDS.has(item.kind) || !raw.eventId) return false;
   const base = new Date(raw.startDate);
   const at = (min) => { const d = new Date(base); d.setHours(Math.floor(min / 60), min % 60, 0, 0); return d; };
@@ -186,6 +202,16 @@ export const removeItem = async (item, { scope = 'all', from = null } = {}) => {
   if (!item) return false;
   const raw = item.raw || {};
   const oneTime = raw.type === 'one-time';
+  if (item.kind === 'block') {
+    const dt = require('./dayTemplates');
+    if (scope === 'today') { await dt.skipBlockForDay(raw.dateKey || from, raw.blockId); return true; }
+    // 'all' = take the block out of the template itself
+    const list = await dt.getTemplates();
+    const t = list.find((x) => x.id === raw.templateId);
+    if (!t) return false;
+    await dt.upsertTemplate({ ...t, blocks: (t.blocks || []).filter((b) => b.id !== raw.blockId) });
+    return true;
+  }
   if (item.kind === 'reminder') {
     if (!oneTime && scope === 'today') return !!(await skipReminderDay(raw.id, from));
     await deleteReminder(raw.id);
@@ -236,6 +262,14 @@ export const setPinned = async (item, pinned) => {
   if (item.kind === 'reminder') { await updateReminder(raw.id, { pinned: !!pinned }); return true; }
   if (item.kind === 'gym') { await WorkoutService.updateScheduledWorkout(raw.id, { pinned: !!pinned }); try { DeviceEventEmitter.emit('workoutScheduled', null); } catch {} return true; }
   if (item.kind === 'prayer') { await updatePrayer(raw.id, { ...raw, pinned: !!pinned }); return true; }
+  if (item.kind === 'block') {
+    // Pinning a block = "fixed" on the template (plans never move it, any day)
+    const dt = require('./dayTemplates');
+    const t = (await dt.getTemplates()).find((x) => x.id === raw.templateId);
+    if (!t) return false;
+    await dt.upsertTemplate({ ...t, blocks: (t.blocks || []).map((b) => (b.id === raw.blockId ? { ...b, fixed: !!pinned } : b)) });
+    return true;
+  }
   if (item.kind === 'task') {
     const todos = (await getStoredData('todos')) || [];
     const updated = todos.map((t) => (String(t.id) === String(raw.id) ? { ...t, pinned: !!pinned } : t));

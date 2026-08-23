@@ -54,6 +54,9 @@ export const tierOf = (it) => {
   // occurrence in the Calendar); next week is untouched.
   if (it.kind === 'eyecandy') return 'fun';
   if (it.kind === 'prayer') return 'fixed';
+  // Day template blocks: work and school stay put; meals and the like can
+  // give way for one day (that day's exception, the template is untouched).
+  if (it.kind === 'block') return raw.fixed ? 'fixed' : 'life';
   // Repeating workouts and reminders can give way for one day (the series
   // skips it, a one-time copy takes the new time), so they are life too.
   if (it.kind === 'gym' || it.kind === 'reminder' || it.kind === 'task') return 'life';
@@ -74,7 +77,7 @@ export const toModel = (items) => (items || []).map((it, i) => {
   const durationMin = Math.max(5, (it.endMin || 0) - (it.startMin || 0));
   const days = Array.isArray(raw.days) ? raw.days : [];
   const daily = !days.length || days.length === 7;
-  const todayOnly = !oneTime && ((tier === 'life' && (it.kind === 'reminder' || it.kind === 'gym' || it.kind === 'biblely')) || (tier === 'fun' && it.kind === 'eyecandy'));
+  const todayOnly = !oneTime && ((tier === 'life' && (it.kind === 'reminder' || it.kind === 'gym' || it.kind === 'biblely' || it.kind === 'block')) || (tier === 'fun' && it.kind === 'eyecandy'));
   const why = it.kind === 'eyecandySports' ? 'match'
     : raw.official ? 'official release time'
     : !it.movable ? 'read-only'

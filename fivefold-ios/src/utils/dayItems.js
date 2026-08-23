@@ -13,6 +13,7 @@ import { minutesOf, dateKeyOf } from './dayBusy';
 import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
 import { applyCalendarPins } from '../services/pins';
+import { getBlocksForDay } from '../services/dayTemplates';
 
 // Colour = where it comes from, matching how the iPhone Calendar shows the
 // same items: Biblely green (three close shades so the legend still tells
@@ -23,11 +24,12 @@ export const KINDS = {
   reminder: { label: 'Reminder', color: '#30D158', icon: 'notifications' },
   task: { label: 'Task', color: '#2DC46B', icon: 'check-circle' },
   gym: { label: 'Workout', color: '#4CD964', icon: 'fitness-center' },
+  block: { label: 'Day plan', color: '#5AC8FA', icon: 'schedule' },
   eyecandy: { label: 'EyeCandy', color: '#7C5CFF', icon: 'movie' },
   eyecandySports: { label: 'EyeCandy Sports', color: '#FF9500', icon: 'sports-soccer' },
   calendar: { label: 'Calendar', color: '#D946EF', icon: 'event' },
 };
-export const KIND_ORDER = ['prayer', 'reminder', 'task', 'gym', 'eyecandy', 'eyecandySports', 'calendar'];
+export const KIND_ORDER = ['block', 'prayer', 'reminder', 'task', 'gym', 'eyecandy', 'eyecandySports', 'calendar'];
 // Tasks have no length of their own; 30 min matches the Calendar mirror.
 export const TASK_MINUTES = 30;
 
@@ -74,7 +76,7 @@ const mk = (kind, id, title, startMin, minutes, raw, extra = {}) => {
     endMin: clamp(startMin + dur, startMin + 1, DAY_MIN),
     color: extra.color || KINDS[kind].color,
     icon: extra.icon || KINDS[kind].icon,
-    movable: kind === 'prayer' || kind === 'reminder' || kind === 'task' || kind === 'gym',
+    movable: kind === 'prayer' || kind === 'reminder' || kind === 'task' || kind === 'gym' || kind === 'block',
     subtitle: extra.subtitle || '',
     raw,
   };
@@ -103,6 +105,14 @@ export const loadDayItems = async (date) => {
   try {
     for (const s of workoutsOnDay(await WorkoutService.getScheduledWorkouts(), key, dow)) {
       out.push(mk('gym', s.id, s.templateName || 'Workout', minutesOf(s.time), Number(s.duration) > 0 ? s.duration : 60, s, { subtitle: patternOf(s) }));
+    }
+  } catch {}
+
+  // Day template blocks (Work, Lunch...). Fixed blocks never move in a
+  // plan; the rest may give way for one day.
+  try {
+    for (const b of await getBlocksForDay(date)) {
+      out.push(mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, subtitle: b.moved ? `${b.templateName} · moved today` : b.templateName }));
     }
   } catch {}
 
@@ -231,6 +241,8 @@ export const weekOf = (date) => {
   return Array.from({ length: 7 }, (_, i) => { const x = new Date(d); x.setDate(d.getDate() + i); return x; });
 };
 
+const hmOf = (raw) => (raw.baseStartMin != null ? raw.baseStartMin : raw.startMin);
+
 // What a move does to a recurring item, in words
 export const moveScope = (item) => {
   if (!item?.movable) return null;
@@ -243,6 +255,7 @@ export const moveScope = (item) => {
     const where = raw.calendarTitle ? `your ${raw.calendarTitle} calendar` : 'your Calendar';
     return `${raw.recurring ? 'Only this one, not the repeats' : 'Only this one'}. Changes it in ${where}.`;
   }
+  if (item.kind === 'block') return `Just this day. ${raw.templateName || 'The template'} keeps ${fmtClock(hmOf(raw))} on other days.`;
   if (raw.type === 'one-time') return 'Only this one';
   return `Every ${patternOf(raw) === 'every day' ? 'day' : patternOf(raw)} at the new time`;
 };
