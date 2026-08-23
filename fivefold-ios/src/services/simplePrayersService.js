@@ -120,6 +120,8 @@ const fieldsFromPayload = (payload) => ({
   notifyBefore: payload.notifyBefore == null ? 0 : payload.notifyBefore,
   date: payload.type === 'one-time' ? (payload.date || null) : null,
   days: payload.type === 'one-time' ? ALL_DAYS : normalizeDays(payload.days),
+  // Plans ignore prayers unless the user unpins one (My Week pin row).
+  ...(payload.pinned != null ? { pinned: !!payload.pinned } : {}),
 });
 
 export const addPrayer = async (payload) => {

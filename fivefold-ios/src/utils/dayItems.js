@@ -90,7 +90,7 @@ export const loadDayItems = async (date) => {
       if (!p || !p.time) continue;
       const on = p.type === 'one-time' ? p.date === key : isPrayerDayEnabled(p, date);
       if (!on) continue;
-      out.push(mk('prayer', p.id, p.name || 'Prayer', minutesOf(p.time), Number(p.duration) > 0 ? p.duration : 5, p, { subtitle: patternOf(p) }));
+      out.push(mk('prayer', p.id, p.name || 'Prayer', minutesOf(p.time), Number(p.duration) > 0 ? p.duration : 5, { ...p, pinned: p.pinned != null ? !!p.pinned : true }, { subtitle: patternOf(p) }));
     }
   } catch {}
 

@@ -235,6 +235,7 @@ export const setPinned = async (item, pinned) => {
   const raw = item?.raw || {};
   if (item.kind === 'reminder') { await updateReminder(raw.id, { pinned: !!pinned }); return true; }
   if (item.kind === 'gym') { await WorkoutService.updateScheduledWorkout(raw.id, { pinned: !!pinned }); try { DeviceEventEmitter.emit('workoutScheduled', null); } catch {} return true; }
+  if (item.kind === 'prayer') { await updatePrayer(raw.id, { ...raw, pinned: !!pinned }); return true; }
   if (item.kind === 'task') {
     const todos = (await getStoredData('todos')) || [];
     const updated = todos.map((t) => (String(t.id) === String(raw.id) ? { ...t, pinned: !!pinned } : t));
