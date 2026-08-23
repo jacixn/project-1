@@ -18,6 +18,22 @@ import { moveItem, applyPlanRow, removeItem, setPinned } from '../services/resch
 import { rowText } from '../services/fitOffer';
 import { planDay } from '../services/schedulePlanner';
 import { toModel, fixableOverlaps, pickAnchor, cascadePlan, planSize } from '../utils/fitPlan';
+import { loadReminderPresets, addReminder } from '../services/reminderService';
+import WorkoutService from '../services/workoutService';
+import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
+import { addPrayer } from '../services/simplePrayersService';
+import { Pressable, DeviceEventEmitter as Emitter } from 'react-native';
+
+// Things you can put on the timeline from the Add button: your reminder
+// library, your workout templates, and a few prayer shapes.
+const PRAYER_PRESETS = [
+  { id: 'prayer_5', title: 'Prayer', duration: 5, icon: 'favorite', color: '#34C759' },
+  { id: 'prayer_morning', title: 'Morning prayer', duration: 10, icon: 'wb-sunny', color: '#34C759' },
+  { id: 'prayer_evening', title: 'Evening prayer', duration: 10, icon: 'nights-stay', color: '#34C759' },
+  { id: 'prayer_bible', title: 'Bible reading', duration: 15, icon: 'menu-book', color: '#34C759' },
+];
+const DAY_LETTERS_SUN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const round5 = (m) => Math.round(m / 5) * 5;
 
 // Bottom sheet: springs up, pull the handle/header down to dismiss (past
 // 120pt or a flick), shorter drags spring back. Same feel as EyeCandy's.
@@ -134,6 +150,14 @@ const MyWeekScreen = ({ navigation }) => {
   const [fitPlan, setFitPlan] = useState(null);
   const [fitSkipped, setFitSkipped] = useState(() => new Set()); // moves the user unticked
   const [fitRemove, setFitRemove] = useState(() => new Set()); // life moves the user turned into "remove today"
+  // Add: pick something from your library, say how often, then tap the timeline where it goes.
+  const [addOpen, setAddOpen] = useState(false);
+  const [addTab, setAddTab] = useState('reminder'); // reminder | gym | prayer
+  const [library, setLibrary] = useState({ reminder: [], gym: [], prayer: PRAYER_PRESETS });
+  const [addPick, setAddPick] = useState(null);     // { kind, title, icon, color, duration, templateId }
+  const [addRepeat, setAddRepeat] = useState('once'); // once | weekly
+  const [addDays, setAddDays] = useState([]);
+  const [placing, setPlacing] = useState(null);     // { pick, repeat, days, min } while tapping the timeline
   const lastMovedRef = useRef(null); // the thing just added/moved stays put when planning
   const autoOfferedRef = useRef(new Set()); // anchors already offered a plan this visit
   const RECENT_MS = 30 * 60 * 1000; // something added in the last half hour counts as "just added"
@@ -447,6 +471,76 @@ const MyWeekScreen = ({ navigation }) => {
     setSaving(false);
   };
 
+  // ---- Add from your library ----------------------------------------------
+  const openAdd = async () => {
+    hapticFeedback.light();
+    setAddPick(null); setAddRepeat('once'); setAddDays([anchor.getDay()]);
+    setAddOpen(true);
+    try {
+      const [presets, templates] = await Promise.all([loadReminderPresets().catch(() => []), WorkoutService.getTemplates().catch(() => [])]);
+      setLibrary({
+        reminder: (presets || []).map((p) => ({ kind: 'reminder', id: p.id, title: p.title, icon: p.icon || 'notifications', color: p.color || KINDS.reminder.color, duration: Number(p.duration) > 0 ? p.duration : 30 })),
+        gym: (templates || []).map((t) => ({ kind: 'gym', id: t.id, templateId: t.id, title: t.name || 'Workout', icon: 'fitness-center', color: KINDS.gym.color, duration: Number(t.estimatedDuration || t.duration) > 0 ? Number(t.estimatedDuration || t.duration) : 60 })),
+        prayer: PRAYER_PRESETS.map((p) => ({ kind: 'prayer', ...p })),
+      });
+    } catch {}
+  };
+  const closeAdd = () => { setAddOpen(false); setAddPick(null); };
+  const pickFromLibrary = (item) => { hapticFeedback.selection(); setAddPick(item); setAddRepeat('once'); setAddDays([anchor.getDay()]); };
+  const toggleAddDay = (d) => { hapticFeedback.selection(); setAddDays((prev) => (prev.includes(d) ? (prev.length > 1 ? prev.filter((x) => x !== d) : prev) : [...prev, d].sort())); };
+  const startPlacing = () => {
+    if (!addPick) return;
+    hapticFeedback.medium();
+    setPlacing({ pick: addPick, repeat: addRepeat, days: addRepeat === 'weekly' ? addDays : [anchor.getDay()], min: null });
+    setAddOpen(false);
+    if (view !== 'timeline') setView('timeline');
+    setStatus(null);
+  };
+  const cancelPlacing = () => { hapticFeedback.light(); setPlacing(null); };
+  // A tap on the timeline: the y inside it -> a time on the 5-minute grid.
+  const onPlaceTap = (y) => {
+    if (!placing) return;
+    const min = Math.max(0, Math.min(23 * 60 + 55, round5(layout.axisStart + (y / pxPerHour) * 60)));
+    hapticFeedback.selection();
+    setPlacing((p) => (p ? { ...p, min } : p));
+  };
+  const savePlacing = async () => {
+    if (!placing || placing.min == null || saving) return;
+    setSaving(true);
+    const { pick, repeat, days, min } = placing;
+    const time = minToTime(min);
+    const key = dateKeyOf(anchor);
+    const once = repeat === 'once';
+    let anchorId = null;
+    try {
+      if (pick.kind === 'reminder') {
+        const saved = await addReminder({ title: pick.title, time, type: once ? 'one-time' : 'recurring', days: once ? [anchor.getDay()] : days, date: once ? key : undefined, icon: pick.icon, color: pick.color, duration: pick.duration });
+        anchorId = saved ? `reminder:${saved.id}` : null;
+      } else if (pick.kind === 'gym') {
+        const schedule = { templateId: pick.templateId, templateName: pick.title, time, duration: pick.duration, notifyBefore: 0, ...(once ? { type: 'one-time', date: key } : { type: 'recurring', days }) };
+        const saved = await WorkoutService.addScheduledWorkout(schedule);
+        try { if (saved) await scheduleWorkoutNotifications(saved); } catch {}
+        try { Emitter.emit('workoutScheduled', saved); } catch {}
+        anchorId = saved ? `gym:${saved.id}` : null;
+      } else if (pick.kind === 'prayer') {
+        const saved = await addPrayer({ name: pick.title, time, type: once ? 'one-time' : 'recurring', date: once ? key : null, days, duration: pick.duration, notifyBefore: 0 });
+        anchorId = saved && saved.id ? `prayer:${saved.id}` : null;
+      }
+      hapticFeedback.success();
+      setPlacing(null);
+      setStatus(`${pick.title} added at ${fmtClock(min)}${once ? '' : ', every week'}.`);
+      if (anchorId) lastMovedRef.current = anchorId;
+      const keepY = scrollYRef.current;
+      const fresh = await loadWeek();
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: keepY, animated: false }));
+      if (anchorId && fresh && fresh[key]) autoPlan(fresh[key], anchorId);
+    } catch (e) {
+      hapticFeedback.error();
+      Alert.alert('Could not add it', e?.message || 'Please try again.');
+    }
+    setSaving(false);
+  };
+
   // Make it fit: the AI plans, the rules check, the user approves.
   const autoPlan = async (items, anchorId) => {
     try {
@@ -734,7 +828,7 @@ const MyWeekScreen = ({ navigation }) => {
         </View>
 
         {/* Timeline: rails on the left show true spans and overlaps, cards on the right stay readable */}
-        {view === 'timeline' && !loading && visible.length > 0 ? (
+        {view === 'timeline' && !loading && (visible.length > 0 || placing) ? (
           <GestureHandlerRootView onLayout={(e) => { timelineTopRef.current = e.nativeEvent.layout.y; }}>
           <GestureDetector gesture={zoomGesture}>
           <View style={[styles.timeline, { height: layout.height }]} onLayout={(e) => setTimelineW(e.nativeEvent.layout.width)} accessibilityHint="Pinch to zoom the hours, double tap to reset">
@@ -753,6 +847,14 @@ const MyWeekScreen = ({ navigation }) => {
                 <View style={[styles.nowDot, { backgroundColor: theme.error || '#EF4444' }]} />
                 <View style={[styles.nowLine, { backgroundColor: theme.error || '#EF4444' }]} />
               </View>
+            ) : null}
+            {placing && placing.min != null ? (
+              <View pointerEvents="none" style={[styles.ghost, { top: layout.axisStart != null ? ((placing.min - layout.axisStart) / 60) * pxPerHour : 0, height: Math.max(22, (placing.pick.duration / 60) * pxPerHour), left: cardAreaLeft, right: 0, borderColor: placing.pick.color || accent, backgroundColor: (placing.pick.color || accent) + '22' }]}>
+                <Text style={[styles.ghostText, { color: placing.pick.color || accent }]}>{placing.pick.title}  ·  {fmtClock(placing.min)}</Text>
+              </View>
+            ) : null}
+            {placing ? (
+              <Pressable style={StyleSheet.absoluteFill} onPress={(e) => onPlaceTap(e.nativeEvent.locationY)} accessibilityRole="button" accessibilityLabel="Tap a time on the timeline" />
             ) : null}
           </View>
           </GestureDetector>
@@ -873,6 +975,97 @@ const MyWeekScreen = ({ navigation }) => {
             <MaterialIcons name="check" size={20} color="#fff" />
             <Text style={styles.saveBtnText}>{saving ? 'Working' : fitCount === 1 ? 'Apply 1 change' : `Apply ${fitCount} changes`}</Text>
           </TouchableOpacity>
+        </>) : null}
+      </PullSheet>
+
+      {/* Add: a big button, then pick from your library, say how often, tap the time. */}
+      {!moving && !fitPlan && !placing && !addOpen ? (
+        <TouchableOpacity onPress={openAdd} style={[styles.addFab, { backgroundColor: accent, bottom: Math.max(insets.bottom, 12) + 8 }]} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Add something to this day">
+          <MaterialIcons name="add" size={24} color="#fff" />
+          <Text style={styles.addFabText}>Add</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {placing ? (
+        <View style={[styles.placeBar, { backgroundColor: theme.background, borderColor: accent + '55', paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} />
+          <Text style={[styles.placeTitle, { color: theme.text }]}>{placing.min == null ? `Tap the timeline where ${placing.pick.title} goes` : `${placing.pick.title} at ${fmtClock(placing.min)}`}</Text>
+          <Text style={[styles.placeSub, { color: theme.textSecondary }]}>{placing.min == null ? 'Scroll to the hour, then tap the time.' : `${fmtDur(placing.pick.duration)}${placing.repeat === 'weekly' ? `  ·  every ${placing.days.length === 7 ? 'day' : placing.days.map((d) => DAY_LETTERS_SUN[d]).join(' ')}` : '  ·  just once'}. Tap somewhere else to change it.`}</Text>
+          <View style={styles.placeBtns}>
+            <TouchableOpacity onPress={cancelPlacing} style={[styles.placeCancel, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button"><Text style={[styles.placeCancelText, { color: theme.text }]}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity onPress={savePlacing} disabled={placing.min == null || saving} style={[styles.placeSave, { backgroundColor: accent, opacity: placing.min == null || saving ? 0.5 : 1 }]} activeOpacity={0.8} accessibilityRole="button">
+              <MaterialIcons name="check" size={20} color="#fff" />
+              <Text style={styles.saveBtnText}>{saving ? 'Saving' : placing.min == null ? 'Pick a time' : `Save ${fmtClock(placing.min)}`}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
+
+      <PullSheet visible={addOpen} onClose={closeAdd} accent={addPick ? (addPick.color || accent) : accent}>
+        {addOpen ? (<>
+          <View style={styles.panelHead}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={[styles.panelTitle, { color: theme.text }]}>{addPick ? addPick.title : `Add to ${relDay(anchor)}`}</Text>
+              <Text style={[styles.panelSub, { color: theme.textSecondary }]}>{addPick ? 'How often?' : 'Pick one, then tap the time on your day.'}</Text>
+            </View>
+            <TouchableOpacity onPress={addPick ? () => setAddPick(null) : closeAdd} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={addPick ? 'Back to the list' : 'Close'}>
+              <MaterialIcons name={addPick ? 'arrow-back' : 'close'} size={22} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          {!addPick ? (<>
+            <View style={styles.addTabs}>
+              {[{ k: 'reminder', label: 'Reminders' }, { k: 'gym', label: 'Workouts' }, { k: 'prayer', label: 'Prayers' }].map((t) => {
+                const on = addTab === t.k;
+                return (
+                  <TouchableOpacity key={t.k} onPress={() => { hapticFeedback.selection(); setAddTab(t.k); }} style={[styles.addTab, { backgroundColor: on ? accent : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                    <Text style={[styles.addTabText, { color: on ? '#fff' : theme.text }]}>{t.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <ScrollView style={styles.addList} showsVerticalScrollIndicator={false}>
+              {(library[addTab] || []).length === 0 ? (
+                <Text style={[styles.addEmpty, { color: theme.textSecondary }]}>{addTab === 'gym' ? 'No workout templates yet. Make one in Fitness first.' : 'Nothing here yet.'}</Text>
+              ) : (library[addTab] || []).map((it) => (
+                <TouchableOpacity key={it.id} onPress={() => pickFromLibrary(it)} style={[styles.addRow, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${it.title}, ${fmtDur(it.duration)}`}>
+                  <View style={[styles.addIcon, { backgroundColor: (it.color || accent) + '22' }]}><MaterialIcons name={it.icon || 'event'} size={22} color={it.color || accent} /></View>
+                  <Text style={[styles.addRowTitle, { color: theme.text }]}>{it.title}</Text>
+                  <Text style={[styles.addRowDur, { color: theme.textSecondary }]}>{fmtDur(it.duration)}</Text>
+                  <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>) : (<>
+            <View style={styles.scopeRow}>
+              {[{ k: 'once', label: `Just once (${relDay(anchor) === 'Today' || relDay(anchor) === 'Tomorrow' ? relDay(anchor) : anchor.toLocaleDateString('en', { weekday: 'short', day: 'numeric' })})` }, { k: 'weekly', label: 'Every week' }].map((o) => {
+                const on = addRepeat === o.k;
+                return (
+                  <TouchableOpacity key={o.k} onPress={() => { hapticFeedback.selection(); setAddRepeat(o.k); }} style={[styles.scopeTab, { height: 48, backgroundColor: on ? (addPick.color || accent) : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                    <Text style={[styles.scopeText, { color: on ? '#fff' : theme.text }]}>{o.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {addRepeat === 'weekly' ? (<>
+              <Text style={[styles.panelKicker, { color: theme.textSecondary }]}>Which days?</Text>
+              <View style={styles.addDays}>
+                {DAY_LETTERS_SUN.map((l, d) => {
+                  const on = addDays.includes(d);
+                  return (
+                    <TouchableOpacity key={d} onPress={() => toggleAddDay(d)} style={[styles.addDay, { backgroundColor: on ? (addPick.color || accent) : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d]}>
+                      <Text style={[styles.addDayText, { color: on ? '#fff' : theme.text }]}>{l}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <TouchableOpacity onPress={() => { hapticFeedback.selection(); setAddDays([0, 1, 2, 3, 4, 5, 6]); }} style={{ alignSelf: 'flex-start', paddingVertical: 6 }} accessibilityRole="button"><Text style={[styles.fitAltText, { color: addPick.color || accent }]}>Every day</Text></TouchableOpacity>
+            </>) : null}
+            <TouchableOpacity onPress={startPlacing} style={[styles.saveBtn, { backgroundColor: addPick.color || accent, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
+              <MaterialIcons name="touch-app" size={20} color="#fff" />
+              <Text style={styles.saveBtnText}>Next: tap the time</Text>
+            </TouchableOpacity>
+          </>)}
         </>) : null}
       </PullSheet>
 
@@ -1063,6 +1256,29 @@ const styles = StyleSheet.create({
   footnote: { fontSize: 13, lineHeight: 18, marginTop: 16 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  addFab: { position: 'absolute', right: 20, flexDirection: 'row', alignItems: 'center', gap: 6, height: 52, paddingLeft: 16, paddingRight: 20, borderRadius: 18, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+  addFabText: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  addTabs: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  addTab: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  addTabText: { fontSize: 15, fontWeight: '800' },
+  addList: { maxHeight: 360, marginTop: 12, marginBottom: 16 },
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 14, marginBottom: 8 },
+  addIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  addRowTitle: { flex: 1, fontSize: 17, fontWeight: '700' },
+  addRowDur: { fontSize: 14, fontWeight: '600' },
+  addEmpty: { fontSize: 15, fontWeight: '600', paddingVertical: 20, textAlign: 'center' },
+  addDays: { flexDirection: 'row', gap: 6, marginTop: 6 },
+  addDay: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  addDayText: { fontSize: 16, fontWeight: '800' },
+  placeBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1.5, overflow: 'hidden' },
+  placeTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  placeSub: { fontSize: 13.5, fontWeight: '600', marginTop: 4, lineHeight: 19 },
+  placeBtns: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  placeCancel: { height: 52, paddingHorizontal: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  placeCancelText: { fontSize: 16, fontWeight: '800' },
+  placeSave: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, borderRadius: 16 },
+  ghost: { position: 'absolute', borderRadius: 12, borderWidth: 2, borderStyle: 'dashed', paddingHorizontal: 10, justifyContent: 'center' },
+  ghostText: { fontSize: 13, fontWeight: '800' },
   sheetBody: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1.5, overflow: 'hidden', paddingHorizontal: 20, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
   handleBar: { width: 36, height: 4, borderRadius: 2 },

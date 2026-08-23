@@ -155,13 +155,21 @@ check(/syncAll\(\{ force: true \}\)/.test(cs) && /export const syncAll = async \
 const app = read('../App.js');
 check(/cs\.adoptCalendarChanges\(\)\.then\(\(a\) => \{ if \(a && a\.length\) cs\.syncAll\(\); \}\)/.test(app) && /cs\.adoptCalendarChanges\(\)\.catch\(\(\) => \{\}\)\.then\(\(\) => cs\.syncAll\(\)\)/.test(app), 'App adopts on every foreground and before the cloud-pull resync');
 check(/DeviceEventEmitter\.addListener\('calendarAdopted'/.test(screen), 'My Week refreshes when an adoption lands');
-check(/const PullSheet = \(\{ visible, onClose, accent, children \}\)/.test(screen) && /e\.translationY > 120 \|\| e\.velocityY > 800/.test(screen) && (screen.match(/<PullSheet visible=/g) || []).length === 2 && /styles\.handleBar/.test(screen), 'both panels are pull-down sheets with a handle, same as EyeCandy');
+check(/const PullSheet = \(\{ visible, onClose, accent, children \}\)/.test(screen) && /e\.translationY > 120 \|\| e\.velocityY > 800/.test(screen) && (screen.match(/<PullSheet visible=/g) || []).length === 3 && /styles\.handleBar/.test(screen), 'the three panels (Make it fit, Add, Move) are pull-down sheets with a handle, same as EyeCandy');
 
 // ---- quick tasks carry how long they take ----------------------------------
 const todoList = read('components/TodoList.js');
 check(/const \[duration, setDuration\] = useState\(60\);/.test(todoList) && /<DurationField value=\{duration\} onChange=\{setDuration\} accent=\{theme\.primary\} step=\{5\} presets=\{\[15, 30, 45, 60, 90, 120\]\}/.test(todoList) && /durationMinutes: chosenDuration,/.test(todoList) && /bleed=\{0\} compact \/>/.test(todoList) && /valueWrapCompact/.test(read('components/DurationField.js')), 'quick To Do asks how long: 1 hr default, 5-minute steps, quick picks, saved as durationMinutes');
 check(/step > 0 \? clampDuration\(value \+ dir \* step\) : stepDuration\(value, dir\)/.test(read('components/DurationField.js')), 'DurationField takes a fixed step');
 check(/Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : TASK_MINUTES/.test(src) && /Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : 30/.test(busy) && /const todoMs = \(Number\(t\.durationMinutes\) > 0/.test(read('services/calendarSync.js')), 'My Week, busy gaps and the Calendar mirror use the task length');
+
+// ---- Add from your library, then tap the time -------------------------------
+check(/const openAdd = async \(\)/.test(screen) && /loadReminderPresets\(\)/.test(screen) && /WorkoutService\.getTemplates\(\)/.test(screen) && /PRAYER_PRESETS\.map/.test(screen) && /\{ k: 'reminder', label: 'Reminders' \}, \{ k: 'gym', label: 'Workouts' \}, \{ k: 'prayer', label: 'Prayers' \}/.test(screen), 'Add sheet lists your reminders, workout templates and prayers in three big tabs');
+check(/\{ k: 'once', label: `Just once/.test(screen) && /\{ k: 'weekly', label: 'Every week' \}/.test(screen) && /DAY_LETTERS_SUN\.map\(\(l, d\)/.test(screen) && /Next: tap the time/.test(screen), 'then Just once or Every week with days, then on to the timeline');
+check(/const onPlaceTap = \(y\)/.test(screen) && /round5\(layout\.axisStart \+ \(y \/ pxPerHour\) \* 60\)/.test(screen) && /onPress=\{\(e\) => onPlaceTap\(e\.nativeEvent\.locationY\)\}/.test(screen) && /styles\.ghost,/.test(screen) && /\(visible\.length > 0 \|\| placing\)/.test(screen), 'tap the timeline: time on the 5-minute grid, ghost block shows where, works on an empty day too');
+check(/const savePlacing = async/.test(screen) && /await addReminder\(\{ title: pick\.title, time, type: once \? 'one-time' : 'recurring'/.test(screen) && /WorkoutService\.addScheduledWorkout\(schedule\)/.test(screen) && /await addPrayer\(\{ name: pick\.title, time/.test(screen) && /autoPlan\(fresh\[key\], anchorId\)/.test(screen) && /Tap the timeline where \$\{placing\.pick\.title\} goes/.test(screen), 'Save creates the reminder / workout / prayer through its own service and offers a plan if it lands on things');
+check(/styles\.addFab, \{ backgroundColor: accent/.test(screen) && /accessibilityLabel="Add something to this day"/.test(screen), 'a big Add button sits at the bottom right');
+
 
 
 
