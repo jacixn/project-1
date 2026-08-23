@@ -120,6 +120,12 @@ check(/const confirmRemove = \(item\)/.test(screen) && /'Skip today', onPress: \
 // ---- Today = this day and this minute ---------------------------------------
 check(/onPress=\{goToNow\}/.test(screen) && /const goToNow = \(\) =>/.test(screen) && /pendingNowRef\.current = true;/.test(screen) && /timelineTopRef\.current \+ layout\.nowY - Math\.max\(120, scrollHRef\.current \* 0\.35\)/.test(screen) && /scrollHRef\.current = e\.nativeEvent\.layout\.height/.test(screen), 'Today jumps to today and scrolls the now line a third of the way down; also on first open');
 
+// ---- official release times from EyeCandy stay put ------------------------
+check(/const isOfficial = isEyeCandy && \/official release time\/i\.test\(e\.notes \|\| ''\);/.test(src) && /movable: !!cal\.allowsModifications && !isSports && !isOfficial,/.test(src) && /official: isOfficial,/.test(src), 'a tracked release pinned by EyeCandy (Calendar notes) is never movable');
+check(/if \(item\.raw\?\.official\) \{/.test(screen) && /This is the official release time/.test(screen), 'tapping one explains it is the official time');
+check(/raw\.official \? 'official release time'/.test(read('utils/fitPlan.js')), 'the planner labels it as the official release time');
+
+
 
 
 

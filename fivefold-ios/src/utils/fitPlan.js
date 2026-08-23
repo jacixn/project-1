@@ -64,6 +64,7 @@ export const toModel = (items) => (items || []).map((it, i) => {
   const daily = !days.length || days.length === 7;
   const todayOnly = tier === 'life' && it.kind === 'reminder' && !oneTime;
   const why = it.kind === 'eyecandySports' ? 'match'
+    : raw.official ? 'official release time'
     : !it.movable ? 'read-only'
     : tier === 'fixed' ? (it.kind === 'prayer' ? 'daily prayer' : it.kind === 'gym' && daily ? 'repeats every day' : 'repeats every week')
     : null;

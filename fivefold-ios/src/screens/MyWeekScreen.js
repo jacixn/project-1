@@ -485,6 +485,17 @@ const MyWeekScreen = ({ navigation }) => {
   // (subscriptions, holidays, shared calendars you cannot edit) land here.
   const explainExternal = (item) => {
     hapticFeedback.light();
+    if (item.raw?.official) {
+      Alert.alert(
+        item.title,
+        `This is the official release time (${fmtClock(item.startMin)}), so it stays put. To watch it at another time, add it from Schedule in EyeCandy.`,
+        [
+          { text: 'OK', style: 'cancel' },
+          { text: 'Open EyeCandy', onPress: () => Linking.openURL('eyecandy://').catch(() => {}) },
+        ],
+      );
+      return;
+    }
     if (item.kind === 'eyecandySports') {
       Alert.alert(
         item.title,

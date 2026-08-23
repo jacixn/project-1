@@ -132,6 +132,9 @@ export const loadDayItems = async (date) => {
           const cal = byId[e.calendarId] || {};
           const isEyeCandy = /^eyecandy/i.test(cal.title || '');
           const isSports = isEyeCandy && /sport/i.test(cal.title || '');
+          // A tracked release pinned to its official time (EyeCandy writes it
+          // into the event notes): shown, never moved, like a kick-off.
+          const isOfficial = isEyeCandy && /official release time/i.test(e.notes || '');
           const kind = isSports ? 'eyecandySports' : isEyeCandy ? 'eyecandy' : 'calendar';
           const s = new Date(e.startDate);
           const en = new Date(e.endDate);
@@ -150,10 +153,11 @@ export const loadDayItems = async (date) => {
             // the event is changed in the iPhone Calendar and EyeCandy adopts
             // the new time when it next opens. Subscribed/read-only ones cannot,
             // and neither can sports fixtures: kick-off is set by the league.
-            movable: !!cal.allowsModifications && !isSports,
+            movable: !!cal.allowsModifications && !isSports && !isOfficial,
             subtitle: isEyeCandy ? (cal.title || 'EyeCandy') : (cal.title || 'Calendar'),
             raw: {
               calendar: true,
+              official: isOfficial,
               eventId: e.id,
               calendarTitle: cal.title,
               startDate: s.toISOString(),
