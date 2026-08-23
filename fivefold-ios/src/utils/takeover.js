@@ -68,7 +68,7 @@ export const dedupeMirrors = (items) => {
 // aside too (`hide`: prayers, workouts, oneOffs, eyecandy, sports).
 // `keep` = the template's block titles.
 export const DAY_GROUPS = ['prayers', 'workouts', 'oneOffs', 'eyecandy', 'sports'];
-export const GROUP_LABELS = { prayers: 'Prayers', workouts: 'Workouts', oneOffs: 'One-off things (tasks, appointments)', eyecandy: 'EyeCandy shows and films', sports: 'Matches' };
+export const GROUP_LABELS = { prayers: 'Prayers', workouts: 'Workouts', oneOffs: 'One-off things (tasks, appointments)', eyecandy: 'EyeCandy: shows, films, anime, manga, books, comics, games', sports: 'Matches' };
 const isRepeatingRoutine = (it) => {
   const raw = it.raw || {};
   if (raw.templateBlock || isBlockItem(it)) return false;
