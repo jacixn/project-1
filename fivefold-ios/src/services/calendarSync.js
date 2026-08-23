@@ -380,6 +380,7 @@ const reconcile = (namespace, desired) => serialize(async () => {
       // array means no calendar alert fires.
       alarms: calendarAlertsOff ? [] : (d.alarms !== undefined ? d.alarms : defaultAlarms),
       notes: d.notes || 'Added by Biblely',
+      ...(d.allDay ? { allDay: true } : {}),
       ...(d.recurring ? { recurrenceRule: { frequency: d.frequency } } : {}),
     };
     const entry = map[d.stableKey];
@@ -478,10 +479,21 @@ const buildBlocks = (templates, plan) => {
   const out = [];
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const now = Date.now();
+  const { templateForDay } = require('../utils/dayTemplates');
+  const { keepNotes } = require('../utils/takeover');
   for (let i = 0; i < BLOCK_HORIZON_DAYS; i++) {
     const d = new Date(today.getTime() + i * 86400000);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    for (const b of blocksForDay(templates, plan, key, d.getDay())) {
+    const blocks = blocksForDay(templates, plan, key, d.getDay());
+    // The day's name at the top of the Calendar day, and EyeCandy's way of
+    // knowing the day is templated and what the template keeps.
+    const t = templateForDay(templates, plan, key, d.getDay());
+    if (t) {
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
+      out.push({ stableKey: `block__${key}~day`, title: `${t.name} day`, start, end, recurring: false, frequency: null, alarms: [], allDay: true, notes: keepNotes(blocks.map((b) => b.title)) });
+    }
+    for (const b of blocks) {
       if (b.source) continue; // the user's own calendar event already is this block
       const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.startMin, 0, 0);
       const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
@@ -564,6 +576,7 @@ const applyAdoption = async ({ ns, id }, change) => {
     // My Week) becomes that day's exception; deleted = skipped that day.
     const [dateKey, blockId] = String(id).split('~');
     if (!dateKey || !blockId) return false;
+    if (blockId === 'day') return false; // the day's name marker: not a block, the next sync restores it
     const dt = require('./dayTemplates');
     if (change.kind === 'gone') { await dt.skipBlockForDay(dateKey, blockId); return true; }
     if (change.kind === 'series' || change.kind === 'today') {

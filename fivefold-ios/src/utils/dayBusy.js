@@ -10,7 +10,7 @@ import { loadReminders, getRemindersForDay } from '../services/reminderService';
 import { isPrayerDayEnabled } from './prayerDays';
 import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
-import { takeoverTitles, sameThing } from './takeover';
+import { takeoverTitles, templateDayTitles, sameThing } from './takeover';
 
 const BIBLELY_CAL = 'Biblely';
 const DAY_MIN = 24 * 60;
@@ -29,10 +29,10 @@ const pad2 = (n) => String(n).padStart(2, '0');
 export const dateKeyOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-const push = (out, title, startMin, minutes, source) => {
+const push = (out, title, startMin, minutes, source, recurring = false) => {
   if (startMin == null) return;
   const dur = Math.max(1, Number(minutes) || 0);
-  out.push({ title: title || 'Busy', startMin, endMin: clamp(startMin + dur, startMin + 1, DAY_MIN), source });
+  out.push({ title: title || 'Busy', startMin, endMin: clamp(startMin + dur, startMin + 1, DAY_MIN), source, recurring });
 };
 
 export const loadBusyForDate = async (date, { excludeGymId = null, excludeReminderId = null, excludePrayerId = null, excludeTaskId = null } = {}) => {
@@ -53,7 +53,7 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
   try {
     for (const r of getRemindersForDay(await loadReminders(), dow, key)) {
       if (excludeReminderId != null && String(r.id) === String(excludeReminderId)) continue;
-      push(out, r.title || 'Reminder', minutesOf(r.time), Number(r.duration) > 0 ? r.duration : 30, 'reminder');
+      push(out, r.title || 'Reminder', minutesOf(r.time), Number(r.duration) > 0 ? r.duration : 30, 'reminder', r.type !== 'one-time');
     }
   } catch {}
 
@@ -67,10 +67,13 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
 
   // Day template blocks (Work, Lunch...) are busy like anything else.
   let blockTitles = [];
+  let keep = null;
   const fromCalendar = [];
   try {
-    const { getBlocksForDay } = require('../services/dayTemplates');
-    for (const b of await getBlocksForDay(date)) {
+    const { getBlocksForDay, getTemplateIdForDay } = require('../services/dayTemplates');
+    const blocks = await getBlocksForDay(date);
+    if (await getTemplateIdForDay(date)) keep = blocks.map((b) => b.title);
+    for (const b of blocks) {
       blockTitles.push(b.title);
       if (b.source) { fromCalendar.push(b); continue; } // the calendar event below is this block
       push(out, b.title, b.startMin, b.endMin - b.startMin, 'block');
@@ -100,7 +103,7 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
           const en = new Date(e.endDate);
           const startMin = clamp(s < dayStart ? 0 : s.getHours() * 60 + s.getMinutes(), 0, DAY_MIN);
           const endMin = clamp(en > dayEnd ? DAY_MIN : en.getHours() * 60 + en.getMinutes(), startMin + 1, DAY_MIN);
-          out.push({ title: e.title || 'Busy', startMin, endMin, source: 'calendar' });
+          out.push({ title: e.title || 'Busy', startMin, endMin, source: 'calendar', recurring: !!e.recurrenceRule });
         }
       }
     }
@@ -113,5 +116,5 @@ export const loadBusyForDate = async (date, { excludeGymId = null, excludeRemind
     if (ev) ev.source = 'block'; else push(out, b.title, b.startMin, b.endMin - b.startMin, 'block');
   }
   // The template takes the day over: same-named things step aside.
-  return takeoverTitles(out, blockTitles).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  return templateDayTitles(takeoverTitles(out, blockTitles), keep).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };

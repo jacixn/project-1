@@ -13,8 +13,8 @@ import { minutesOf, dateKeyOf } from './dayBusy';
 import { getStoredData } from './localStorage';
 import { workoutsOnDay } from './workoutDays';
 import { applyCalendarPins } from '../services/pins';
-import { getBlocksForDay } from '../services/dayTemplates';
-import { applyTakeover, dedupeMirrors, sameThing } from './takeover';
+import { getBlocksForDay, getTemplateIdForDay } from '../services/dayTemplates';
+import { applyTakeover, dedupeMirrors, applyTemplateDay, sameThing } from './takeover';
 
 // Colour = where it comes from, matching how the iPhone Calendar shows the
 // same items: Biblely green (three close shades so the legend still tells
@@ -126,8 +126,11 @@ export const loadDayItems = async (date) => {
   // Blocks that ARE one of the user's own calendar events wait for the
   // calendar read below: the event stands in for them when it is on today.
   const fromCalendar = [];
+  let keep = null; // the template's block titles when the day has one
   try {
-    for (const b of await getBlocksForDay(date)) {
+    const blocks = await getBlocksForDay(date);
+    if (await getTemplateIdForDay(date)) keep = blocks.map((b) => b.title);
+    for (const b of blocks) {
       if (b.source) { fromCalendar.push(b); continue; }
       out.push(mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, subtitle: b.moved ? `${b.templateName} · moved today` : b.templateName }));
     }
@@ -219,7 +222,7 @@ export const loadDayItems = async (date) => {
   try { await applyCalendarPins(out); } catch {}
   // A day template takes the day over: same-named reminders and calendar
   // events step aside for that day (no duplicate Work, no Breakfast twice).
-  return applyTakeover(dedupeMirrors(out)).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  return applyTemplateDay(applyTakeover(dedupeMirrors(out)), keep).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 };
 
 // ---- pure ----------------------------------------------------------------

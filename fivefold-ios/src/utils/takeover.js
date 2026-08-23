@@ -61,6 +61,38 @@ export const dedupeMirrors = (items) => {
   });
 };
 
+// A templated day holds what the template says, nothing else from the
+// routine: repeating reminders and repeating events from other calendars
+// that are not in the template step aside for that day. Prayers, workouts,
+// tasks, one-offs, EyeCandy slots and matches are plans of their own and stay.
+// `keep` = the template's block titles.
+const isRepeatingRoutine = (it) => {
+  const raw = it.raw || {};
+  if (raw.templateBlock || isBlockItem(it)) return false;
+  if (it.kind === 'reminder') return raw.type !== 'one-time';
+  if (it.kind === 'calendar') return !!raw.recurring;
+  if (it.kind === 'biblely') return raw.biblelyKind === 'reminder' && !!raw.recurring;
+  return false;
+};
+export const applyTemplateDay = (items, keep) => {
+  const list = items || [];
+  if (!keep) return list;
+  return list.filter((it) => !isRepeatingRoutine(it) || keep.some((t) => sameThing(t, it.title)));
+};
+// Same for busy lists ({ title, source, recurring }).
+export const templateDayTitles = (entries, keep) => {
+  if (!keep) return entries || [];
+  return (entries || []).filter((e) => !((e.source === 'reminder' || e.source === 'calendar') && e.recurring) || keep.some((t) => sameThing(t, e.title)));
+};
+// The marker Biblely writes into its calendar (an all-day event named after
+// the template) so EyeCandy knows the day is templated and what it keeps.
+export const keepNotes = (titles) => `Added by Biblely · template · keep:${(titles || []).map(normTitle).filter(Boolean).join('|')}`;
+export const parseKeepNotes = (notes) => {
+  const m = /· template · keep:([^\n]*)/.exec(String(notes || ''));
+  if (!m) return null;
+  return m[1].split('|').map((t) => t.trim()).filter(Boolean);
+};
+
 // For busy lists ({ title, source }): same rule by titles.
 export const takeoverTitles = (entries, blockTitles) => {
   if (!blockTitles || !blockTitles.length) return entries || [];
