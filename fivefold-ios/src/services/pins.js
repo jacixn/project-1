@@ -5,7 +5,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = 'myweek_calendar_pins_v1';
-const DEFAULT_PIN = /social media/i;
+// Prayers are pinned by default too: their owner (Biblely) says so in the
+// event notes, and the title covers events written before that.
+const DEFAULT_PIN = /social media|prayer/i;
 
 // One key per thing: repeating things by title (every occurrence), one-offs
 // by id. Works for every kind, not only calendar events.

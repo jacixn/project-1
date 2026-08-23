@@ -697,6 +697,19 @@ export const adoptCalendarChanges = () => {
   return adopting;
 };
 
+// The event notes format changed (kind + pin for EyeCandy). One full pass
+// per device rewrites the events whose notes differ; later runs are no-ops.
+const NOTES_VERSION_KEY = 'biblely_calendar_notes_v2';
+export const ensureNotesVersion = async () => {
+  try {
+    if (!userStorage.getCurrentUid()) return;
+    if (await userStorage.get(NOTES_VERSION_KEY)) return;
+    if (!(await isEnabled())) return;
+    await syncAll();
+    await userStorage.set(NOTES_VERSION_KEY, Date.now());
+  } catch {}
+};
+
 // Turn the feature on: ask permission, make the calendar, backfill everything.
 export const enable = async () => {
   const uid = userStorage.getCurrentUid();

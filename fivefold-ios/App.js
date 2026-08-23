@@ -1056,6 +1056,9 @@ const ThemedApp = () => {
     // --- 2. Download from Firebase on foreground ---
     // When app comes to foreground, pull latest data from Firebase
     // Cooldown: at most once every 60 seconds to avoid excessive reads
+    // Cold start never fires an 'active' change: run the one-time calendar
+    // notes migration once storage and auth have settled.
+    const notesTimer = setTimeout(() => { try { require('./src/services/calendarSync').ensureNotesVersion(); } catch {} }, 8000);
     const appStateSubscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         // Always refresh widgets when app comes to foreground (cheap, local-only)
@@ -1069,7 +1072,7 @@ const ThemedApp = () => {
         notificationService.refreshAllScheduledNotifications().catch(() => {});
         // Moves made to our Calendar events elsewhere (EyeCandy's My Week, the
         // Calendar app) become real prayer/reminder/workout/task changes.
-        try { const cs = require('./src/services/calendarSync'); cs.adoptCalendarChanges().then((a) => { if (a && a.length) cs.syncAll(); }).catch(() => {}); } catch {}
+        try { const cs = require('./src/services/calendarSync'); cs.adoptCalendarChanges().then((a) => { if (a && a.length) cs.syncAll(); }).then(() => cs.ensureNotesVersion()).catch(() => {}); } catch {}
       }
       if (nextState === 'active' && userId) {
         const now = Date.now();
@@ -1098,6 +1101,7 @@ const ThemedApp = () => {
     return () => {
       removeKeyListener();
       appStateSubscription.remove();
+      clearTimeout(notesTimer);
       if (firebaseSyncTimerRef.current) {
         clearTimeout(firebaseSyncTimerRef.current);
       }
