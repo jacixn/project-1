@@ -22,7 +22,7 @@ import { loadReminderPresets, addReminder } from '../services/reminderService';
 import WorkoutService from '../services/workoutService';
 import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
 import { addPrayer } from '../services/simplePrayersService';
-import { Pressable, DeviceEventEmitter as Emitter } from 'react-native';
+import { DeviceEventEmitter as Emitter } from 'react-native';
 
 // Things you can put on the timeline from the Add button: your reminder
 // library, your workout templates, and a few prayer shapes.
@@ -498,12 +498,30 @@ const MyWeekScreen = ({ navigation }) => {
   };
   const cancelPlacing = () => { hapticFeedback.light(); setPlacing(null); };
   // A tap on the timeline: the y inside it -> a time on the 5-minute grid.
+  const minuteAtY = (y) => Math.max(0, Math.min(23 * 60 + 55, round5(layout.axisStart + (y / pxPerHour) * 60)));
+  const placeMinRef = useRef(null);
   const onPlaceTap = (y) => {
     if (!placing) return;
-    const min = Math.max(0, Math.min(23 * 60 + 55, round5(layout.axisStart + (y / pxPerHour) * 60)));
+    const min = minuteAtY(y);
     hapticFeedback.selection();
+    placeMinRef.current = min;
     setPlacing((p) => (p ? { ...p, min } : p));
   };
+  // Hold a moment and drag (from the block or anywhere) to slide the time
+  // along the grid, a tick per 5 minutes; a plain swipe still scrolls.
+  const placeDrag = useMemo(() => Gesture.Pan()
+    .activateAfterLongPress(140)
+    .runOnJS(true)
+    .onStart((e) => { const min = minuteAtY(e.y); hapticFeedback.medium(); placeMinRef.current = min; setPlacing((p) => (p ? { ...p, min } : p)); })
+    .onUpdate((e) => {
+      const min = minuteAtY(e.y);
+      if (min === placeMinRef.current) return;
+      placeMinRef.current = min;
+      hapticFeedback.selection();
+      setPlacing((p) => (p ? { ...p, min } : p));
+    }), [layout.axisStart, pxPerHour]);
+  const placeTap = useMemo(() => Gesture.Tap().runOnJS(true).onEnd((e, ok) => { if (ok) onPlaceTap(e.y); }), [layout.axisStart, pxPerHour, placing]);
+  const placeGesture = useMemo(() => Gesture.Race(placeDrag, placeTap), [placeDrag, placeTap]);
   const savePlacing = async () => {
     if (!placing || placing.min == null || saving) return;
     setSaving(true);
@@ -854,7 +872,9 @@ const MyWeekScreen = ({ navigation }) => {
               </View>
             ) : null}
             {placing ? (
-              <Pressable style={StyleSheet.absoluteFill} onPress={(e) => onPlaceTap(e.nativeEvent.locationY)} accessibilityRole="button" accessibilityLabel="Tap a time on the timeline" />
+              <GestureDetector gesture={placeGesture}>
+                <View style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Tap a time on the timeline, or hold and drag" />
+              </GestureDetector>
             ) : null}
           </View>
           </GestureDetector>
@@ -990,7 +1010,7 @@ const MyWeekScreen = ({ navigation }) => {
         <View style={[styles.placeBar, { backgroundColor: theme.background, borderColor: accent + '55', paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.035)' }]} />
           <Text style={[styles.placeTitle, { color: theme.text }]}>{placing.min == null ? `Tap the timeline where ${placing.pick.title} goes` : `${placing.pick.title} at ${fmtClock(placing.min)}`}</Text>
-          <Text style={[styles.placeSub, { color: theme.textSecondary }]}>{placing.min == null ? 'Scroll to the hour, then tap the time.' : `${fmtDur(placing.pick.duration)}${placing.repeat === 'weekly' ? `  ·  every ${placing.days.length === 7 ? 'day' : placing.days.map((d) => DAY_LETTERS_SUN[d]).join(' ')}` : '  ·  just once'}. Tap somewhere else to change it.`}</Text>
+          <Text style={[styles.placeSub, { color: theme.textSecondary }]}>{placing.min == null ? 'Scroll to the hour, then tap the time. Hold and drag to fine-tune.' : `${fmtDur(placing.pick.duration)}${placing.repeat === 'weekly' ? `  ·  every ${placing.days.length === 7 ? 'day' : placing.days.map((d) => DAY_LETTERS_SUN[d]).join(' ')}` : '  ·  just once'}. Tap elsewhere, or hold and drag to adjust.`}</Text>
           <View style={styles.placeBtns}>
             <TouchableOpacity onPress={cancelPlacing} style={[styles.placeCancel, { backgroundColor: tile }]} activeOpacity={0.7} accessibilityRole="button"><Text style={[styles.placeCancelText, { color: theme.text }]}>Cancel</Text></TouchableOpacity>
             <TouchableOpacity onPress={savePlacing} disabled={placing.min == null || saving} style={[styles.placeSave, { backgroundColor: accent, opacity: placing.min == null || saving ? 0.5 : 1 }]} activeOpacity={0.8} accessibilityRole="button">
