@@ -159,7 +159,7 @@ check(/const PullSheet = \(\{ visible, onClose, accent, children \}\)/.test(scre
 
 // ---- quick tasks carry how long they take ----------------------------------
 const todoList = read('components/TodoList.js');
-check(/const \[duration, setDuration\] = useState\(60\);/.test(todoList) && /<DurationField value=\{duration\} onChange=\{setDuration\} accent=\{theme\.primary\} step=\{5\} presets=\{\[15, 30, 45, 60, 90, 120\]\}/.test(todoList) && /durationMinutes: chosenDuration,/.test(todoList) && /How long\? \{formatDuration\(duration\)\}/.test(todoList), 'quick To Do asks how long: 1 hr default, 5-minute steps, quick picks, saved as durationMinutes');
+check(/const \[duration, setDuration\] = useState\(60\);/.test(todoList) && /<DurationField value=\{duration\} onChange=\{setDuration\} accent=\{theme\.primary\} step=\{5\} presets=\{\[15, 30, 45, 60, 90, 120\]\}/.test(todoList) && /durationMinutes: chosenDuration,/.test(todoList) && /bleed=\{0\} compact \/>/.test(todoList) && /valueWrapCompact/.test(read('components/DurationField.js')), 'quick To Do asks how long: 1 hr default, 5-minute steps, quick picks, saved as durationMinutes');
 check(/step > 0 \? clampDuration\(value \+ dir \* step\) : stepDuration\(value, dir\)/.test(read('components/DurationField.js')), 'DurationField takes a fixed step');
 check(/Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : TASK_MINUTES/.test(src) && /Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : 30/.test(busy) && /const todoMs = \(Number\(t\.durationMinutes\) > 0/.test(read('services/calendarSync.js')), 'My Week, busy gaps and the Calendar mirror use the task length');
 

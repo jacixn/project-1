@@ -11,7 +11,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
 import DurationField from './DurationField';
-import { formatDuration } from '../utils/duration';
 
 // Liquid Glass Container - MUST be outside the main component to prevent re-creation on every render
 const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
@@ -275,8 +274,8 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
           </TouchableOpacity>
           {/* How long will it take? 1 hr by default; - / + in 5-minute steps; quick picks */}
           <View style={styles.durationBlock}>
-            <Text style={[styles.durationKicker, { color: textTertiaryColor }]}>How long? {formatDuration(duration)}</Text>
-            <DurationField value={duration} onChange={setDuration} accent={theme.primary} step={5} presets={[15, 30, 45, 60, 90, 120]} bleed={0} />
+            <Text style={[styles.durationKicker, { color: textTertiaryColor }]}>How long?</Text>
+            <DurationField value={duration} onChange={setDuration} accent={theme.primary} step={5} presets={[15, 30, 45, 60, 90, 120]} bleed={0} compact />
           </View>
 
           {showSchedulePicker && (
@@ -509,8 +508,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '600',
   },
-  durationBlock: { marginTop: 10, marginBottom: 4 },
-  durationKicker: { fontSize: 12.5, fontWeight: '700', marginBottom: 8, textTransform: 'none' },
+  durationBlock: { marginTop: 8, marginBottom: 2 },
+  durationKicker: { fontSize: 12, fontWeight: '700', marginBottom: 6 },
   addForm: {
     borderRadius: 12,
     padding: 16,

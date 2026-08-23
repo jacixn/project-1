@@ -17,7 +17,8 @@ import {
 // bleed = the parent's horizontal padding; the quick-pick row cancels it so
 // chips scroll right off the screen edge instead of clipping at the inset.
 // step = fixed minutes per - / + tap (default: adaptive); presets = the quick picks.
-const DurationField = ({ value = 30, onChange, accent, bleed = 20, step = null, presets = null }) => {
+// compact = the small in-form version (quick To Do): one short row, smaller chips.
+const DurationField = ({ value = 30, onChange, accent, bleed = 20, step = null, presets = null, compact = false }) => {
   const { theme, isDark } = useTheme();
   const acc = accent || theme.primary;
   const hairline = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
@@ -34,22 +35,22 @@ const DurationField = ({ value = 30, onChange, accent, bleed = 20, step = null, 
     <View>
       <View style={styles.row}>
         <TouchableOpacity
-          style={[styles.valueWrap, { backgroundColor: tile }]}
+          style={[styles.valueWrap, compact && styles.valueWrapCompact, { backgroundColor: tile }]}
           onPress={() => { hapticFeedback.light(); setShowWheel((v) => !v); }}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={`Duration ${formatDuration(value)}`}
           accessibilityHint="Opens an exact hours and minutes picker"
         >
-          <Text style={[styles.value, { color: theme.text }]}>{formatDuration(value)}</Text>
-          <Text style={[styles.hint, { color: showWheel ? acc : theme.textSecondary }]}>{showWheel ? 'Done' : 'Tap to set exactly'}</Text>
+          <Text style={[styles.value, compact && styles.valueCompact, { color: theme.text }]}>{formatDuration(value)}</Text>
+          <Text style={[styles.hint, compact && styles.hintCompact, { color: showWheel ? acc : theme.textSecondary }]}>{showWheel ? 'Done' : compact ? 'Tap for exact' : 'Tap to set exactly'}</Text>
         </TouchableOpacity>
         <View style={styles.steppers}>
-          <TouchableOpacity onPress={() => bump(-1)} style={[styles.stepBtn, { borderColor: hairline, backgroundColor: tile }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Shorter">
-            <MaterialIcons name="remove" size={20} color={theme.text} />
+          <TouchableOpacity onPress={() => bump(-1)} style={[styles.stepBtn, compact && styles.stepBtnCompact, { borderColor: hairline, backgroundColor: tile }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Shorter">
+            <MaterialIcons name="remove" size={compact ? 18 : 20} color={theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => bump(1)} style={[styles.stepBtn, { borderColor: hairline, backgroundColor: tile }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Longer">
-            <MaterialIcons name="add" size={20} color={theme.text} />
+          <TouchableOpacity onPress={() => bump(1)} style={[styles.stepBtn, compact && styles.stepBtnCompact, { borderColor: hairline, backgroundColor: tile }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Longer">
+            <MaterialIcons name="add" size={compact ? 18 : 20} color={theme.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -72,7 +73,7 @@ const DurationField = ({ value = 30, onChange, accent, bleed = 20, step = null, 
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ marginHorizontal: -bleed }}
-        contentContainerStyle={[styles.chipsRow, { paddingHorizontal: bleed }]}
+        contentContainerStyle={[styles.chipsRow, compact && styles.chipsRowCompact, { paddingHorizontal: bleed }]}
         keyboardShouldPersistTaps="handled"
       >
         {picks.map((m) => {
@@ -81,12 +82,12 @@ const DurationField = ({ value = 30, onChange, accent, bleed = 20, step = null, 
             <TouchableOpacity
               key={m}
               onPress={() => { hapticFeedback.light(); set(m); }}
-              style={[styles.chip, { backgroundColor: active ? acc : tile }]}
+              style={[styles.chip, compact && styles.chipCompact, { backgroundColor: active ? acc : tile }]}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
             >
-              <Text style={[styles.chipText, { color: active ? '#FFFFFF' : theme.text }]}>
+              <Text style={[styles.chipText, compact && styles.chipTextCompact, { color: active ? '#FFFFFF' : theme.text }]}>
                 {chipLabel(m)}
               </Text>
             </TouchableOpacity>
@@ -108,6 +109,13 @@ const styles = StyleSheet.create({
   chipsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   chip: { paddingHorizontal: 14, height: 38, borderRadius: 12, justifyContent: 'center' },
   chipText: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  valueWrapCompact: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  valueCompact: { fontSize: 20, letterSpacing: -0.4 },
+  hintCompact: { fontSize: 12, marginTop: 0 },
+  stepBtnCompact: { width: 36, height: 36, borderRadius: 10 },
+  chipsRowCompact: { gap: 6, marginTop: 8 },
+  chipCompact: { paddingHorizontal: 11, height: 30, borderRadius: 10 },
+  chipTextCompact: { fontSize: 13 },
 
 });
 
