@@ -4,7 +4,9 @@
 import { DeviceEventEmitter } from 'react-native';
 import * as Calendar from 'expo-calendar';
 import { updatePrayer } from './simplePrayersService';
-import { updateReminder, moveReminderForDay } from './reminderService';
+import { updateReminder, moveReminderForDay, skipReminderDay, deleteReminder } from './reminderService';
+import { deletePrayerById } from './simplePrayersService';
+import notificationService from './notificationService';
 import WorkoutService from './workoutService';
 import { scheduleWorkoutNotifications } from './workoutSchedule';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -160,6 +162,57 @@ export const dropItem = async (item) => {
   if (item.kind !== 'eyecandy' || !raw.eventId || raw.recurring) return false;
   await Calendar.deleteEventAsync(raw.eventId);
   return true;
+};
+
+// Take an item off the schedule. scope: 'today' (this day only, for things
+// that repeat) or 'all' (the whole thing). `from` = the day shown.
+// Resolves true when gone, false when this kind cannot be removed here.
+export const removeItem = async (item, { scope = 'all', from = null } = {}) => {
+  if (!item) return false;
+  const raw = item.raw || {};
+  const oneTime = raw.type === 'one-time';
+  if (item.kind === 'reminder') {
+    if (!oneTime && scope === 'today') return !!(await skipReminderDay(raw.id, from));
+    await deleteReminder(raw.id);
+    return true;
+  }
+  if (item.kind === 'task') {
+    const todos = (await getStoredData('todos')) || [];
+    const updated = todos.filter((t) => String(t.id) !== String(raw.id));
+    if (updated.length === todos.length) return false;
+    await saveData('todos', updated);
+    try { pushToCloud('todos', updated); } catch {}
+    try { notificationService.cancelTaskNotification(raw.id).catch(() => {}); } catch {}
+    try { require('./calendarSync').syncTodos(updated); } catch {}
+    try { require('../utils/widgetBridge').updateTodoWidget().catch(() => {}); } catch {}
+    try { DeviceEventEmitter.emit('todosChanged'); } catch {}
+    return true;
+  }
+  if (item.kind === 'gym') {
+    if (!oneTime && scope === 'today') return false; // no per-day skip for workouts yet
+    await WorkoutService.deleteScheduledWorkout(raw.id);
+    try { const ws = require('./workoutSchedule'); if (typeof ws.cancelWorkoutNotifications === 'function') await ws.cancelWorkoutNotifications(raw.id); } catch {}
+    try { DeviceEventEmitter.emit('workoutScheduled', null); } catch {}
+    return true;
+  }
+  if (item.kind === 'prayer') {
+    if (!oneTime) return false; // daily prayers are managed in Faith
+    await deletePrayerById(raw.id);
+    return true;
+  }
+  if (item.kind === 'eyecandy') {
+    if (raw.recurring) return false; // weekly shows are managed in EyeCandy
+    return dropItem(item);
+  }
+  if (item.kind === 'calendar' && raw.eventId) {
+    if (raw.recurring) {
+      await Calendar.deleteEventAsync(raw.eventId, { futureEvents: false, instanceStartDate: new Date(raw.startDate) });
+    } else {
+      await Calendar.deleteEventAsync(raw.eventId);
+    }
+    return true;
+  }
+  return false;
 };
 
 const minToTime = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;

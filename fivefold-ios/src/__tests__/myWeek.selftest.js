@@ -112,6 +112,12 @@ for (const [f, pat] of [['components/ScheduleReminderModal.js', /if \(offer\) of
 check(/const MIN_WAIT_MS = 900;/.test(offer) && /InteractionManager\.runAfterInteractions/.test(offer) && /await settle\(startedAt\);/.test(offer), 'fitOffer waits out the closing editor sheet before showing the alert');
 check(/const offerRecent = useCallback/.test(screen) && /loadWeek\(\)\.then\(offerRecent\)/.test(screen) && /Date\.now\(\) - m\.createdAt <= RECENT_MS/.test(screen) && /autoOfferedRef\.current\.add\(a\)/.test(screen), 'My Week opens the plan by itself for something added in the last half hour, once');
 
+// ---- removing from the Move panel ------------------------------------------
+check(/export const removeItem = async \(item, \{ scope = 'all', from = null \} = \{\}\)/.test(resrc) && /skipReminderDay\(raw\.id, from\)/.test(resrc) && /deleteReminder\(raw\.id\)/.test(resrc) && /notificationService\.cancelTaskNotification\(raw\.id\)/.test(resrc) && /WorkoutService\.deleteScheduledWorkout\(raw\.id\)/.test(resrc) && /deletePrayerById\(raw\.id\)/.test(resrc) && /return dropItem\(item\);/.test(resrc) && /futureEvents: false, instanceStartDate: new Date\(raw\.startDate\)/.test(resrc), 'removeItem: skip-today or delete per kind, through each owner service');
+check(/export const skipReminderDay = async \(id, date\)/.test(rem), 'reminderService can skip a single day');
+check(/const confirmRemove = \(item\)/.test(screen) && /'Skip today', onPress: \(\) => finishRemove\(item, 'today'\)/.test(screen) && /'Delete every day', style: 'destructive'/.test(screen) && /Daily prayers are managed in Faith/.test(screen) && /Weekly shows are managed in EyeCandy/.test(screen) && /onPress=\{\(\) => confirmRemove\(moving\)\}/.test(screen) && /removeText/.test(screen), 'Move panel has a Remove link with a confirm that fits the kind');
+
+
 
 
 

@@ -14,7 +14,7 @@ import { dateKeyOf } from '../utils/dayBusy';
 import { layoutDay, PX_PER_HOUR, ZOOM_MIN, ZOOM_MAX, NEST_INSET, clampZoom, zoomLabelFor } from '../utils/timelineLayout';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS, Easing } from 'react-native-reanimated';
-import { moveItem, applyPlanRow } from '../services/rescheduleItem';
+import { moveItem, applyPlanRow, removeItem } from '../services/rescheduleItem';
 import { rowText } from '../services/fitOffer';
 import { planDay } from '../services/schedulePlanner';
 import { toModel, fixableOverlaps, pickAnchor } from '../utils/fitPlan';
@@ -397,6 +397,66 @@ const MyWeekScreen = ({ navigation }) => {
     await loadWeek();
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: keepY, animated: false }));
     setSaving(false);
+  };
+
+  // Remove from the Move panel: this day only for things that repeat, or the
+  // whole thing. Each kind says what it can do.
+  const finishRemove = async (item, scope) => {
+    setSaving(true);
+    try {
+      const ok = await removeItem(item, { scope, from: dateKeyOf(anchor) });
+      if (!ok) throw new Error('Could not remove it');
+      hapticFeedback.success();
+      setStatus(scope === 'today' ? `${item.title} skipped today.` : `${item.title} removed.`);
+      setMoving(null);
+      setShowWheel(false);
+      const keepY = scrollYRef.current;
+      await loadWeek();
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: keepY, animated: false }));
+    } catch (e) {
+      hapticFeedback.error();
+      Alert.alert('Could not remove it', e?.message || 'Please try again.');
+    }
+    setSaving(false);
+  };
+  const confirmRemove = (item) => {
+    if (!item) return;
+    hapticFeedback.medium();
+    const raw = item.raw || {};
+    const oneTime = raw.type === 'one-time';
+    if (item.kind === 'reminder' && !oneTime) {
+      Alert.alert(item.title, `Repeats ${patternOf(raw) === 'one-time' ? '' : patternOf(raw)}. Skip just today, or delete it for good?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Skip today', onPress: () => finishRemove(item, 'today') },
+        { text: 'Delete every day', style: 'destructive', onPress: () => finishRemove(item, 'all') },
+      ]);
+      return;
+    }
+    if (item.kind === 'gym' && !oneTime) {
+      Alert.alert(item.title, `Repeats ${patternOf(raw)}. Deleting removes every week; to change one day, move it instead.`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => finishRemove(item, 'all') },
+      ]);
+      return;
+    }
+    if (item.kind === 'prayer' && !oneTime) {
+      Alert.alert(item.title, 'Daily prayers are managed in Faith.', [{ text: 'OK' }]);
+      return;
+    }
+    if (item.kind === 'eyecandy' && raw.recurring) {
+      Alert.alert(item.title, 'Weekly shows are managed in EyeCandy.', [
+        { text: 'OK', style: 'cancel' },
+        { text: 'Open EyeCandy', onPress: () => Linking.openURL('eyecandy://').catch(() => {}) },
+      ]);
+      return;
+    }
+    const what = item.kind === 'eyecandy' ? 'Skip it today? EyeCandy takes it off your schedule when you next open it.'
+      : item.kind === 'calendar' ? (raw.recurring ? 'Remove this one from your Calendar? The other repeats stay.' : 'Remove it from your Calendar?')
+      : 'Remove it?';
+    Alert.alert(item.title, what, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: item.kind === 'eyecandy' ? 'Skip today' : 'Remove', style: 'destructive', onPress: () => finishRemove(item, raw.recurring ? 'today' : 'all') },
+    ]);
   };
 
   // Sports fixtures (kick-off is the league's call) and read-only calendars
@@ -796,9 +856,12 @@ const MyWeekScreen = ({ navigation }) => {
             </>
           ) : null}
 
-          <TouchableOpacity onPress={saveMove} disabled={saving} style={[styles.saveBtn, { backgroundColor: panelAccent, opacity: saving ? 0.6 : 1, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
+          <TouchableOpacity onPress={saveMove} disabled={saving} style={[styles.saveBtn, { backgroundColor: panelAccent, opacity: saving ? 0.6 : 1 }]} activeOpacity={0.8} accessibilityRole="button">
             <MaterialIcons name="check" size={20} color="#fff" />
             <Text style={styles.saveBtnText}>{saving ? 'Saving' : `Save ${fmtClock(draftMin)}`}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => confirmRemove(moving)} disabled={saving} style={[styles.removeBtn, { marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Remove ${moving.title}`}>
+            <Text style={styles.removeText}>{isSeriesReminder(moving) ? 'Skip today or delete' : moving.kind === 'eyecandy' ? 'Skip today' : 'Remove'}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -905,6 +968,8 @@ const styles = StyleSheet.create({
   scopeText: { fontSize: 14, fontWeight: '800' },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, borderRadius: 16, marginTop: 18 },
   saveBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
+  removeBtn: { alignItems: 'center', justifyContent: 'center', height: 40, marginTop: -6, marginBottom: 2 },
+  removeText: { color: '#FF453A', fontSize: 14.5, fontWeight: '800' },
 });
 
 export default MyWeekScreen;

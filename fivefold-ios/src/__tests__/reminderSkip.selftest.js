@@ -14,5 +14,8 @@ check(sun.join() === 'c@13:30', `Sunday shows only the moved copy at 1:30 (${sun
 const mon = getRemindersForDay([lunch, copy], 1, '2026-08-24').map((r) => `${r.id}@${r.time}`);
 check(mon.join() === 'l@14:00', `Monday keeps the series at 2 PM (${mon.join()})`);
 check(getRemindersForDay([lunch], 0).length === 1, 'no date given: series shows (back-compat)');
+const lost = { ...lunch, skipDates: [] };
+check(getRemindersForDay([lost, copy], 0, '2026-08-23').map((r) => r.id).join() === 'c', 'a day with a moved copy never shows the series, even if skipDates got lost');
+check(getRemindersForDay([lost, copy], 1, '2026-08-24').map((r) => r.id).join() === 'l', 'other days untouched by the copy rule');
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

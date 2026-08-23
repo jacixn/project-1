@@ -207,6 +207,21 @@ export const moveReminderForDay = async (id, { from, to, time }) => {
   return copy;
 };
 
+// Skip ONE day of a recurring reminder (no copy). Other days keep going.
+export const skipReminderDay = async (id, date) => {
+  if (!date) return null;
+  const reminders = await loadReminders();
+  const idx = reminders.findIndex(r => r.id === id);
+  if (idx === -1) return null;
+  const r = reminders[idx];
+  if (r.type === 'one-time') { await deleteReminder(id); return null; }
+  reminders[idx] = { ...r, skipDates: Array.from(new Set([...(r.skipDates || []), date])) };
+  await persist(reminders);
+  notificationService.cancelReminderNotification(id).catch(() => {});
+  if (r.enabled) notificationService.scheduleReminderNotification(reminders[idx]).catch(() => {});
+  return reminders[idx];
+};
+
 export const deleteReminder = async (id) => {
   const reminders = await loadReminders();
   const existing = reminders.find(r => r.id === id);
@@ -264,6 +279,9 @@ export const uncompleteReminder = async (id, dateStr) => {
 };
 
 export const getRemindersForDay = (reminders, dayIndex, dateStr) => {
+  // Series that have a one-time copy on this day (moved "just today"): the
+  // copy shows, the series does not, even if its skipDates got lost in a sync.
+  const copied = new Set(dateStr ? reminders.filter(r => r && r.type === 'one-time' && r.parentId && r.date === dateStr).map(r => r.parentId) : []);
   return reminders
     .filter(r => {
       if (!r.enabled) return false;
@@ -273,6 +291,7 @@ export const getRemindersForDay = (reminders, dayIndex, dateStr) => {
       // A day moved "just today" is skipped on the series (its one-time copy
       // carries that day instead).
       if (dateStr && Array.isArray(r.skipDates) && r.skipDates.includes(dateStr)) return false;
+      if (copied.has(r.id)) return false;
       return (r.days || []).includes(dayIndex);
     })
     .sort((a, b) => {
