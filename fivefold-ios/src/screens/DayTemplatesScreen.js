@@ -101,6 +101,9 @@ const DayTemplatesScreen = ({ navigation, route }) => {
 
   const patch = (fn) => { setEditing((e) => { const next = fn(JSON.parse(JSON.stringify(e))); return next; }); setDirty(true); };
   const setBlock = (id, changes) => patch((e) => { e.blocks = e.blocks.map((b) => (b.id === id ? { ...b, ...changes } : b)); return e; });
+  // Time order. Done when a row closes (not while its wheel spins, or the
+  // row would jump around under the thumb).
+  const sortBlocks = () => setEditing((e) => (e ? { ...e, blocks: e.blocks.slice().sort((a, b) => hmToMin(a.start) - hmToMin(b.start) || hmToMin(a.end) - hmToMin(b.end)) } : e));
   const removeBlock = (id) => { hapticFeedback.medium(); patch((e) => { e.blocks = e.blocks.filter((b) => b.id !== id); return e; }); if (openBlock === id) setOpenBlock(null); };
   const addBlock = (preset) => {
     hapticFeedback.selection();
@@ -208,7 +211,7 @@ const DayTemplatesScreen = ({ navigation, route }) => {
           const overnight = hmToMin(b.end) < hmToMin(b.start); // Sleep 10:30 PM to 6:30 AM
           return (
             <View key={b.id} style={[styles.block, { backgroundColor: tile, borderColor: open ? ACCENT : 'transparent' }]}>
-              <TouchableOpacity onPress={() => { hapticFeedback.light(); setOpenBlock(open ? null : b.id); setWhich('start'); }} style={styles.blockHead} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${b.title}, ${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${b.fixed ? ', fixed' : ''}`}>
+              <TouchableOpacity onPress={() => { hapticFeedback.light(); if (openBlock) sortBlocks(); setOpenBlock(open ? null : b.id); setWhich('start'); }} style={styles.blockHead} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${b.title}, ${fmtClock(hmToMin(b.start))} to ${fmtClock(hmToMin(b.end))}${b.fixed ? ', fixed' : ''}`}>
                 <MaterialIcons name={iconForTitle(b.title)} size={22} color={ACCENT} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.blockTitle, { color: theme.text }]}>{b.title}</Text>
