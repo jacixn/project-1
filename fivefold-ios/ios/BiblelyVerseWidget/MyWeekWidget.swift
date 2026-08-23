@@ -12,6 +12,7 @@
 
 import WidgetKit
 import SwiftUI
+import EventKit
 
 // MARK: - Data (must match utils/widgetBridge.js updateMyWeekWidget)
 
@@ -24,6 +25,8 @@ struct MyWeekItem: Codable, Identifiable {
     let kind: String
     let label: String
     let pinned: Bool?
+    let eventId: String?     // iPhone Calendar event behind this item, when there is one
+    let eventStart: String?  // its start (ISO) so a single deleted occurrence is noticed
 }
 
 struct MyWeekDay: Codable {
@@ -82,18 +85,18 @@ struct MyWeekProvider: TimelineProvider {
         let mo = DateFormatter(); mo.dateFormat = "MMM"
         let dayNum = Calendar.current.component(.day, from: today)
         let items = [
-            MyWeekItem(id: "1", title: "2nd Prayer", start: 660, end: 665, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true),
-            MyWeekItem(id: "2", title: "Work", start: 540, end: 1050, color: "#D946EF", kind: "calendar", label: "Calendar", pinned: true),
-            MyWeekItem(id: "3", title: "Newcastle United vs Liverpool", start: 990, end: 1110, color: "#FF9500", kind: "eyecandySports", label: "EyeCandy Sports", pinned: true),
-            MyWeekItem(id: "4", title: "eat dinner", start: 1140, end: 1160, color: "#34C759", kind: "reminder", label: "Reminder", pinned: false),
-            MyWeekItem(id: "5", title: "Solo Leveling", start: 1230, end: 1280, color: "#7C5CFF", kind: "eyecandy", label: "EyeCandy", pinned: false),
-            MyWeekItem(id: "6", title: "5th Prayer", start: 1320, end: 1325, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true),
+            MyWeekItem(id: "1", title: "2nd Prayer", start: 660, end: 665, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true, eventId: nil, eventStart: nil),
+            MyWeekItem(id: "2", title: "Work", start: 540, end: 1050, color: "#D946EF", kind: "calendar", label: "Calendar", pinned: true, eventId: nil, eventStart: nil),
+            MyWeekItem(id: "3", title: "Newcastle United vs Liverpool", start: 990, end: 1110, color: "#FF9500", kind: "eyecandySports", label: "EyeCandy Sports", pinned: true, eventId: nil, eventStart: nil),
+            MyWeekItem(id: "4", title: "eat dinner", start: 1140, end: 1160, color: "#34C759", kind: "reminder", label: "Reminder", pinned: false, eventId: nil, eventStart: nil),
+            MyWeekItem(id: "5", title: "Solo Leveling", start: 1230, end: 1280, color: "#7C5CFF", kind: "eyecandy", label: "EyeCandy", pinned: false, eventId: nil, eventStart: nil),
+            MyWeekItem(id: "6", title: "5th Prayer", start: 1320, end: 1325, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true, eventId: nil, eventStart: nil),
         ]
         return MyWeekData(days: [
             MyWeekDay(key: f.string(from: today), weekday: wd.string(from: today), day: dayNum, month: mo.string(from: today), template: "Work Remote", items: items),
             MyWeekDay(key: f.string(from: tomorrow), weekday: wd.string(from: tomorrow), day: Calendar.current.component(.day, from: tomorrow), month: mo.string(from: tomorrow), template: nil, items: [
-                MyWeekItem(id: "7", title: "1st Prayer", start: 505, end: 510, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true),
-                MyWeekItem(id: "8", title: "Push day", start: 1080, end: 1140, color: "#34C759", kind: "gym", label: "Workout", pinned: false),
+                MyWeekItem(id: "7", title: "1st Prayer", start: 505, end: 510, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true, eventId: nil, eventStart: nil),
+                MyWeekItem(id: "8", title: "Push day", start: 1080, end: 1140, color: "#34C759", kind: "gym", label: "Workout", pinned: false, eventId: nil, eventStart: nil),
             ]),
         ], updatedAt: "")
     }
@@ -104,8 +107,44 @@ struct MyWeekProvider: TimelineProvider {
         completion(MyWeekEntry(date: Date(), data: load() ?? (context.isPreview ? MyWeekProvider.sample() : nil)))
     }
 
+    // Calendar-backed items the user deleted in the Calendar app (or in
+    // EyeCandy) while Biblely was closed: drop them here, so the widget never
+    // shows something that is gone. Reads the same calendar access the app
+    // was granted; without it, nothing is dropped.
+    private func pruneGoneEvents(_ data: MyWeekData?) -> MyWeekData? {
+        guard let data = data else { return nil }
+        let status = EKEventStore.authorizationStatus(for: .event)
+        var ok = status == .authorized
+        if #available(iOS 17.0, *) { ok = ok || status == .fullAccess }
+        guard ok else { return data }
+        let store = EKEventStore()
+        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let isoPlain = ISO8601DateFormatter()
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        var days: [MyWeekDay] = []
+        for day in data.days {
+            guard let d0 = df.date(from: day.key) else { days.append(day); continue }
+            let start = Calendar.current.startOfDay(for: d0)
+            let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
+            let live = store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
+            var present = Set<String>()
+            for e in live {
+                if let id = e.eventIdentifier { present.insert(id); present.insert("\(id)@\(Int(e.startDate.timeIntervalSince1970 / 60))") }
+            }
+            let kept = day.items.filter { it in
+                guard let id = it.eventId else { return true }
+                if let s = it.eventStart, let date = iso.date(from: s) ?? isoPlain.date(from: s) {
+                    return present.contains("\(id)@\(Int(date.timeIntervalSince1970 / 60))")
+                }
+                return present.contains(id)
+            }
+            days.append(MyWeekDay(key: day.key, weekday: day.weekday, day: day.day, month: day.month, template: day.template, items: kept))
+        }
+        return MyWeekData(days: days, updatedAt: data.updatedAt)
+    }
+
     func getTimeline(in context: Context, completion: @escaping (Timeline<MyWeekEntry>) -> Void) {
-        let data = load()
+        let data = pruneGoneEvents(load())
         // The now line walks by itself: an entry every 5 minutes for 3 hours,
         // then WidgetKit asks again (the app also pushes fresh data on changes).
         // One entry per minute for two hours: the red line is never more than
@@ -364,7 +403,7 @@ enum MyWeekTimeline {
             if used.contains(idx) { continue }
             if !g.3 && g.2 == midnight, let j = raw.indices.first(where: { !used.contains($0) && raw[$0].3 && raw[$0].1 == midnight && raw[$0].0.title == g.0.title }) {
                 let t = raw[j]
-                let merged = MyWeekItem(id: g.0.id, title: g.0.title, start: g.0.start, end: t.0.end + 24 * 60, color: g.0.color, kind: g.0.kind, label: g.0.label, pinned: g.0.pinned)
+                let merged = MyWeekItem(id: g.0.id, title: g.0.title, start: g.0.start, end: t.0.end + 24 * 60, color: g.0.color, kind: g.0.kind, label: g.0.label, pinned: g.0.pinned, eventId: g.0.eventId, eventStart: g.0.eventStart)
                 joined.append((merged, g.1, t.2, false))
                 used.insert(idx); used.insert(j)
             } else {

@@ -285,6 +285,9 @@ export async function updateMyWeekWidget() {
             kind: String(it.kind || ''),
             label: String((KINDS[it.kind] && KINDS[it.kind].label) || ''),
             pinned: !!(it.raw && it.raw.pinned),
+            // Calendar-backed items: the widget checks these still exist in
+            // the iPhone Calendar (deleted there while the app was closed).
+            ...(it.raw && it.raw.eventId ? { eventId: String(it.raw.eventId), eventStart: it.raw.startDate || null } : {}),
           })),
       });
     }
