@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS, Easing } from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import {
@@ -31,11 +33,6 @@ import AchievementService from '../services/achievementService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const todayDateStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
 const getDateForDayOffset = (offset) => {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -47,7 +44,14 @@ const getDateStr = (offset) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const DAY_RANGE = 14;
+// Day pages run from two weeks back to four weeks ahead; offset 0 = today.
+// The pager index for an offset is offset + PAST_DAYS.
+const PAST_DAYS = 14;
+const FUTURE_DAYS = 28; // both multiples of 7, so week windows tile the range exactly
+const DAY_OFFSETS = Array.from({ length: PAST_DAYS + FUTURE_DAYS }, (_, i) => i - PAST_DAYS);
+const MIN_WEEK = -PAST_DAYS;
+const MAX_WEEK = FUTURE_DAYS - 7;
+const weekStartOf = (offset) => Math.min(MAX_WEEK, Math.max(MIN_WEEK, Math.floor(offset / 7) * 7));
 
 const RemindersScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
@@ -66,17 +70,23 @@ const RemindersScreen = ({ navigation }) => {
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
   const refresh = useCallback(async () => {
+    // Templates and plan are read once; the per-day split is pure.
+    let data = [];
     try {
-      const { getBlocksForDay } = require('../services/dayTemplates');
+      const { getTemplates, getPlan } = require('../services/dayTemplates');
+      const { blocksForDay } = require('../utils/dayTemplates');
+      const [templates, plan, list] = await Promise.all([getTemplates(), getPlan(), loadReminders()]);
+      data = list;
       const map = {};
-      for (let i = 0; i < DAY_RANGE; i++) {
+      for (const i of DAY_OFFSETS) {
         const d = getDateForDayOffset(i);
-        const blocks = (await getBlocksForDay(d)).filter((b) => b.notify && !b.source && b.overnight !== 'am');
+        const blocks = blocksForDay(templates, plan, getDateStr(i), d.getDay()).filter((b) => b.notify && !b.source && b.overnight !== 'am');
         if (blocks.length) map[getDateStr(i)] = blocks;
       }
       setBlocksByDate(map);
-    } catch {}
-    const data = await loadReminders();
+    } catch {
+      try { data = await loadReminders(); } catch {}
+    }
     setReminders(data);
   }, []);
 
@@ -144,7 +154,7 @@ const RemindersScreen = ({ navigation }) => {
     await refresh();
   };
 
-  const dayPages = Array.from({ length: DAY_RANGE }, (_, i) => i);
+  const dayPages = DAY_OFFSETS;
 
   const renderDayPage = ({ item: offset }) => {
     const date = getDateForDayOffset(offset);
@@ -182,7 +192,7 @@ const RemindersScreen = ({ navigation }) => {
           {!isToday && (
             <View style={[styles.notTodayBadge, { backgroundColor: (theme.primary || '#3B82F6') + '15' }]}>
               <Text style={[styles.notTodayText, { color: theme.primary }]}>
-                {offset === 1 ? 'Tomorrow' : `In ${offset} days`}
+                {offset === 1 ? 'Tomorrow' : offset === -1 ? 'Yesterday' : offset > 0 ? `In ${offset} days` : `${-offset} days ago`}
               </Text>
             </View>
           )}
@@ -317,8 +327,55 @@ const RemindersScreen = ({ navigation }) => {
   const goToPage = (offset) => {
     hapticFeedback.light();
     setActivePage(offset);
-    flatListRef.current?.scrollToOffset({ offset: offset * SCREEN_WIDTH, animated: true });
+    flatListRef.current?.scrollToOffset({ offset: (offset + PAST_DAYS) * SCREEN_WIDTH, animated: true });
   };
+
+  // The week strip shows 7 days from weekStart (0 = today's week). Swiping it
+  // moves a week; paging the days past its edge drags it along.
+  const [weekStart, setWeekStart] = useState(0);
+  useEffect(() => {
+    if (activePage < weekStart || activePage > weekStart + 6) setWeekStart(weekStartOf(activePage));
+  }, [activePage]); // eslint-disable-line react-hooks/exhaustive-deps
+  const weekDays = Array.from({ length: 7 }, (_, i) => weekStart + i);
+  const shiftWeek = (dir) => {
+    const next = weekStart + dir * 7;
+    if (next < MIN_WEEK || next > MAX_WEEK) return;
+    hapticFeedback.light();
+    setWeekStart(next);
+    // Same weekday, one week over (clamped to the pages that exist).
+    const target = Math.min(FUTURE_DAYS - 1, Math.max(-PAST_DAYS, activePage + dir * 7));
+    setActivePage(target);
+    flatListRef.current?.scrollToOffset({ offset: (target + PAST_DAYS) * SCREEN_WIDTH, animated: false });
+  };
+  // Follows the finger, then the old week slides out and the new one springs in.
+  const stripX = useSharedValue(0);
+  const stripO = useSharedValue(1);
+  const goWeek = (dir) => {
+    const next = weekStart + dir * 7;
+    if (next < MIN_WEEK || next > MAX_WEEK) { stripX.value = withSpring(0, { damping: 18, stiffness: 200 }); stripO.value = withTiming(1, { duration: 120 }); return; }
+    const w = SCREEN_WIDTH;
+    stripX.value = withTiming(-dir * w * 0.6, { duration: 140, easing: Easing.in(Easing.cubic) }, (done) => {
+      // A new touch mid-slide cancels this; bring the strip back to full.
+      if (!done) { stripO.value = withTiming(1, { duration: 120 }); return; }
+      runOnJS(shiftWeek)(dir);
+      stripX.value = dir * w * 0.5;
+      stripO.value = 0.2;
+      stripX.value = withSpring(0, { damping: 18, stiffness: 180 });
+      stripO.value = withTiming(1, { duration: 220 });
+    });
+    stripO.value = withTiming(0.3, { duration: 140 });
+  };
+  const weekSwipe = useMemo(() => Gesture.Pan()
+    .activeOffsetX([-14, 14])
+    .failOffsetY([-12, 12])
+    .runOnJS(true)
+    .onUpdate((e) => { stripX.value = e.translationX * 0.55; })
+    .onEnd((e) => {
+      if (e.translationX < -50 || e.velocityX < -500) goWeek(1);
+      else if (e.translationX > 50 || e.velocityX > 500) goWeek(-1);
+      else { stripX.value = withSpring(0, { damping: 18, stiffness: 200 }); stripO.value = withTiming(1, { duration: 120 }); }
+    }), [weekStart, activePage]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: stripX.value }], opacity: stripO.value }));
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -370,32 +427,39 @@ const RemindersScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Week strip: weekday + date, active day underlined, today in green */}
-      <View style={styles.weekStrip}>
-        {dayPages.slice(0, 7).map((offset) => {
-          const d = getDateForDayOffset(offset);
-          const isToday = offset === 0;
-          const isActive = offset === activePage;
-          const activeColor = isToday ? '#10B981' : theme.primary;
-          const numColor = isActive ? activeColor : (isToday ? '#10B981' : textSecondary);
-          return (
-            <TouchableOpacity
-              key={offset}
-              onPress={() => goToPage(offset)}
-              style={styles.weekItem}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.weekLetter, { color: isToday ? '#10B981' : textSecondary }]}>
-                {DAY_SHORT[d.getDay()].charAt(0)}
-              </Text>
-              <Text style={[styles.weekNum, { color: numColor, fontWeight: isActive ? '800' : '600' }]}>
-                {d.getDate()}
-              </Text>
-              <View style={[styles.weekBar, { backgroundColor: isActive ? activeColor : 'transparent' }]} />
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* Week strip: weekday + date, active day underlined, today in green.
+          Swipe it left/right for the next/previous week. */}
+      <GestureHandlerRootView style={{ flex: 0 }}>
+        <GestureDetector gesture={weekSwipe}>
+          <Reanimated.View style={[styles.weekStrip, stripStyle]}>
+            {weekDays.map((offset) => {
+              const d = getDateForDayOffset(offset);
+              const isToday = offset === 0;
+              const isActive = offset === activePage;
+              const activeColor = isToday ? '#10B981' : theme.primary;
+              const numColor = isActive ? activeColor : (isToday ? '#10B981' : textSecondary);
+              return (
+                <TouchableOpacity
+                  key={offset}
+                  onPress={() => goToPage(offset)}
+                  style={styles.weekItem}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={d.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' })}
+                >
+                  <Text style={[styles.weekLetter, { color: isToday ? '#10B981' : textSecondary }]}>
+                    {DAY_SHORT[d.getDay()].charAt(0)}
+                  </Text>
+                  <Text style={[styles.weekNum, { color: numColor, fontWeight: isActive ? '800' : '600' }]}>
+                    {d.getDate()}
+                  </Text>
+                  <View style={[styles.weekBar, { backgroundColor: isActive ? activeColor : 'transparent' }]} />
+                </TouchableOpacity>
+              );
+            })}
+          </Reanimated.View>
+        </GestureDetector>
+      </GestureHandlerRootView>
 
       {/* Horizontal Day Pager */}
       <FlatList
@@ -407,10 +471,10 @@ const RemindersScreen = ({ navigation }) => {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        initialScrollIndex={0}
+        initialScrollIndex={PAST_DAYS}
         onMomentumScrollEnd={(e) => {
           const page = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          setActivePage(page);
+          setActivePage(page - PAST_DAYS);
         }}
         getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
       />

@@ -33,7 +33,7 @@ const openaiCompatible = (name, url, keyName, models, extraHeaders = {}) => ({
           signal: ctrl ? ctrl.signal : undefined,
         });
         // 400/404 = most likely the model name; try the next one. Anything
-        // else is the provider's state, not the model's — stop here.
+        // else is the provider's state, not the model's, so stop here.
         if (res.status === 400 || res.status === 404) { last = res; continue; }
         return res;
       } finally {
@@ -55,10 +55,10 @@ export const PROVIDERS = [
     'X-Title': 'Biblely',
   }),
   openaiCompatible('mistral', 'https://api.mistral.ai/v1/chat/completions', 'MISTRAL_API_KEY', ['mistral-small-latest', 'open-mistral-nemo', 'mistral-medium-latest']),
-  openaiCompatible('github', 'https://models.inference.ai.azure.com/chat/completions', 'GITHUB_MODELS_TOKEN', ['gpt-4o-mini', 'Meta-Llama-3.1-8B-Instruct', 'Phi-4']),
-  openaiCompatible('huggingface', 'https://router.huggingface.co/v1/chat/completions', 'HF_API_KEY', ['meta-llama/Llama-3.3-70B-Instruct', 'Qwen/Qwen2.5-72B-Instruct', 'mistralai/Mistral-7B-Instruct-v0.3']),
-  openaiCompatible('cohere', 'https://api.cohere.com/compatibility/v1/chat/completions', 'COHERE_API_KEY', ['command-r', 'command-r7b-12-2024', 'command-a-03-2025']),
 ];
+// Only providers named in the privacy policy (Section 4.3) and terms
+// (Sections 6 and 9) belong in this list. Adding one here means adding it
+// there first, in both the website copy and LegalScreen.js.
 
 // Wrap OpenAI-shaped JSON into the response contract the app's callers use.
 const shaped = (data, provider) => {

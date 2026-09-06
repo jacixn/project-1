@@ -1014,29 +1014,39 @@ class NotificationService {
     }
   }
 
-  // Schedule daily streak maintenance reminder.
+  // Schedule daily streak maintenance reminders.
   //
-  // Uses a next-occurrence Date trigger (NOT a repeating calendar trigger) because
-  // some iOS builds fire repeating triggers immediately when scheduled, causing
-  // a phantom "Keep Your Streak" banner at midnight/1 AM.  The app reschedules
-  // on every open (App.js), so tomorrow's reminder is always set up.
-  async scheduleDailyStreakReminder(hour = 8, minute = 0) {
+  // One-shot Date triggers (NOT a repeating calendar trigger) because some
+  // iOS builds fire repeating triggers immediately when scheduled, causing
+  // a phantom "Keep Your Streak" banner at midnight/1 AM.
+  //
+  // Opening the app IS staying consistent, so the day this runs never gets
+  // a ping: the window starts TOMORROW. It runs on every open (cold start
+  // in App.js, foreground via refreshAllScheduledNotifications), and a few
+  // days of one-shots cover stretches where the app is never opened at all
+  // (kept small: iOS caps the pending queue at 64 across all types).
+  async scheduleDailyStreakReminder(hour = 8, minute = 0, days = 5) {
     try {
       await this.cancelNotificationsByType('daily_streak');
 
-      const nextTriggerDate = this.getNextOccurrenceDate(hour, minute);
+      let first = null;
+      for (let i = 1; i <= days; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+        date.setHours(hour, minute, 0, 0);
+        if (!first) first = date;
+        await this.scheduleNotif({
+          content: {
+            title: 'Keep Your Streak',
+            body: 'Open Biblely to stay consistent today.',
+            data: { type: 'daily_streak' },
+            sound: true,
+          },
+          trigger: { type: 'date', date },
+        });
+      }
 
-      await this.scheduleNotif({
-        content: {
-          title: 'Keep Your Streak',
-          body: 'Open Biblely to stay consistent today.',
-          data: { type: 'daily_streak' },
-          sound: true,
-        },
-        trigger: { type: 'date', date: nextTriggerDate },
-      });
-
-      console.log('Daily streak reminder scheduled for:', nextTriggerDate.toISOString());
+      console.log(`Daily streak reminders scheduled: ${days} days from`, first && first.toISOString());
     } catch (error) {
       console.error('Failed to schedule daily streak reminder:', error);
     }
@@ -1296,7 +1306,11 @@ class NotificationService {
         await this.scheduleStoredPrayerReminders();
       }
 
-      if (settings.streakReminders !== false && !scheduledTypes.has('daily_streak')) {
+      if (settings.streakReminders !== false) {
+        // Opening the app IS staying consistent: rebuild the window from
+        // tomorrow on every open, so a ping scheduled for later today (by a
+        // previous day's open) never fires. Rebuilding beats inspecting the
+        // queue: iOS lists pending date triggers as opaque intervals.
         await this.scheduleDailyStreakReminder(20, 0);
       }
 

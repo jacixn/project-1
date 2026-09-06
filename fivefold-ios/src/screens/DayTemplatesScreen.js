@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import SheetHeader from '../components/SheetHeader';
-import { getTemplates, upsertTemplate, deleteTemplate } from '../services/dayTemplates';
+import { getTemplates, upsertTemplate, deleteTemplate, getPlan, setWeekdayRule, clearWeekday } from '../services/dayTemplates';
 import { BLOCK_PRESETS, hmToMin, minToHm, fmtClock, newId, iconForTitle, templateSummary, freeMinutes, normalizeTemplate } from '../utils/dayTemplates';
 import { KINDS, fmtDur } from '../utils/dayItems';
 import { loadReminderPresets, loadReminders } from '../services/reminderService';
@@ -45,8 +45,11 @@ const DayTemplatesScreen = ({ navigation, route }) => {
   // Repeating events from the user's other iPhone calendars ("Work" in the
   // Work calendar, "Social Media time"): a block can simply BE one of those.
   const [fromCal, setFromCal] = useState([]);
+  // The plan's weekday rules, for the "Repeats every week on" chips.
+  const [plan, setPlan] = useState(null);
   const load = useCallback(async () => {
     try { setList(await getTemplates()); } catch {}
+    try { setPlan(await getPlan()); } catch {}
     try {
       const [presets, reminders] = await Promise.all([loadReminderPresets().catch(() => []), loadReminders().catch(() => [])]);
       const usual = (title) => {
@@ -98,6 +101,16 @@ const DayTemplatesScreen = ({ navigation, route }) => {
 
   const startEdit = (t) => { hapticFeedback.light(); setEditing(JSON.parse(JSON.stringify(t))); setOpenBlock(null); setDirty(false); };
   const startNew = () => { hapticFeedback.light(); setEditing({ id: newId('t'), name: '', blocks: [], keeps: normalizeKeeps() }); setOpenBlock(null); setDirty(true); };
+
+  // Standing rule, applied immediately (not on Save): this template on that
+  // weekday, every week. A date changed from My Week still wins for that day.
+  const toggleRepeatDay = async (d) => {
+    hapticFeedback.selection();
+    try {
+      const current = plan?.weekdays?.[String(d)] || null;
+      setPlan(current === editing.id ? await clearWeekday(d) : await setWeekdayRule(d, editing.id));
+    } catch {}
+  };
 
   const patch = (fn) => { setEditing((e) => { const next = fn(JSON.parse(JSON.stringify(e))); return next; }); setDirty(true); };
   const setBlock = (id, changes) => patch((e) => { e.blocks = e.blocks.map((b) => (b.id === id ? { ...b, ...changes } : b)); return e; });
@@ -329,6 +342,21 @@ const DayTemplatesScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
+        {list.some((t) => t.id === editing.id) ? (<>
+          <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 22 }]}>Repeats every week on</Text>
+          <Text style={[styles.empty, { color: theme.textSecondary, paddingTop: 0, paddingBottom: 8 }]}>Tap the days this is the day's plan, every week. Changing one date from My Week still wins for that date alone.</Text>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((l, d) => {
+              const on = (plan?.weekdays?.[String(d)] || null) === editing.id;
+              return (
+                <TouchableOpacity key={d} onPress={() => toggleRepeatDay(d)} style={[styles.repeatDay, { backgroundColor: on ? ACCENT : tile }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`Repeat every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d]}`}>
+                  <Text style={[styles.repeatDayText, { color: on ? '#fff' : theme.text }]}>{l}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>) : null}
+
         <Text style={[styles.kicker, { color: theme.textSecondary, marginTop: 22 }]}>Also on this kind of day</Text>
         <Text style={[styles.empty, { color: theme.textSecondary, paddingTop: 0, paddingBottom: 8 }]}>On: it stays on the day and rings as usual. Off: it steps aside that day and stays quiet.</Text>
         {DAY_GROUPS.map((g) => {
@@ -367,6 +395,8 @@ const styles = StyleSheet.create({
   primary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 54, borderRadius: 16, marginTop: 16 },
   primaryText: { color: '#fff', fontSize: 17, fontWeight: '800' },
   kicker: { fontSize: 13, fontWeight: '700', marginBottom: 8, letterSpacing: 0.2 },
+  repeatDay: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  repeatDayText: { fontSize: 16, fontWeight: '800' },
   input: { height: 50, borderRadius: 14, paddingHorizontal: 14, fontSize: 17, fontWeight: '600' },
   empty: { fontSize: 15, fontWeight: '600', lineHeight: 21, paddingVertical: 6 },
   block: { borderRadius: 16, marginBottom: 10, borderWidth: 1.5, overflow: 'hidden' },

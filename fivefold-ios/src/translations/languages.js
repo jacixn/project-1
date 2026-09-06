@@ -114,8 +114,8 @@ export const translations = {
         description: 'Never miss your daily prayers with intelligent reminders',
       },
       friendChat: {
-        title: 'Friend Chat Support',
-        description: 'Connect with your spiritual community for encouragement',
+        title: 'Guide Chat',
+        description: 'Ask about any verse and get a clear, simple explanation',
       },
     },
     skipDialog: {

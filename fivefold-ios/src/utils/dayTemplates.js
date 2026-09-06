@@ -70,6 +70,12 @@ export const iconForTitle = (title) => {
   return 'schedule';
 };
 
+// "Work" (and only Work) wears the Work calendar's purple, so the block on
+// remote days matches the real event on office days. Everything else keeps
+// the Biblely calendar colour. Exact title: "Workout" is not work.
+export const WORK_COLOR = '#BB3ED8';
+export const colorForTitle = (title) => (String(title || '').trim().toLowerCase() === 'work' ? WORK_COLOR : null);
+
 // Starting points the first time the feature is opened. The user edits or
 // deletes them like their own.
 const P = (title, start, end, fixed = false) => ({ title, start, end, fixed });
@@ -159,7 +165,7 @@ export const blocksForDay = (templates, plan, dateKey, dow) => {
     const s = hmToMin(o && o.start ? o.start : start);
     const e = hmToMin(o && o.end ? o.end : end);
     if (s == null || e == null || e <= s) return;
-    out.push({ blockId: id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(start), fixed: !!b.fixed, notify: b.notify !== false, moved: !!o, done: ((normalizePlan(plan).done[dateKey]) || []).includes(id), icon: iconForTitle(b.title), ...(b.source ? { source: b.source } : {}), ...extra });
+    out.push({ blockId: id, templateId: t.id, templateName: t.name, title: b.title, startMin: s, endMin: e, baseStartMin: hmToMin(start), fixed: !!b.fixed, notify: b.notify !== false, moved: !!o, done: ((normalizePlan(plan).done[dateKey]) || []).includes(id), icon: iconForTitle(b.title), ...(colorForTitle(b.title) ? { color: colorForTitle(b.title) } : {}), ...(b.source ? { source: b.source } : {}), ...extra });
   };
   for (const b of t.blocks || []) {
     if (b.overnight) {

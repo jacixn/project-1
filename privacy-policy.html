@@ -18,191 +18,245 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p class="date">Last updated: March 21, 2026</p>
+  <p class="date">Last updated: September 5, 2026</p>
 
-  <p>Biblely, developed and operated by Jason ("we", "our", or "the app") is a faith, fitness, and productivity companion available at <a href="https://biblely.uk">biblely.uk</a>. Your privacy matters to us. This policy explains what data we collect, how we use it, who we share it with, and your rights.</p>
+  <p>Biblely, developed and operated by Jason ("we", "our", or "the app"), is a faith, fitness, and productivity companion for iPhone, available at <a href="https://biblely.uk">biblely.uk</a>. Your privacy matters to us. This policy explains what data the app handles, where it goes, who we share it with, and your rights.</p>
+  <p>Biblely has no social features. There is no feed, no friends list, no messaging between users, and no leaderboard. Nothing you create in the app is shown to other users.</p>
 
   <h2>1. Data We Collect</h2>
 
   <h3>1.1 Account Information</h3>
-  <p>When you create an account, we collect your email address, display name, username, name, age, gender, and profile avatar selection. You can choose from preset avatar images or, if your email is verified, upload a custom profile photo (see Section 1.7).</p>
+  <p>Biblely requires an account. When you create one we collect your email address, a username, a display name and a password. Sign-in is by email or username plus password, handled by Firebase Authentication. We do not use Sign in with Apple, Google sign-in, or any social login.</p>
+  <p>During setup you can also choose a preset avatar, a country from a list (we do not use your location for this), a theme, a Bible translation, your weight and height units, and a language. You may be asked how you heard about Biblely and what you want to get out of it. These choices are saved to your account record.</p>
+  <p>Your account record also holds whether your email is verified, whether two-factor sign-in is turned on, your referral details (the username that referred you and how many people you have referred), and the dates you joined and were last active.</p>
+  <p>We do not ask for your age or gender when you create an account. Age and gender are only asked for in the Nutrition body profile (see Section 1.3), and only if you use that feature.</p>
 
-  <h3>1.2 User-Generated Content</h3>
-  <p>Content you create within the app, including:</p>
+  <h3>1.2 Content You Create</h3>
+  <p>Content you create inside the app, including:</p>
   <ul>
-    <li>Prayers and prayer boards (including folders/envelopes, stickers, photos, backgrounds, and custom board layouts)</li>
-    <li>Journal entries and personal notes attached to Bible verses</li>
-    <li>To-do items, task descriptions, and task schedules</li>
-    <li>Saved and highlighted Bible verses, bookmarks, and verse notes</li>
-    <li>Workout logs, workout templates, and workout split plans</li>
-    <li>Nutrition data including food logs and favourite meals</li>
-    <li>Social feed posts and direct messages</li>
-    <li>Custom exercises created by you</li>
+    <li>Personal prayers, their weekday schedules, and your completion history</li>
+    <li>Prayer boards, including folders and envelopes, stickers, photos, backgrounds, and board layouts</li>
+    <li>Journal entries, verse notes, bookmarks, highlights, saved verses, and recent Bible searches</li>
+    <li>To-do items, scheduled tasks, and task descriptions</li>
+    <li>Visions (life goals with target dates) and the reflections you add to them</li>
+    <li>Habits, daily check-ins, and any notes you write on the "I Relapsed" screen</li>
+    <li>Reminders and day templates</li>
+    <li>Workout logs, workout templates and folders, split plans, available equipment, and custom exercises you add</li>
+    <li>Food logs and favourite meals</li>
+    <li>Messages you send in the Guide (Bible) chat and the Coach (fitness) chat. Guide chat history is stored on your device and, when you are signed in, in your account record in Firebase so it follows you across devices. Coach chat history stays on your device</li>
   </ul>
+  <p>This content is stored on your device. When you are signed in, the following is also saved to your account in Firebase (see Section 3.3) so it follows you across devices: prayers, their schedules and completion history; prayer boards; journal entries, verse notes, bookmarks, highlights, saved verses and recent Bible searches; to-do items, scheduled tasks and task descriptions; visions and their reflections; habits, check-ins and relapse notes; reminders; workout logs, workout templates and folders, and split plans; food logs and favourite meals; and Guide chat history.</p>
+  <p>A subset of this is also backed up to your iCloud (see Section 3.4): verse notes and highlights, saved verses, journal entries, reading streaks, achievements, highlight names, to-dos and completed to-dos, stats (points and level), Bible version, units, prayer history and completions, your profile, app settings, and the onboarding flag.</p>
+  <p>Day templates, custom exercises, available equipment, and Coach chat history stay on your device only. Biblely does not sync them to Firebase or back them up to iCloud.</p>
+  <p>Habit check-ins and relapse notes can be sensitive. They are handled like the rest of your content and are never shown to anyone else.</p>
 
   <h3>1.3 Health and Fitness Data</h3>
-  <p>Workout history, exercise logs (sets, reps, weights), workout split plans (training days, muscle groups, exercise counts), available equipment preferences, nutrition tracking (food logs, calorie and macronutrient data, food text descriptions), and body composition information including height, weight, age, gender, BMI, body fat percentage, muscle mass, visceral fat, body water percentage, and body age. Physique scoring data (individual muscle group scores, balance suggestions, training frequency analysis) is calculated locally from your workout history. This data is used solely to provide personalised fitness and nutrition features within the app.</p>
+  <p>Workout history and exercise logs (sets, reps, weights), split plans (training days, muscle groups, exercise counts), available equipment, and physique scores. Physique scores (per-muscle scores, balance suggestions, training frequency) are calculated on your device from your workout history.</p>
+  <p>If you use Nutrition, you can enter a body profile: gender, age, height, weight, body fat percentage, target weight, goal, and activity level. From this the app works out daily calorie and macronutrient targets and body composition estimates (BMI, body fat, muscle mass, visceral fat, body water, and body age) using formulas on your device. Your food log stores what you ate and its calories and macronutrients.</p>
+  <p>Weigh-ins are typed in by hand. Biblely does not connect to Bluetooth scales and does not read or write Apple Health.</p>
 
-  <h3>1.4 Conversation and Chat Data</h3>
-  <p>Messages sent through the Bible Friend chat feature, the Coach (fitness) chat feature, and direct messaging between users. Both chat features support text input and voice input (speech-to-text via your device microphone). Conversation messages sent to external services for personalised responses are described in Section 4.</p>
+  <h3>1.4 Chat, Voice, and Photos Sent to AI Services</h3>
+  <p>The Guide chat and the Coach chat accept typed text, voice input from your microphone, and photos. Other features (verse simplification, prayer reflections, task scoring, smart workout generation, physique coach feedback, nutrition plans, and the "Make it fit" replanner in My Week) also send text to outside AI services to generate a reply. Section 4 lists each service, what is sent, and where it goes.</p>
 
-  <h3>1.5 Usage Data</h3>
-  <p>App interaction data such as streaks, points, achievement progress, quiz scores, Bible timeline exploration, Bible map visits, Bible character reading progress, and feature usage — used to provide achievements, leaderboards, and personalised experiences.</p>
+  <h3>1.5 Usage and Progress Data</h3>
+  <p>Streaks, points, level, achievements, and counters such as prayers completed, workouts completed, tasks completed, quizzes taken, verses read, Bible characters read, timeline eras viewed, and maps visited. These are stored on your device and, if you are signed in, in your account record so your progress follows you across devices. We also count how many AI requests you make each day, per feature, to enforce fair-use limits.</p>
 
-  <h3>1.6 Device Information and Push Notification Tokens</h3>
-  <p>We access device information (via Expo Device) solely for push notification delivery. We collect Expo push notification tokens to deliver notifications you have opted into (such as prayer reminders, workout reminders, task reminders, and streak alerts). We do not collect or store device identifiers for tracking purposes.</p>
+  <h3>1.6 Notifications and Push Tokens</h3>
+  <p>Prayer reminders, task and habit reminders, workout reminders, the Saturday weigh-in reminder, achievement alerts, and streak reminders are scheduled by the app on your device as local notifications. They do not go through a server. You control them in Settings and in iOS notification settings.</p>
+  <p>When you sign in, the app also requests an Expo push token and stores it in your account record. We do not currently send any remote push notifications, so this token is not used to message you. The app checks whether it is running on a real device before requesting the token. We do not collect device identifiers for tracking.</p>
 
   <h3>1.7 Photos and Camera</h3>
-  <p>If you choose to use the camera or photo library, images are processed for profile pictures, food nutritional analysis, gym/physique analysis via the Coach feature, or prayer board customisation. Photos used for food scanning or the Coach feature are sent to Google Gemini for analysis and are not stored on our servers. Photos added to prayer boards are stored locally on your device.</p>
-  <p><strong>Profile picture uploads:</strong> If you are an email-verified user and choose to upload a custom profile photo, the image is sent to Google Gemini for automated content moderation before it is accepted. This scan checks for inappropriate content (nudity, violence, hate symbols, etc.). If the image passes moderation, it is uploaded to Firebase Storage and the download URL is stored in your user profile. If it does not pass, no image is stored and you are informed of the reason. A 24-hour cooldown is applied after a rejected upload to prevent repeated attempts.</p>
+  <p>If you choose to use the camera or photo library, images are used as follows:</p>
+  <ul>
+    <li><strong>Profile photo:</strong> if your email is verified, you can upload a custom photo. It is first sent to Google Gemini for automated content moderation (nudity, violence, hate symbols, and similar). If it passes, it is uploaded to Firebase Storage and the link is saved in your profile. If it fails, nothing is stored and you are told why. You get three attempts. After a third rejected photo, and after each accepted upload, you cannot upload another custom photo until the following day (the cooldown ends at midnight). Rejected photos are not stored.</li>
+    <li><strong>Food photos:</strong> sent to Google Gemini to estimate calories and macronutrients. We do not store them on our servers. If you type a food name instead of taking a photo, that text is sent to Google Gemini to estimate its nutrition.</li>
+    <li><strong>Gym photos in the Coach chat:</strong> sent to Google Gemini for analysis. The text description Gemini returns is then sent to the text AI providers in Section 4.3 to write the Coach's reply. We do not store the photo on our servers.</li>
+    <li><strong>Photos of text in the Guide chat:</strong> sent to OCR.space to extract the words, which are then sent to the text AI providers.</li>
+    <li><strong>Prayer board photos and backgrounds:</strong> uploaded to Firebase Storage in a folder tied to your account so your boards sync across devices.</li>
+    <li><strong>Barcode scanning:</strong> the camera reads the barcode on your device. Only the barcode number is sent to Open Food Facts.</li>
+    <li><strong>Habits "Emergency" screen:</strong> shows your front camera as a live mirror. Nothing is recorded or sent anywhere.</li>
+    <li><strong>Saving to Photos:</strong> share cards and prayer board images can be saved to your photo library if you allow it.</li>
+  </ul>
 
-  <h3>1.8 Preferences and Customisation</h3>
-  <p>Your app preferences including selected theme (from 25+ available themes), loading animation choice, Bible translation preference, notification settings, weight unit preference (kg/lbs), and referral status. These are stored locally on your device and synced to the cloud for cross-device access.</p>
+  <h3>1.8 Calendar</h3>
+  <p>If you allow calendar access, My Week, the day timeline, and day templates read events from your iPhone calendars (all event calendars, including those from other apps) to show them next to your Biblely items and let you move them. This reading happens on your device. Calendar events are not uploaded to our servers.</p>
+  <p>If you turn on calendar sync in Settings, the app creates a "Biblely" calendar and a "Biblely Work" calendar on your iPhone and writes your prayers, reminders, tasks, workouts, and day template blocks to them, with the default alarm you choose. Turning sync off deletes the Biblely and Biblely Work calendars and the events Biblely wrote to them.</p>
+  <p>If you use "Make it fit" in My Week, the titles and times of the items on that day, which can include your calendar events, are sent to the text AI providers in Section 4.3 to suggest a new order. You review the suggestion before anything changes.</p>
+
+  <h3>1.9 Weather</h3>
+  <p>My Week can show a weather line. If you type a city name, that name is sent to Open-Meteo to look up its coordinates, and the coordinates are then sent to Open-Meteo for the forecast. The city you typed is stored on your device only. Biblely never uses your device location.</p>
+
+  <h3>1.10 Preferences and Customisation</h3>
+  <p>Your theme (from 25+ themes), wallpaper, app icon, loading and streak animations, tab bar and card layout, notification toggles and alert style, notification sound, calendar sync setting, units, Bible translation, language, reading voice, and referral status. These are stored on your device. Some of these (theme, dark mode and wallpaper, loading and streak animations, notification preferences, prayer preferences, Bible translation, reading progress, recent Bible searches, units and country) are also saved to your account record in Firebase. Only your Bible translation and units are also backed up to iCloud. Your app icon, tab bar layout, and card order stay on your device.</p>
+
+  <h3>1.11 Home Screen Widgets</h3>
+  <p>The Daily Verse, Habits, Body Composition, Tasks, Add Task, My Week, Fuel Tracker, and Vision widgets read a copy of your data from a shared container on your device. Widgets do not use the network.</p>
+
+  <h3>1.12 Device Information</h3>
+  <p>The app reads your device language and region to pick a locale, and checks whether it is running on a physical device. It does not request your location, contacts, Bluetooth, motion data, or Apple Health, and it does not use the advertising identifier.</p>
 
   <h2>2. How We Use Your Data</h2>
   <ul>
-    <li>To provide and personalise app features (Bible reading, prayer tracking, prayer boards, workouts, nutrition, physique tracking, todos, journal)</li>
-    <li>To sync your data across devices via Firebase and iCloud</li>
-    <li>To send push notifications (prayer reminders, workout reminders, task reminders, streak alerts) that you opt into</li>
-    <li>To generate personalised insights and responses using external services (see Section 4)</li>
-    <li>To suggest workouts based on your muscle split plan, available equipment, and physique scoring data</li>
-    <li>To enable social features (direct messaging, friend connections, leaderboards, social feed)</li>
-    <li>To provide text-to-speech audio playback of Bible passages and chat responses</li>
-    <li>To convert voice input to text for chat features (speech-to-text)</li>
-    <li>To recognise text from images (OCR) for supported features</li>
-    <li>To track achievements, points, and progress across Bible, fitness, and productivity features</li>
-    <li>To link to external exercise tutorial videos on YouTube based on exercise names</li>
+    <li>To provide the app's features (Bible reading and study, prayers, prayer boards, journal, tasks, visions, habits, reminders, My Week, workouts, physique, nutrition, and Coach and Guide chat)</li>
+    <li>To sync your data across your devices through Firebase and iCloud when you are signed in</li>
+    <li>To schedule the local reminders and alerts you turn on</li>
+    <li>To generate replies, suggestions, scores, reflections, and plans using the outside AI services listed in Section 4</li>
+    <li>To turn your voice into text for chat, and to read verses, prayers, and chat replies aloud</li>
+    <li>To read text from photos (OCR) in the Guide chat</li>
+    <li>To show and move your calendar events in My Week, and to write Biblely items to your calendar when you turn on calendar sync</li>
+    <li>To show a weather forecast for the city you type</li>
+    <li>To send you email codes for verification, password reset, and two-factor sign-in</li>
+    <li>To track your points, streaks, and achievements</li>
+    <li>To enforce daily fair-use limits on AI features</li>
+    <li>To run the referral system and unlock cosmetic items</li>
+    <li>To open YouTube search links for exercise tutorials</li>
   </ul>
 
   <h2>3. Data Storage and Retention</h2>
 
   <h3>3.1 Local Storage</h3>
-  <p>Your data is stored locally on your device using AsyncStorage, so the app works offline. Food logs older than 90 days and workout history older than 90 days are automatically cleaned from local storage. Exercise data is cached locally for up to 30 days.</p>
+  <p>Your data is stored on your device so the app works offline. Completed tasks, prayer completion history, quiz history, food logs and workout history older than 90 days are removed automatically, on the device and in the cloud. The exercise library is bundled inside the app and is not downloaded.</p>
 
   <h3>3.2 Local Caches</h3>
   <ul>
-    <li><strong>Bible cache:</strong> Downloaded Bible translation data is cached locally on your device for up to 30 days for offline reading.</li>
-    <li><strong>Text-to-speech audio cache:</strong> Generated audio files for Bible passages and chat responses are cached locally on your device for up to 1 year to reduce repeated processing.</li>
-    <li><strong>Exercise database cache:</strong> Exercise data is cached locally for up to 30 days.</li>
+    <li><strong>Bible cache:</strong> downloaded Bible translation data is cached on your device for up to 30 days for offline reading.</li>
+    <li><strong>Text-to-speech audio cache:</strong> generated audio for verses, prayers, and chat replies is cached on your device for up to 1 year to avoid repeat processing.</li>
+    <li><strong>Weather cache:</strong> the forecast for your typed city is cached for 45 minutes.</li>
   </ul>
 
   <h3>3.3 Cloud Storage (Firebase)</h3>
-  <p>Your data is synced to Google Firebase (Firestore) servers located in the United States to enable cross-device access and social features. Cloud data is retained for as long as your account exists. When you delete your account, all associated cloud data is permanently removed.</p>
+  <p>When you are signed in, your data, including your Guide chat history, is saved to Google Firebase (Firestore and Cloud Storage) on servers located in the United States so it can follow you across devices. Cloud data is kept for as long as your account exists. When you delete your account, all of your cloud data is permanently removed.</p>
 
   <h3>3.4 iCloud Sync</h3>
-  <p>On iOS, your data may be synced via Apple iCloud (CloudKit) if you are signed into iCloud. This is governed by <a href="https://www.apple.com/privacy/">Apple's Privacy Policy</a>.</p>
+  <p>If your iPhone is signed in to iCloud, Biblely automatically backs up part of your app data to your private iCloud container (iCloud Drive files and iCloud key-value storage): verse notes and highlights, saved verses, journal entries, reading streaks, achievements, highlight names, to-dos and completed to-dos, stats (points and level), Bible version, units, prayer history and completions, your profile, app settings, and the onboarding flag. The rest of your content syncs through Firebase only (Section 3.3) or stays on your device (Section 1.2). This happens whenever iCloud is available; there is no separate switch inside the app. You can manage iCloud for Biblely in iOS Settings. iCloud data is governed by <a href="https://www.apple.com/privacy/">Apple's Privacy Policy</a>, and Biblely removes it when you delete your account.</p>
 
   <h2>4. Third-Party Services</h2>
-  <p>We use the following third-party services to provide app functionality. Data shared with these services is limited to what is necessary for the specific feature.</p>
+  <p>We use the following services to run the app. Requests go directly from your device to each service. We do not run a server in between. Apart from Guide chat history, which is saved to your account record so it syncs across devices (see Section 1.2), we do not keep copies of what is sent to the AI, speech, or OCR services. Data shared with each service is limited to what the feature needs.</p>
 
   <h3>4.1 Google Firebase</h3>
-  <p>Used for authentication, cloud database, and file storage. Data is stored on servers in the United States.</p>
+  <p>Used for account sign-in (email and password), the cloud database that stores your synced data, file storage for profile photos and prayer board images, and small server functions that email your codes, handle two-factor sign-in, roll back referrals on account deletion, and count daily AI usage. Data is stored on servers in the United States.</p>
   <p><a href="https://firebase.google.com/support/privacy">Firebase Privacy Policy</a></p>
 
-  <h3>4.2 Apple iCloud / CloudKit</h3>
-  <p>Used for data sync on iOS devices.</p>
+  <h3>4.2 Apple</h3>
+  <p>iCloud for automatic backup (Section 3.4), the iPhone Calendar for My Week and calendar sync (Section 1.8), Photos for saving and picking images, Apple Maps for the Bible maps (with location turned off), WidgetKit for home screen widgets, and the App Store review prompt.</p>
   <p><a href="https://www.apple.com/privacy/">Apple Privacy Policy</a></p>
 
-  <h3>4.3 DeepSeek</h3>
-  <p>Used for text-based analysis to provide personalised insights, Bible study responses, prayer guidance, nutrition advice, workout suggestions, physique coaching, and task scoring. The following data may be sent to DeepSeek depending on the feature used: prayer content, body composition and health data (including BMI, body fat percentage, muscle mass, visceral fat, body water percentage, body age), nutrition data (including food logs, calorie and macronutrient information, gender, age, height, weight), physique scores and muscle group data, conversation messages, task descriptions, name, age, and gender.</p>
-  <p><strong>Important:</strong> DeepSeek is operated by a company based in the People's Republic of China. Data sent to DeepSeek may be transmitted to and processed on servers located in China. Prompts and responses are processed to generate results and are not permanently stored by Biblely. DeepSeek's own data handling is governed by their privacy policy. By using features powered by DeepSeek, you acknowledge this international data transfer.</p>
-  <p><a href="https://chat.deepseek.com/downloads/DeepSeek%20Privacy%20Policy.html">DeepSeek Privacy Policy</a></p>
+  <h3>4.3 AI Text Providers</h3>
+  <p>To generate text replies, the app sends your request to one of the following providers, chosen automatically based on which one is available at that moment. If one is busy or out of capacity, the app moves to the next.</p>
+  <ul>
+    <li>Groq (<a href="https://groq.com/privacy-policy/">privacy policy</a>)</li>
+    <li>Cerebras (<a href="https://www.cerebras.ai/privacy-policy">privacy policy</a>)</li>
+    <li>SambaNova (<a href="https://sambanova.ai/privacy-policy">privacy policy</a>)</li>
+    <li>DeepSeek (<a href="https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html">privacy policy</a>)</li>
+    <li>OpenRouter, which routes to Meta Llama, Google Gemma, Mistral, and DeepSeek models hosted by other companies (<a href="https://openrouter.ai/privacy">privacy policy</a>)</li>
+    <li>Mistral AI (<a href="https://mistral.ai/terms/">privacy policy</a>)</li>
+    <li>Google Gemini (<a href="https://policies.google.com/privacy">privacy policy</a>, <a href="https://ai.google.dev/gemini-api/terms">Gemini API terms</a>)</li>
+  </ul>
+  <p>Depending on the feature, the request can include: your chat messages and recent conversation, your display name (used to greet you), Bible verse text and references, your prayer text, task text, the titles and times of your day's items for "Make it fit", nutrition profile numbers (gender, age, height, weight, body fat percentage, target weight, goal, activity level), calorie targets, workout summaries and exercise names, physique scores, and body composition estimates. We never send your email address, password, or sign-in tokens.</p>
+  <p>Each provider processes the text to produce a reply and handles it under its own privacy policy. Some providers may keep requests for abuse monitoring or, on free tiers, to improve their models, according to their terms. We do not control that. Apart from Guide chat history, which is saved to your account record so it syncs across devices (see Section 1.2), we do not store the requests or replies on our servers.</p>
+  <p><strong>Important:</strong> DeepSeek is operated by a company based in the People's Republic of China. Text sent to DeepSeek may be processed on servers in China. By using AI features you acknowledge that your request may be handled by any provider in this list.</p>
 
-  <h3>4.4 Google Gemini</h3>
-  <p>Used for food photo nutritional analysis, gym/physique photo analysis via the Coach feature, and profile picture content moderation. The following data may be sent to Google Gemini: food photos, gym and physique photos, food text descriptions, and profile picture uploads (for moderation). Images and text are processed and discarded; they are not stored by Google Gemini.</p>
-  <p><a href="https://policies.google.com/privacy">Google Privacy Policy</a></p>
+  <h3>4.4 Google Gemini (Images)</h3>
+  <p>Used for food photo nutrition estimates, Coach gym photo analysis, and custom profile photo moderation. Only the photo and a fixed analysis instruction are sent to Google; any caption you type is sent to the text providers in Section 4.3 together with Gemini's description. If you type a food name instead of taking a photo, that text is sent to Google Gemini to estimate its nutrition. We do not store these photos on our servers. Google handles them under its privacy policy and the Gemini API terms linked above.</p>
 
-  <h3>4.5 Google Cloud Text-to-Speech</h3>
-  <p>Used to generate audio for Bible passage reading and chat response playback. Bible text and chat message text are sent to Google Cloud for speech synthesis. Text is processed and discarded after audio generation.</p>
-  <p><a href="https://cloud.google.com/text-to-speech/docs/data-usage">Google Cloud TTS Data Usage Policy</a></p>
+  <h3>4.5 Speech-to-Text</h3>
+  <p>When you use the microphone in the Guide or Coach chat, the app records a short audio clip and sends it to the first available provider in this order: Groq (Whisper), Mistral AI (Voxtral), Google Gemini, then Google Cloud Speech-to-Text. The provider returns the transcript, which is then sent to the text providers in Section 4.3 as your message. The audio clip is not kept by us. Each provider handles the audio under its own policy (see the links in Section 4.3 and <a href="https://cloud.google.com/speech-to-text/docs/data-logging">Google Cloud Speech-to-Text data logging</a>).</p>
 
-  <h3>4.6 Google Cloud Speech-to-Text</h3>
-  <p>Used for voice input in chat features (Bible Friend and Coach). When you use the microphone to speak a message, the recorded audio is sent to Google Cloud Speech-to-Text for transcription into text. Audio is processed and discarded after transcription is complete; it is not stored by Google.</p>
-  <p><a href="https://cloud.google.com/speech-to-text/docs/data-logging">Google Cloud STT Data Logging Policy</a></p>
+  <h3>4.6 Google Cloud Text-to-Speech</h3>
+  <p>Used to read verses, prayers, and chat replies aloud with the cloud voices in the voice picker. The text is sent to Google Cloud for speech synthesis and the audio is cached on your device. Bible character audio stories are pre-recorded files downloaded from GitHub, or, if a file is missing, generated from the story text by Google Cloud Text-to-Speech. They are not generated from your data. The app can also use the built-in iOS voices, which stay on your device.</p>
+  <p><a href="https://cloud.google.com/text-to-speech/docs/data-logging">Google Cloud Text-to-Speech data logging</a>, <a href="https://cloud.google.com/terms/cloud-privacy-notice">Google Cloud Privacy Notice</a></p>
 
   <h3>4.7 OCR.space</h3>
-  <p>Used for text recognition from images. Images are sent for processing and are discarded after recognition is complete.</p>
+  <p>Used to read text from photos you attach in the Guide chat. The image is sent to OCR.space and the extracted text is returned.</p>
   <p><a href="https://ocr.space/privacypolicy">OCR.space Privacy Policy</a></p>
 
-  <h3>4.8 GitHub</h3>
-  <p>Bible translation data, exercise data, and quiz question data are fetched from GitHub servers. Your device connects to GitHub to download these data files. No personal data is sent to GitHub as part of this process.</p>
-  <p><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Privacy Statement</a></p>
-
-  <h3>4.9 Resend</h3>
-  <p>Used for email delivery of verification codes. Your email address is shared with Resend solely for this purpose.</p>
-  <p><a href="https://resend.com/legal/privacy-policy">Resend Privacy Policy</a></p>
-
-  <h3>4.10 Expo Push Notification Service</h3>
-  <p>Used for push notification delivery. Your Expo push token and notification content are shared with Expo to deliver notifications.</p>
-  <p><a href="https://expo.dev/privacy">Expo Privacy Policy</a></p>
-
-  <h3>4.11 YouTube</h3>
-  <p>The app provides links to YouTube for exercise tutorial videos. When you tap a tutorial link, your device opens YouTube (the YouTube app or website) with a search query based on the exercise name. No personal data is sent to YouTube by the app — the link simply opens a YouTube search page. Your interaction with YouTube after tapping the link is governed by YouTube's own policies.</p>
-  <p><a href="https://policies.google.com/privacy">YouTube (Google) Privacy Policy</a></p>
-
-  <h3>4.12 Open Food Facts</h3>
-  <p>Used for barcode-based food lookup. When you scan a food barcode, the barcode number is sent to the Open Food Facts API to retrieve nutritional information. No personal data is sent — only the barcode number. Open Food Facts is a free, open-source food products database.</p>
+  <h3>4.8 Open Food Facts</h3>
+  <p>Used for barcode food lookup. Only the barcode number is sent. Open Food Facts is a free, open database of food products.</p>
   <p><a href="https://world.openfoodfacts.org/terms-of-use">Open Food Facts Terms of Use</a></p>
 
+  <h3>4.9 Open-Meteo</h3>
+  <p>Used for the weather line in My Week. The city name you type is sent to look up coordinates, and the coordinates are sent to fetch a 7-day forecast. No account details are sent.</p>
+  <p><a href="https://open-meteo.com/en/terms">Open-Meteo Terms and Privacy</a></p>
+
+  <h3>4.10 GitHub</h3>
+  <p>Bible translations, quiz questions, Bible character profiles, and character audio stories are downloaded from GitHub. Your device fetches these files directly. No account details or content of yours is sent to GitHub.</p>
+  <p><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Privacy Statement</a></p>
+
+  <h3>4.11 Resend</h3>
+  <p>Used to email your 6-digit codes for email verification, password reset, and two-factor sign-in, from noreply@biblely.uk. Your email address and the code are shared with Resend for this purpose only.</p>
+  <p><a href="https://resend.com/legal/privacy-policy">Resend Privacy Policy</a></p>
+
+  <h3>4.12 Expo</h3>
+  <p>The app is built with Expo. When you sign in, it requests a push token from Expo's push service and stores it in your account record. We do not currently send push notifications, so no notification content is shared with Expo.</p>
+  <p><a href="https://expo.dev/privacy">Expo Privacy Policy</a></p>
+
+  <h3>4.13 YouTube</h3>
+  <p>The exercise library offers tutorial links. When you tap one, your device opens YouTube (the app or website) with a search for the exercise name. The app sends nothing to YouTube itself. Your use of YouTube is governed by YouTube's own policies.</p>
+  <p><a href="https://policies.google.com/privacy">YouTube (Google) Privacy Policy</a></p>
+
+  <h3>4.14 EyeCandy (Same Developer)</h3>
+  <p>If you also have EyeCandy, another app by the same developer, installed, the two apps can pass a request between them on your device using app links (for example, EyeCandy asking Biblely to move a reminder). Biblely asks you to confirm before it changes anything. This happens entirely on your device; nothing is sent over the internet.</p>
+
   <h2>5. International Data Transfers</h2>
-  <p>Your data may be transferred to and processed in countries outside your country of residence, including:</p>
+  <p>Your data may be processed in countries outside your country of residence, including:</p>
   <ul>
-    <li><strong>United States:</strong> Firebase (Google) servers for cloud storage, authentication, and database services.</li>
-    <li><strong>People's Republic of China:</strong> DeepSeek servers for text-based analysis and personalised insights.</li>
+    <li><strong>United States:</strong> Firebase (Google) for sign-in, database, and file storage; Google (Gemini, Text-to-Speech, Speech-to-Text); Groq, Cerebras, SambaNova, and OpenRouter for AI text; Expo; GitHub.</li>
+    <li><strong>People's Republic of China:</strong> DeepSeek for AI text.</li>
+    <li><strong>European Union:</strong> Mistral AI (France) for AI text and speech-to-text.</li>
   </ul>
-  <p>Where data is transferred internationally, we rely on the data protection practices of our service providers, including their compliance with applicable data protection frameworks. We select service providers that maintain appropriate technical and organisational measures to protect your data. For transfers to DeepSeek in China, we limit the data shared to what is necessary for the specific feature and do not send account credentials or authentication tokens.</p>
+  <p>Other providers in Section 4 may process data in further countries under their own policies. Where data is transferred internationally, we rely on the data protection practices of our service providers and their compliance with applicable frameworks. For AI providers we limit what is sent to what the feature needs and never send account credentials or sign-in tokens.</p>
 
   <h2>6. Data Sharing</h2>
-  <p>We do not sell, rent, or share your personal data with third parties for marketing or advertising purposes. Data is only shared with the third-party services listed in Section 4, solely to provide app functionality. We do not sell your personal information as defined under the California Consumer Privacy Act (CCPA) or any other applicable privacy law.</p>
+  <p>We do not sell, rent, or share your personal data with third parties for marketing or advertising. Data is only shared with the services listed in Section 4, solely to provide app features. Your content is never shown to other Biblely users. We do not sell your personal information as defined under the California Consumer Privacy Act (CCPA) or any other applicable privacy law.</p>
 
   <h2>7. Analytics and Tracking</h2>
-  <p>We do not use any analytics or tracking SDKs. We do not track you across apps or websites. No advertising identifiers are collected.</p>
+  <p>We do not use any analytics, crash reporting, advertising, or tracking SDKs. We do not track you across apps or websites, and no advertising identifier is collected. The only usage counting we do is the per-day AI request count in your account record, used to enforce fair-use limits.</p>
 
   <h2>8. Your Rights</h2>
 
   <h3>8.1 General Rights (All Users)</h3>
   <ul>
-    <li><strong>Access:</strong> You can view all your data within the app at any time.</li>
-    <li><strong>Rectification:</strong> You can correct or update your personal information through the app's profile and settings screens.</li>
-    <li><strong>Deletion:</strong> You can delete your account and all associated data from Settings &gt; Delete Account. This permanently removes your data from Firebase and your device.</li>
-    <li><strong>Portability:</strong> Your data is stored locally on your device and accessible through standard device backup mechanisms.</li>
-    <li><strong>Restriction of processing:</strong> You can request that we limit how we process your personal data by contacting us at the email below.</li>
-    <li><strong>Objection:</strong> You have the right to object to the processing of your personal data. Contact us at the email below to exercise this right.</li>
+    <li><strong>Access:</strong> you can view most of your data within the app; contact us at the email below for a full copy of your account record.</li>
+    <li><strong>Rectification:</strong> you can correct or update your information in the app's Profile and Settings screens.</li>
+    <li><strong>Deletion:</strong> you can delete your account and all associated data from Settings &gt; Delete Account. This removes your data from Firebase, Firebase Storage, your iCloud container, and your device.</li>
+    <li><strong>Portability:</strong> your data is stored on your device and is included in standard device backups.</li>
+    <li><strong>Restriction of processing:</strong> you can ask us to limit how we process your personal data by contacting us at the email below.</li>
+    <li><strong>Objection:</strong> you have the right to object to the processing of your personal data. Contact us at the email below to exercise this right.</li>
   </ul>
 
-  <h3>8.2 Rights for Users in the European Economic Area (GDPR)</h3>
-  <p>If you are located in the European Economic Area (EEA), the United Kingdom, or Switzerland, you have additional rights under the General Data Protection Regulation (GDPR):</p>
+  <h3>8.2 Rights for Users in the EEA, United Kingdom, and Switzerland (GDPR)</h3>
+  <p>If you are located in the European Economic Area, the United Kingdom, or Switzerland, you have additional rights under the General Data Protection Regulation (GDPR) and the UK GDPR:</p>
   <ul>
-    <li><strong>Legal basis for processing:</strong> We process your personal data on the following legal bases:
+    <li><strong>Legal basis for processing:</strong> we process your personal data on the following bases:
       <ul>
-        <li><em>Legitimate interest:</em> For core app functionality such as syncing data, delivering notifications, and providing Bible reading features.</li>
-        <li><em>Consent:</em> For optional features such as sending data to DeepSeek or Google Gemini for personalised insights, food analysis, workout suggestions, and coaching. You can withdraw consent at any time by stopping use of the relevant feature.</li>
-        <li><em>Contract performance:</em> To provide the services you have requested when you create an account.</li>
+        <li><em>Legitimate interest:</em> for core app functionality such as syncing your data, scheduling local reminders, and providing Bible reading features.</li>
+        <li><em>Consent:</em> for optional features that send your text, voice, or photos to the AI, speech, OCR, and weather services in Section 4, and for calendar access. You can withdraw consent at any time by not using the feature or by revoking the permission in iOS Settings.</li>
+        <li><em>Contract performance:</em> to provide the services you request when you create an account.</li>
       </ul>
     </li>
-    <li><strong>Right to lodge a complaint:</strong> You have the right to lodge a complaint with your local data protection supervisory authority if you believe your data has been processed unlawfully.</li>
-    <li><strong>Data transfers:</strong> When your data is transferred outside the EEA (see Section 5), we rely on appropriate safeguards as described in that section.</li>
+    <li><strong>Right to lodge a complaint:</strong> you may complain to your local data protection authority if you believe your data has been processed unlawfully.</li>
+    <li><strong>Data transfers:</strong> when your data leaves the EEA or UK (see Section 5), we rely on the safeguards described in that section.</li>
   </ul>
 
   <h3>8.3 Rights for California Residents (CCPA)</h3>
   <p>If you are a California resident, you have the following rights under the California Consumer Privacy Act (CCPA):</p>
   <ul>
-    <li><strong>Right to know:</strong> You have the right to request that we disclose the categories and specific pieces of personal information we have collected about you, the categories of sources from which it was collected, the business purpose for collecting it, and the categories of third parties with whom we share it.</li>
-    <li><strong>Right to delete:</strong> You have the right to request deletion of your personal information. You can do this directly in the app via Settings &gt; Delete Account, or by contacting us.</li>
-    <li><strong>Right to opt-out of sale:</strong> We do <strong>not</strong> sell your personal information. We have never sold personal information and have no plans to do so.</li>
-    <li><strong>Non-discrimination:</strong> We will not discriminate against you for exercising any of your CCPA rights.</li>
+    <li><strong>Right to know:</strong> you may ask us to disclose the categories and specific pieces of personal information we have collected about you, the sources, the purpose, and the categories of third parties we share it with.</li>
+    <li><strong>Right to delete:</strong> you may request deletion of your personal information, directly in the app via Settings &gt; Delete Account, or by contacting us.</li>
+    <li><strong>Right to opt out of sale:</strong> we do <strong>not</strong> sell your personal information, and never have.</li>
+    <li><strong>Non-discrimination:</strong> we will not treat you differently for exercising any CCPA right.</li>
   </ul>
-  <p><strong>Categories of personal information we collect:</strong> Identifiers (name, email, username), health and fitness data (body composition, nutrition logs, workout data, physique scores, equipment preferences), user-generated content (prayers, prayer boards, messages, tasks, journal entries), device information (push notification tokens), and photos (when you choose to use the camera or photo library).</p>
-  <p><strong>"Do Not Sell My Personal Information":</strong> Biblely does not sell, and has never sold, the personal information of its users to any third party for monetary or other valuable consideration.</p>
+  <p><strong>Categories of personal information we collect:</strong> identifiers (email address, username, display name), health and fitness data (workouts, physique scores, nutrition profile and food logs, weigh-ins, body composition estimates), content you create (prayers, prayer boards, journal entries, verse notes, tasks, visions, habits and relapse notes, reminders, day templates, chat messages), audio (voice input, sent for transcription only), photos (when you choose to use the camera or photo library), calendar events (read on your device), and device information (push token, locale).</p>
+  <p><strong>"Do Not Sell My Personal Information":</strong> Biblely does not sell, and has never sold, the personal information of its users to any third party for money or other valuable consideration.</p>
 
   <h2>9. Children's Privacy</h2>
-  <p>Biblely is not directed at children under 12. We do not knowingly collect personal data from children under the age of 12. If we discover that we have inadvertently collected data from a child under 12, we will promptly delete that data from our servers and local storage. If you believe a child under 12 has provided us with personal data, please contact us immediately at <a href="mailto:biblelyios@gmail.com">biblelyios@gmail.com</a> so we can take appropriate action.</p>
+  <p>Biblely is not directed at children under 13. We do not knowingly collect personal data from children under 13. If we learn that we have collected data from a child under 13, we will promptly delete it from our servers. If you believe a child under 13 has provided us with personal data, please contact us at <a href="mailto:biblelyios@gmail.com">biblelyios@gmail.com</a> so we can act.</p>
 
   <h2>10. Security</h2>
-  <p>We use industry-standard security measures including Firebase Authentication, encrypted connections (HTTPS/TLS), and secure password hashing. All data transmitted to third-party services is sent over encrypted connections. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.</p>
+  <p>We use Firebase Authentication for sign-in, encrypted connections (HTTPS/TLS) for all traffic, and optional two-factor sign-in by emailed code. Passwords are hashed by Firebase; we cannot see them. All data sent to the services in Section 4 travels over encrypted connections. No method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.</p>
 
   <h2>11. Changes to This Policy</h2>
-  <p>We may update this privacy policy from time to time. We will notify you of significant changes through the app or by updating the "Last updated" date at the top of this page. We encourage you to review this policy periodically.</p>
+  <p>We may update this privacy policy from time to time, including when we add or remove a service provider. We will notify you of significant changes through the app or by updating the "Last updated" date at the top of this page. Please review this policy periodically.</p>
 
   <h2>12. Contact</h2>
   <p>If you have questions about this privacy policy, your data, or wish to exercise any of your rights, contact us at:</p>

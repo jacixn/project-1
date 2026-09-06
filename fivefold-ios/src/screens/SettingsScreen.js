@@ -274,7 +274,7 @@ const SettingsScreen = ({ navigation }) => {
               } else if (error.message === 'PASSWORD_REQUIRED') {
                 Alert.alert('Password Required', 'Please enter your password to delete your account.');
               } else if (error.message === 'NO_EMAIL') {
-                Alert.alert('Cannot Delete', 'This account was created with a social login. Please contact support to delete your account.');
+                Alert.alert('Cannot Delete', 'This account has no password set. Please contact support to delete it.');
               } else if (error.message === 'TOO_MANY_ATTEMPTS') {
                 Alert.alert('Too Many Attempts', 'You have tried too many times. Please wait a few minutes and try again.');
               } else {

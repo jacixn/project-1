@@ -35,6 +35,7 @@ struct MyWeekDay: Codable {
     let day: Int
     let month: String
     let template: String?
+    let weather: String?  // "Drizzle 1 PM-11 PM · 16°-21°" (nil = no city set)
     let items: [MyWeekItem]
 }
 
@@ -93,8 +94,8 @@ struct MyWeekProvider: TimelineProvider {
             MyWeekItem(id: "6", title: "5th Prayer", start: 1320, end: 1325, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true, eventId: nil, eventStart: nil),
         ]
         return MyWeekData(days: [
-            MyWeekDay(key: f.string(from: today), weekday: wd.string(from: today), day: dayNum, month: mo.string(from: today), template: "Work Remote", items: items),
-            MyWeekDay(key: f.string(from: tomorrow), weekday: wd.string(from: tomorrow), day: Calendar.current.component(.day, from: tomorrow), month: mo.string(from: tomorrow), template: nil, items: [
+            MyWeekDay(key: f.string(from: today), weekday: wd.string(from: today), day: dayNum, month: mo.string(from: today), template: "Work Remote", weather: "Drizzle 1 PM-11 PM · 16°-21°", items: items),
+            MyWeekDay(key: f.string(from: tomorrow), weekday: wd.string(from: tomorrow), day: Calendar.current.component(.day, from: tomorrow), month: mo.string(from: tomorrow), template: nil, weather: nil, items: [
                 MyWeekItem(id: "7", title: "1st Prayer", start: 505, end: 510, color: "#34C759", kind: "prayer", label: "Prayer", pinned: true, eventId: nil, eventStart: nil),
                 MyWeekItem(id: "8", title: "Push day", start: 1080, end: 1140, color: "#34C759", kind: "gym", label: "Workout", pinned: false, eventId: nil, eventStart: nil),
             ]),
@@ -152,7 +153,7 @@ struct MyWeekProvider: TimelineProvider {
             if !backed.isEmpty && !live.isEmpty && kept.count == day.items.count - backed.count {
                 days.append(day); continue
             }
-            days.append(MyWeekDay(key: day.key, weekday: day.weekday, day: day.day, month: day.month, template: day.template, items: kept))
+            days.append(MyWeekDay(key: day.key, weekday: day.weekday, day: day.day, month: day.month, template: day.template, weather: day.weather, items: kept))
         }
         return MyWeekData(days: days, updatedAt: data.updatedAt)
     }
@@ -264,7 +265,6 @@ struct MyWeekPalette {
 struct MyWeekHeader: View {
     let day: MyWeekDay?
     let now: Date
-    let leftToday: Int
     var compact: Bool = false
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -281,8 +281,12 @@ struct MyWeekHeader: View {
                 Text("MY WEEK").font(.system(size: 12, weight: .heavy)).tracking(0.8).foregroundColor(MyWeekPalette.accent)
             }
             Spacer(minLength: 0)
-            Text(leftToday == 0 ? "nothing left today" : (leftToday == 1 ? "1 left today" : "\(leftToday) left today"))
-                .font(.system(size: compact ? 10 : 11, weight: .bold)).foregroundColor(MyWeekPalette.dim).lineLimit(1)
+            // The day's forecast (from the app's typed city); nothing when unset.
+            if let w = day?.weather, !w.isEmpty {
+                Text(w)
+                    .font(.system(size: compact ? 10 : 11, weight: .bold)).foregroundColor(MyWeekPalette.dim).lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
         }
     }
 }
@@ -558,7 +562,7 @@ struct MyWeekLargeView: View {
         let leftToday = today?.items.filter { $0.end > MyWeekFlow.minuteOfDay(entry.date) }.count ?? 0
         let ws = MyWeekTimeline.windowStart(now: entry.date)
         VStack(alignment: .leading, spacing: 6) {
-            MyWeekHeader(day: today, now: entry.date, leftToday: leftToday)
+            MyWeekHeader(day: today, now: entry.date)
             GeometryReader { geo in
                 let totalMin = CGFloat(MyWeekTimeline.minutes)
                 let inset: CGFloat = 7 // room for the first and last hour labels
@@ -645,7 +649,7 @@ struct MyWeekMediumView: View {
     var body: some View {
         let flow = MyWeekFlow.rows(entry.data, now: entry.date, limit: 4)
         VStack(alignment: .leading, spacing: 5) {
-            MyWeekHeader(day: MyWeekFlow.today(entry.data, now: entry.date), now: entry.date, leftToday: flow.leftToday, compact: true)
+            MyWeekHeader(day: MyWeekFlow.today(entry.data, now: entry.date), now: entry.date, compact: true)
             if flow.rows.isEmpty {
                 Spacer(); MyWeekEmpty(); Spacer()
             } else {

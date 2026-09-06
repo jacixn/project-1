@@ -23,6 +23,11 @@ const EVENTS_KEY = 'biblely_calendar_events'; // { `${ns}__...`: { id, recurring
 const ALARM_KEY = 'biblely_cal_alarm_min';
 const CAL_NAME = 'Biblely';
 const CAL_COLOR = '#32C372';
+// Work blocks get their own purple calendar: iOS colours whole calendars,
+// never single events, and the user wants Work purple like My Week shows it.
+const WORK_CAL_ID_KEY = 'biblely_work_calendar_id';
+const WORK_CAL_NAME = 'Biblely Work';
+const WORK_CAL_COLOR = '#BB3ED8'; // same purple as the Work block in-app
 
 // Event length per domain (minutes).
 const DURATION = { prayer: 30, reminder: 30, gym: 60, todo: 30 };
@@ -129,6 +134,9 @@ const localDateAt = (dateStr, h, m) => {
 // and whether plans must leave it alone (pinned; fixed for template blocks).
 const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const notesFor = (kind, pinned) => `Added by Biblely · ${kind}${pinned ? ' · pinned' : ''}`;
+// How each namespace's events are tagged in their notes (the day marker is
+// tagged '· template', the blocks '· block' — both belong to 'block').
+const NOTE_TAGS = { prayer: [' · prayer'], reminder: [' · reminder'], gym: [' · gym'], todo: [' · todo'], block: [' · block', ' · template'] };
 
 const buildPrayers = (list) => {
   const now = startOfToday(); // one-time things stay in the calendar until their day is over (EyeCandy's My Week and the widget read it)
@@ -284,41 +292,43 @@ const buildGym = (list) => {
 
 // ── calendar plumbing ───────────────────────────────────────────────────────
 
-// Find or create the dedicated "Biblely" calendar; returns its id (or null).
-export const ensureCalendar = async () => {
+// Find or create a dedicated Biblely-owned calendar; returns its id (or null).
+const ensureCal = async (idKey, name, color) => {
   let cals = [];
   try { cals = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT); }
   catch (e) { console.log('[calSync] getCalendarsAsync error:', e?.message || e); return null; }
 
-  const savedId = await userStorage.getRaw(CAL_ID_KEY);
+  const savedId = await userStorage.getRaw(idKey);
   if (savedId && cals.some((c) => c.id === savedId)) return savedId;
 
-  const byName = cals.find((c) => c.title === CAL_NAME);
-  if (byName) { await userStorage.setRaw(CAL_ID_KEY, byName.id); return byName.id; }
+  const byName = cals.find((c) => c.title === name);
+  if (byName) { await userStorage.setRaw(idKey, byName.id); return byName.id; }
 
   let source;
   try { source = (await Calendar.getDefaultCalendarAsync())?.source; }
   catch (e) { console.log('[calSync] getDefaultCalendarAsync error:', e?.message || e); }
   if (!source) source = (cals.find((c) => c.allowsModifications && c.source) || {}).source;
-  console.log('[calSync] ensureCalendar source:', source ? JSON.stringify({ id: source.id, type: source.type, name: source.name }) : 'NONE');
+  console.log('[calSync] ensureCal source:', source ? JSON.stringify({ id: source.id, type: source.type, name: source.name }) : 'NONE');
 
   try {
     const id = await Calendar.createCalendarAsync({
-      title: CAL_NAME,
-      color: CAL_COLOR,
+      title: name,
+      color,
       entityType: Calendar.EntityTypes.EVENT,
-      name: CAL_NAME,
+      name,
       ownerAccount: 'personal',
       accessLevel: Calendar.CalendarAccessLevel.OWNER,
       ...(source ? { sourceId: source.id, source } : {}),
     });
-    await userStorage.setRaw(CAL_ID_KEY, id);
+    await userStorage.setRaw(idKey, id);
     return id;
   } catch (e) {
     console.log('[calSync] createCalendarAsync error:', e?.message || e);
     return null;
   }
 };
+export const ensureCalendar = () => ensureCal(CAL_ID_KEY, CAL_NAME, CAL_COLOR);
+export const ensureWorkCalendar = () => ensureCal(WORK_CAL_ID_KEY, WORK_CAL_NAME, WORK_CAL_COLOR);
 
 // Serialize all reconciles: the three domains share one events map, so concurrent
 // read-modify-write would clobber it.
@@ -341,6 +351,18 @@ const reconcile = (namespace, desired) => serialize(async () => {
 
   const calId = await ensureCalendar();
   if (!calId) return;
+
+  // Some events live in a second Biblely-owned calendar (Work blocks in the
+  // purple "Biblely Work" one — iOS colours whole calendars, not events).
+  // Resolved lazily so the extra calendar is only created once it is needed.
+  let workCalId;
+  const calFor = async (d) => {
+    if (d && d.cal === 'work') {
+      if (workCalId === undefined) workCalId = await ensureWorkCalendar();
+      if (workCalId) return workCalId;
+    }
+    return calId;
+  };
 
   // Setting-driven default for events with no per-item lead time. When the
   // user sets Calendar Alert to OFF, that is the whole story: no calendar
@@ -385,9 +407,18 @@ const reconcile = (namespace, desired) => serialize(async () => {
       ...(d.recurring ? { recurrenceRule: { frequency: d.frequency } } : {}),
     };
     const entry = map[d.stableKey];
-    const existingId = idOf(entry);
+    let existingId = idOf(entry);
     const skips = (d.skipDates || []).slice().sort().join(',');
-    const stamp = (id) => ({ id, recurring: d.recurring, start: d.start.getTime(), end: d.end.getTime(), title: d.title, skips, alarmsOff: calendarAlertsOff, notes: details.notes });
+    const wantCal = d.cal || null;
+    const entryCal = entry && typeof entry === 'object' ? (entry.cal || null) : null;
+    const stamp = (id) => ({ id, recurring: d.recurring, start: d.start.getTime(), end: d.end.getTime(), title: d.title, skips, alarmsOff: calendarAlertsOff, notes: details.notes, cal: wantCal });
+    if (existingId && entryCal !== wantCal) {
+      // The event belongs in a different calendar now (Work moved to the
+      // purple one). EventKit cannot move an event in place: recreate.
+      try { await Calendar.deleteEventAsync(existingId, isRecurring(entry) ? { futureEvents: true } : undefined); } catch {}
+      delete map[d.stableKey];
+      existingId = null;
+    }
     if (existingId) {
       // Unchanged since we last wrote it: leave the event alone. Rewriting a
       // series would also wipe one-day edits made in the Calendar (EyeCandy's
@@ -404,13 +435,37 @@ const reconcile = (namespace, desired) => serialize(async () => {
       }
     }
     try {
-      const newId = await Calendar.createEventAsync(calId, details);
+      const newId = await Calendar.createEventAsync(await calFor(d), details);
       map[d.stableKey] = stamp(newId);
       await dropSkippedInstances(newId, d);
     } catch {}
   }
 
   await userStorage.set(EVENTS_KEY, map);
+
+  // Orphan sweep. The map only deletes what it knows about: an event created
+  // by a sync that died before the map was saved, or tracked by a map copy a
+  // cloud pull later replaced, stays in the calendar forever (two "... day"
+  // markers on one date). So the calendar itself is checked: any event in the
+  // Biblely calendar tagged as this namespace that no map entry tracks is a
+  // leftover and goes. Events without the Biblely tag are never touched.
+  try {
+    const tracked = new Set();
+    for (const key of Object.keys(map)) if (key.startsWith(prefix)) tracked.add(String(idOf(map[key])));
+    const tags = NOTE_TAGS[namespace] || [` · ${namespace}`];
+    const from = new Date(); from.setHours(0, 0, 0, 0);
+    const to = new Date(from.getTime() + 92 * 86400000);
+    const seen = new Set();
+    if (workCalId === undefined) workCalId = (await userStorage.getRaw(WORK_CAL_ID_KEY)) || null;
+    const sweepCals = workCalId ? [calId, workCalId] : [calId];
+    for (const e of (await Calendar.getEventsAsync(sweepCals, from, to)) || []) {
+      if (!e || seen.has(String(e.id)) || tracked.has(String(e.id))) continue;
+      seen.add(String(e.id));
+      const notes = String(e.notes || '');
+      if (!notes.startsWith('Added by Biblely') || !tags.some((t) => notes.includes(t))) continue;
+      try { await Calendar.deleteEventAsync(e.id, e.recurrenceRule ? { futureEvents: true } : undefined); } catch {}
+    }
+  } catch {}
 });
 
 // A repeating reminder/workout moved or removed "just today" skips that date:
@@ -495,7 +550,10 @@ const buildBlocks = (templates, plan) => {
       out.push({ stableKey: `block__${key}~day`, title: `${t.name} day`, start, end, recurring: false, frequency: null, alarms: [], allDay: true, notes: keepNotes(blocks.map((b) => b.title), hideGroupsFor(t)) });
     }
     for (const b of blocks) {
-      if (b.source) continue; // the user's own calendar event already is this block
+      // Calendar-backed blocks mirror like any other: the Biblely calendar
+      // is the single place the Calendar app shows the day plan (the user
+      // keeps the backing calendar hidden there). My Week still lets the
+      // real event stand in for the block on days it occurs.
       if (b.overnight === 'am') continue; // covered by last night's event
       const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.startMin, 0, 0);
       // An overnight block (Sleep) is one event running into the next morning.
@@ -503,8 +561,10 @@ const buildBlocks = (templates, plan) => {
         ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, b.overnightEnd, 0, 0)
         : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, b.endMin, 0, 0);
       if (end.getTime() < now) continue;
-      // "fixed" in the notes tells EyeCandy's planner to leave work alone too
-      out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [], notes: b.fixed ? 'Added by Biblely · block · fixed' : 'Added by Biblely · block' });
+      // "fixed" in the notes tells EyeCandy's planner to leave work alone too.
+      // Work blocks go to the purple "Biblely Work" calendar (cal: 'work').
+      const { colorForTitle } = require('../utils/dayTemplates');
+      out.push({ stableKey: `block__${key}~${b.blockId}`, title: b.title, start, end, recurring: false, frequency: null, alarms: [], notes: b.fixed ? 'Added by Biblely · block · fixed' : 'Added by Biblely · block', ...(colorForTitle(b.title) ? { cal: 'work' } : {}) });
     }
   }
   return out;
@@ -764,6 +824,11 @@ export const disable = async () => {
     if (calId) await Calendar.deleteCalendarAsync(calId);
   } catch {}
   await userStorage.setRaw(CAL_ID_KEY, '');
+  try {
+    const workId = await userStorage.getRaw(WORK_CAL_ID_KEY);
+    if (workId) await Calendar.deleteCalendarAsync(workId);
+  } catch {}
+  await userStorage.setRaw(WORK_CAL_ID_KEY, '');
 };
 
 export default {

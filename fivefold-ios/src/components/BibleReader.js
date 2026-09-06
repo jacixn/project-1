@@ -17,6 +17,7 @@ import {
   Easing,
   PanResponder,
   KeyboardAvoidingView,
+  Keyboard,
   DeviceEventEmitter,
   useWindowDimensions,
   Image,
@@ -26,7 +27,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import ViewShot from 'react-native-view-shot';
-import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -189,6 +190,11 @@ const BibleReader = ({
   const booksRef = useRef([]);
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  // Full-window insets. The overlay sheets below render in their own RN Modal
+  // window, which covers the whole screen, so the window's top inset is the
+  // right one for them (unlike a nested native-stack sheet, where it
+  // over-reports).
+  const insets = useSafeAreaInsets();
   const { theme, isDark, isCresviaTheme, currentTheme } = useTheme();
   
   // All themes now get beautiful theme-colored cards for better visual appeal
@@ -248,22 +254,49 @@ const BibleReader = ({
   // Testament dropdown state
   const [expandedTestament, setExpandedTestament] = useState(null); // 'old', 'new', or null
   
-  // Book selector modal state
+  // Overlay sheets (book selector, version picker, search). Each renders in
+  // its own RN <Modal> window (see the JSX beside the verse menu) so the
+  // pull-down drag reaches its JS PanResponder. The *PanY values are
+  // JS-driven everywhere (the drag writes them from gestureState); the
+  // *FadeAnim values stay native and live on their own backdrop view.
+  // Off-screen rest position is the window height so it is always fully
+  // hidden regardless of the sheet's height.
   const [showBookSelector, setShowBookSelector] = useState(false);
-  const bookSelectorPanY = useRef(new Animated.Value(800)).current;
+  const bookSelectorPanY = useRef(new Animated.Value(windowHeight)).current;
   const bookSelectorFadeAnim = useRef(new Animated.Value(0)).current;
   const [expandedBook, setExpandedBook] = useState(null); // Track which book is expanded
   const [bookChapters, setBookChapters] = useState({}); // Store chapters for each book
-  
+
   // Version picker modal state with interactive dismissal
-  const versionPickerPanY = useRef(new Animated.Value(800)).current;
+  const versionPickerPanY = useRef(new Animated.Value(windowHeight)).current;
   const versionPickerFadeAnim = useRef(new Animated.Value(0)).current;
-  
+
   // Search modal state with interactive dismissal
   const [showSearchModal, setShowSearchModal] = useState(false);
   const searchModalPanY = useRef(new Animated.Value(windowHeight)).current;
   const searchModalFadeAnim = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef(null);
+  // Search runs on its own flag so a search in flight never swaps the chapter
+  // or books list behind the sheet for the 'Loading Bible...' spinner, and a
+  // cleared query can no longer cancel a chapter load that just started
+  const [searchLoading, setSearchLoading] = useState(false);
+  // Measured keyboard height while the search sheet is up; pads the results
+  // list so the keyboard never hides the tail of it (no KeyboardAvoidingView:
+  // it mis-measures inside these modal windows)
+  const [searchKeyboardHeight, setSearchKeyboardHeight] = useState(0);
+  // The sheets keep the proportions they had inside the reader's sheet card
+  // (which sits below the status bar with a ~10pt inset), now that they
+  // render in a full-window Modal
+  const overlaySheetArea = Math.max(0, windowHeight - insets.top - 10);
+  const bookSelectorHeight = Math.round(overlaySheetArea * 0.8);
+  const versionPickerHeight = Math.round(overlaySheetArea * 0.7);
+  const searchSheetHeight = Math.round(overlaySheetArea * 0.94);
+  // Which overlay sheet is mid exit animation (null when none): a second
+  // close call while one runs would restart the animation and fire two
+  // completions
+  const closingSheetRef = useRef(null);
+  // Follow-up handed off by a closing sheet, run once its Modal window is gone
+  const afterSheetDismissRef = useRef(null);
   
   // Verse action menu state (long-press menu)
   const [showVerseMenu, setShowVerseMenu] = useState(false);
@@ -983,226 +1016,253 @@ const BibleReader = ({
     });
   };
 
-  // PanResponder for swipe-to-dismiss (book selector)
+  // Handoff for anything an overlay sheet opens after it closes. An RN Modal
+  // window floats above ALL in-tree content and iOS dismisses it
+  // asynchronously after `visible` flips, so a pushed sheet or another Modal
+  // must wait for the window to be gone: the closing Modal's onDismiss runs
+  // the pending follow-up. A timer backs it up (Android has no onDismiss,
+  // and iOS skips it for a window that was never presented).
+  const scheduleAfterSheetDismiss = (fn) => {
+    if (typeof fn !== 'function') return;
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      if (afterSheetDismissRef.current === run) afterSheetDismissRef.current = null;
+      fn();
+    };
+    afterSheetDismissRef.current = run;
+    setTimeout(run, Platform.OS === 'ios' ? 600 : 0);
+  };
+  const flushAfterSheetDismiss = () => {
+    const run = afterSheetDismissRef.current;
+    if (typeof run === 'function') run();
+  };
+
+  // Exit routine per overlay sheet: the one place a sheet closes from (drag
+  // release, tap outside, X, item pick, hardware back). Slides the sheet out
+  // and fades the backdrop, flips the state in the completion, then hands
+  // any follow-up to the dismiss handoff above.
+  const closeBookSelector = (afterClose) => {
+    if (closingSheetRef.current === 'book') {
+      // Already on its way out: just queue the follow-up on the dismiss
+      scheduleAfterSheetDismiss(afterClose);
+      return;
+    }
+    closingSheetRef.current = 'book';
+    Animated.parallel([
+      Animated.timing(bookSelectorPanY, {
+        toValue: windowHeightRef.current,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+      Animated.timing(bookSelectorFadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      closingSheetRef.current = null;
+      setShowBookSelector(false);
+      setExpandedBook(null);
+      scheduleAfterSheetDismiss(afterClose);
+    });
+  };
+
+  const closeVersionPicker = (afterClose) => {
+    if (closingSheetRef.current === 'version') {
+      scheduleAfterSheetDismiss(afterClose);
+      return;
+    }
+    closingSheetRef.current = 'version';
+    Animated.parallel([
+      Animated.timing(versionPickerPanY, {
+        toValue: windowHeightRef.current,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+      Animated.timing(versionPickerFadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      closingSheetRef.current = null;
+      setShowVersionPicker(false);
+      scheduleAfterSheetDismiss(afterClose);
+    });
+  };
+
+  const closeSearchSheet = (afterClose) => {
+    if (closingSheetRef.current === 'search') {
+      scheduleAfterSheetDismiss(afterClose);
+      return;
+    }
+    closingSheetRef.current = 'search';
+    // Let the keyboard drop with the sheet rather than after the window goes
+    Keyboard.dismiss();
+    Animated.parallel([
+      Animated.timing(searchModalPanY, {
+        toValue: windowHeightRef.current,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+      Animated.timing(searchModalFadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      closingSheetRef.current = null;
+      setShowSearchModal(false);
+      setSearchQuery('');
+      setSearchResults([]);
+      scheduleAfterSheetDismiss(afterClose);
+    });
+  };
+
+  // The PanResponders below are created once, so they reach the latest close
+  // routines through refs (same pattern as closeVerseMenuRef)
+  const closeBookSelectorRef = useRef(null);
+  closeBookSelectorRef.current = closeBookSelector;
+  const closeVersionPickerRef = useRef(null);
+  closeVersionPickerRef.current = closeVersionPicker;
+  const closeSearchSheetRef = useRef(null);
+  closeSearchSheetRef.current = closeSearchSheet;
+
+  // Pull-down-to-close responders for the three overlay sheets. The
+  // panHandlers sit on each sheet's header block (grabber + title), never on
+  // the list below it, so the list keeps its own scroll. Inside the Modal
+  // window no native recognizer competes, so the drag actually arrives.
+  // Drag writes are clamped at 0 so pulling back up never leaves the sheet
+  // parked below its origin, and a terminated gesture springs home.
+  const createSheetPanResponder = (panY, closeRef) =>
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderMove: (_, gestureState) => {
+        panY.setValue(Math.max(0, gestureState.dy));
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+          hapticFeedback.light();
+          closeRef.current?.();
+        } else {
+          Animated.spring(panY, {
+            toValue: 0,
+            useNativeDriver: false,
+            tension: 65,
+            friction: 11,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(panY, {
+          toValue: 0,
+          useNativeDriver: false,
+          tension: 65,
+          friction: 11,
+        }).start();
+      },
+    });
+
   const bookSelectorPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          bookSelectorPanY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
-          // Close modal
-          Animated.parallel([
-            Animated.timing(bookSelectorPanY, {
-              toValue: 800,
-              duration: 250,
-              useNativeDriver: true
-            }),
-            Animated.timing(bookSelectorFadeAnim, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true
-            })
-          ]).start(() => {
-            setShowBookSelector(false);
-          });
-          } else {
-          // Snap back
-          Animated.spring(bookSelectorPanY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 65,
-            friction: 11
-          }).start();
-        }
-      }
-    })
+    createSheetPanResponder(bookSelectorPanY, closeBookSelectorRef)
   ).current;
-  
-  // PanResponder for swipe-to-dismiss (version picker)
   const versionPickerPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          versionPickerPanY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
-          // Close modal
-          Animated.parallel([
-            Animated.timing(versionPickerPanY, {
-              toValue: 800,
-              duration: 250,
-              useNativeDriver: true
-            }),
-            Animated.timing(versionPickerFadeAnim, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true
-            })
-          ]).start(() => {
-            setShowVersionPicker(false);
-          });
-        } else {
-          // Snap back
-          Animated.spring(versionPickerPanY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 65,
-            friction: 11
-          }).start();
-        }
-      }
-    })
+    createSheetPanResponder(versionPickerPanY, closeVersionPickerRef)
   ).current;
-  
-  // PanResponder for swipe-to-dismiss (search modal)
   const searchModalPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          searchModalPanY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const screenHeight = windowHeight;
-        const modalHeight = screenHeight * 0.94;
-        
-        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
-          // Close modal
-          Animated.parallel([
-            Animated.timing(searchModalPanY, {
-              toValue: modalHeight,
-              duration: 250,
-              useNativeDriver: true
-            }),
-            Animated.timing(searchModalFadeAnim, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true
-            })
-          ]).start(() => {
-            setShowSearchModal(false);
-            setSearchQuery('');
-            setSearchResults([]);
-          });
-        } else {
-          // Snap back
-          Animated.spring(searchModalPanY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 65,
-            friction: 11
-          }).start();
-        }
-      }
-    })
+    createSheetPanResponder(searchModalPanY, closeSearchSheetRef)
   ).current;
-  
-  // Animate search modal
+
+  // Entrance animations. Exit is handled by the close routines above before
+  // the state flips, so the closed branch only parks the values off-screen
+  // for the next open. (Input focus for search happens in the Modal's onShow,
+  // once its window is key, not on a timer here.)
   useEffect(() => {
-    const screenHeight = windowHeight;
     if (showSearchModal) {
       Animated.parallel([
         Animated.spring(searchModalPanY, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           tension: 65,
-          friction: 11
+          friction: 11,
         }),
         Animated.timing(searchModalFadeAnim, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true
-        })
+          useNativeDriver: true,
+        }),
       ]).start();
-      
-      // Auto-focus search input after modal animation starts
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 300);
-          } else {
-      searchModalPanY.setValue(screenHeight * 0.94); // Set to modal height
+    } else {
+      searchModalPanY.setValue(windowHeightRef.current);
       searchModalFadeAnim.setValue(0);
     }
   }, [showSearchModal]);
-  
-  // Debug showBookSelector changes
+
   useEffect(() => {
-    console.log('🔵 showBookSelector changed to:', showBookSelector);
     if (showBookSelector) {
-      // Animate in
       Animated.parallel([
         Animated.spring(bookSelectorPanY, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           tension: 65,
-          friction: 11
+          friction: 11,
         }),
         Animated.timing(bookSelectorFadeAnim, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true
-        })
-      ]).start();
-        } else {
-      // Animate out
-      Animated.parallel([
-        Animated.timing(bookSelectorPanY, {
-          toValue: 800,
-          duration: 250,
-          useNativeDriver: true
+          useNativeDriver: true,
         }),
-        Animated.timing(bookSelectorFadeAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true
-        })
       ]).start();
-      
-      // Reset expanded state when modal closes
+    } else {
+      bookSelectorPanY.setValue(windowHeightRef.current);
+      bookSelectorFadeAnim.setValue(0);
       setExpandedBook(null);
     }
   }, [showBookSelector]);
-  
-  // Animate version picker modal
+
   useEffect(() => {
     if (showVersionPicker) {
-      // Animate in
       Animated.parallel([
         Animated.spring(versionPickerPanY, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           tension: 65,
-          friction: 11
+          friction: 11,
         }),
         Animated.timing(versionPickerFadeAnim, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true
-        })
+          useNativeDriver: true,
+        }),
       ]).start();
     } else {
-      // Reset animation values when closed
-      versionPickerPanY.setValue(800);
+      versionPickerPanY.setValue(windowHeightRef.current);
       versionPickerFadeAnim.setValue(0);
     }
   }, [showVersionPicker]);
+
+  // Track the keyboard only while the search sheet is up; its results list
+  // pads its bottom by this so the last results can scroll above the keyboard
+  useEffect(() => {
+    if (!showSearchModal) {
+      setSearchKeyboardHeight(0);
+      return undefined;
+    }
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setSearchKeyboardHeight(e?.endCoordinates?.height || 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => setSearchKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [showSearchModal]);
 
   // Debug state changes
   // Animate note modal
@@ -1436,24 +1496,20 @@ const BibleReader = ({
     loadChapters(initialBook, initialChapterNumber, initialTargetVerse);
   }, [visible, isVersesScreen, initialBook, initialChapterNumber, initialTargetVerse]);
 
-  // The in-tree overlays (verse menu, share card, note editor, book/version
-  // pickers, search) are bottom sheets with their own pull-down-to-close drag.
-  // They live INSIDE a presentation:'modal' screen, and iOS's sheet dismissal
-  // recognizer claims every downward drag before a JS PanResponder can see it
-  // (same trap noted in InteractiveBibleMaps.js). Suspending the screen's
-  // native gesture while an overlay is open hands those drags back to the
-  // overlay; closing it restores pull-to-dismiss for the screen itself.
-  // (showTextSelectionModal is a real RN Modal, i.e. its own window above the
-  // sheet, so the screen's gesture never competes with it.)
-  // showVerseMenu is absent on purpose: it renders in its own RN <Modal>
-  // window (like showTextSelectionModal), so the screen's gesture never
-  // competes with it.
-  const overlayOwnsDrag =
-    showShareCard ||
-    showJournalingModal ||
-    showBookSelector ||
-    showVersionPicker ||
-    showSearchModal;
+  // The remaining in-tree overlays (share card, note editor) are bottom sheets
+  // with their own pull-down-to-close drag. They live INSIDE a
+  // presentation:'modal' screen, and iOS's sheet dismissal recognizer claims
+  // every downward drag before a JS PanResponder can see it (same trap noted
+  // in InteractiveBibleMaps.js). Suspending the screen's native gesture while
+  // one is open at least stops the screen rubber-banding under the drag
+  // (gestureEnabled maps to modalInPresentation, which blocks the dismissal
+  // but does not hand the drag to JS); closing it restores pull-to-dismiss.
+  // showVerseMenu, showBookSelector, showVersionPicker, showSearchModal and
+  // showTextSelectionModal are absent on purpose: each renders in its own RN
+  // <Modal> window above the sheet, where the screen's gesture never competes,
+  // so toggling the screen option for them would only leave its pull-down
+  // disabled if state flipped mid-dismiss.
+  const overlayOwnsDrag = showShareCard || showJournalingModal;
 
   useEffect(() => {
     if (!asScreen || !navigation?.setOptions) return;
@@ -1574,6 +1630,74 @@ const BibleReader = ({
       if (typeof afterClose === 'function') afterClose();
     });
   };
+
+  // A native-stack sheet cannot present an RN Modal window until its own
+  // presentation has finished: UIKit drops a presentViewController: requested
+  // while the presenting controller is still mid-transition, which leaves the
+  // flag true with no window (and the header button a no-op, since the isOpen
+  // guard below then sees the sheet as up). The {searchQuery} deep link hits
+  // this on a warm cache, where searchVerses resolves inside the ~0.5s modal
+  // transition of the books sheet. So overlay opens wait for the screen's
+  // transitionEnd; until then one open is parked and replayed once the sheet
+  // has settled. Mounts without a screen transition (the ProfileTab overlay)
+  // start settled.
+  const screenSettledRef = useRef(!(asScreen && navigation?.addListener));
+  const pendingOverlayOpenRef = useRef(null);
+  useEffect(() => {
+    if (!asScreen || !navigation?.addListener) return undefined;
+    const settle = () => {
+      screenSettledRef.current = true;
+      const fn = pendingOverlayOpenRef.current;
+      pendingOverlayOpenRef.current = null;
+      if (fn) fn();
+    };
+    const unsub = navigation.addListener('transitionEnd', (e) => {
+      if (e?.data?.closing) return;
+      settle();
+    });
+    // Backstop should the event never arrive (it comes from viewDidAppear, so
+    // only an exotic mount misses it); a parked open then runs as it used to
+    const backstop = setTimeout(settle, 1500);
+    return () => {
+      unsub();
+      clearTimeout(backstop);
+    };
+  }, [asScreen, navigation]);
+
+  // Only one RN Modal window may be up at a time (presenting a second while
+  // the first is still showing deadlocks iOS), so every opener of the three
+  // overlay sheets goes through here: an already-open target is left alone,
+  // any other window is closed first and the open runs from its dismiss
+  // handoff. Read through openOverlaySheetRef from async code so a stale
+  // closure never sees stale flags.
+  const openOverlaySheet = (which) => {
+    const isOpen = {
+      book: showBookSelector,
+      version: showVersionPicker,
+      search: showSearchModal,
+    };
+    if (isOpen[which]) return;
+    const open = () => {
+      if (which === 'book') setShowBookSelector(true);
+      else if (which === 'version') setShowVersionPicker(true);
+      else if (which === 'search') setShowSearchModal(true);
+    };
+    // A parked open re-enters through the ref, so it reads the flags of the
+    // moment it runs: if its sheet is already up by then, the guard above
+    // drops it, and any window that appeared meanwhile is closed first
+    const openWhenSettled = () => {
+      if (screenSettledRef.current) open();
+      else pendingOverlayOpenRef.current = () => openOverlaySheetRef.current?.(which);
+    };
+    if (showVerseMenu) { closeVerseMenu(() => scheduleAfterSheetDismiss(openWhenSettled)); return; }
+    if (showTextSelectionModal) { setShowTextSelectionModal(false); scheduleAfterSheetDismiss(openWhenSettled); return; }
+    if (showBookSelector) { closeBookSelector(openWhenSettled); return; }
+    if (showVersionPicker) { closeVersionPicker(openWhenSettled); return; }
+    if (showSearchModal) { closeSearchSheet(openWhenSettled); return; }
+    openWhenSettled();
+  };
+  const openOverlaySheetRef = useRef(null);
+  openOverlaySheetRef.current = openOverlaySheet;
 
   // Highlight verse with color
   const highlightVerse = async (color) => {
@@ -2570,7 +2694,9 @@ const BibleReader = ({
       setSelectedBibleVersion(versionId);
       await userStorage.setRaw('selectedBibleVersion', versionId);
       pushToCloud('selectedBibleVersion', versionId);
-      setShowVersionPicker(false);
+      // Animated close; the reload below is in place (no window opens), so it
+      // starts straight away and its spinner shows behind the closing sheet
+      closeVersionPicker();
       hapticFeedback.success();
       
       // If we're viewing verses, reload them with the new version
@@ -2817,11 +2943,11 @@ const BibleReader = ({
     const performLiveSearch = async () => {
       if (!searchQuery.trim()) {
         setSearchResults([]);
-        setLoading(false);
+        setSearchLoading(false);
         return;
       }
 
-      setLoading(true);
+      setSearchLoading(true);
       try {
         // Use the new liveSearchVerses method (limit to 100 results)
         const results = await completeBibleService.liveSearchVerses(searchQuery, 100);
@@ -2857,7 +2983,7 @@ const BibleReader = ({
         console.error('Live search error:', error);
         setSearchResults([]);
       } finally {
-        setLoading(false);
+        setSearchLoading(false);
       }
     };
 
@@ -2870,7 +2996,7 @@ const BibleReader = ({
   const searchBible = async () => {
     if (!searchQuery.trim()) return;
 
-    setLoading(true);
+    setSearchLoading(true);
     try {
       const results = await completeBibleService.searchVerses(searchQuery);
       
@@ -2905,7 +3031,7 @@ const BibleReader = ({
     } catch (error) {
       Alert.alert('Search Error', 'Failed to search Bible. Please try again.');
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -2913,7 +3039,7 @@ const BibleReader = ({
   const searchBibleWithQuery = async (query) => {
     if (!query.trim()) return;
 
-    setLoading(true);
+    setSearchLoading(true);
     try {
       const results = await completeBibleService.searchVerses(query);
       
@@ -2944,13 +3070,15 @@ const BibleReader = ({
       );
       
       setSearchResults(resultsWithVersion);
-      // Open the search modal instead of changing view
-      setShowSearchModal(true);
+      // Opens the search sheet (after several awaits, so another Modal window
+      // may have appeared meanwhile: the opener closes it first and reads the
+      // latest flags through the ref)
+      openOverlaySheetRef.current?.('search');
     } catch (error) {
       console.error('Search error:', error);
       Alert.alert('Search Error', 'Failed to search Bible. Please try again.');
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -3147,9 +3275,12 @@ const BibleReader = ({
     if (showTextSelectionModal) { setShowTextSelectionModal(false); return true; }
     if (showVerseMenu) { closeVerseMenu(); return true; }
     if (showJournalingModal) { closeNoteModal(); return true; }
-    if (showSearchModal) { setShowSearchModal(false); return true; }
-    if (showVersionPicker) { setShowVersionPicker(false); return true; }
-    if (showBookSelector) { setShowBookSelector(false); return true; }
+    // These three render in their own RN Modal windows, so on Android RN
+    // routes back to each Modal's onRequestClose (which calls the same
+    // routines); the branches here cover the ProfileTab overlay path
+    if (showSearchModal) { closeSearchSheet(); return true; }
+    if (showVersionPicker) { closeVersionPicker(); return true; }
+    if (showBookSelector) { closeBookSelector(); return true; }
     if (showAccessibilityPopup) { setShowAccessibilityPopup(false); return true; }
     if (rangeSelectionMode) { cancelRangeSelection(); return true; }
     if (isVersesScreen) {
@@ -3442,7 +3573,7 @@ const BibleReader = ({
                     }]}
             onPress={() => {
               hapticFeedback.light();
-                      setShowBookSelector(true);
+                      openOverlaySheet('book');
             }}
                     activeOpacity={0.7}
           >
@@ -3453,10 +3584,8 @@ const BibleReader = ({
                   <TouchableOpacity 
                     style={[styles.badge, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]}
                     onPress={() => {
-                      console.log('📖 Version badge tapped');
               hapticFeedback.light();
-              setShowVersionPicker(true);
-                      console.log('📖 showVersionPicker set to true');
+              openOverlaySheet('version');
             }}
                     activeOpacity={0.7}
           >
@@ -3468,10 +3597,10 @@ const BibleReader = ({
               </View>
               
               <View style={styles.youversionActions}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     hapticFeedback.light();
-                    setShowSearchModal(true);
+                    openOverlaySheet('search');
                   }}
                   style={styles.youversionActionButton}
                 >
@@ -3551,11 +3680,11 @@ const BibleReader = ({
             <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
               <Text style={[styles.title, { color: theme.text }]}>Holy Bible</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 hapticFeedback.light();
-            setShowSearchModal(true);
-          }} 
+            openOverlaySheet('search');
+          }}
           style={[styles.searchButton, { zIndex: 1 }]}
         >
           <MaterialIcons name="search" size={24} color={theme.text} />
@@ -4536,64 +4665,121 @@ const BibleReader = ({
             {renderContent()}
             </View>
             
-            {/* Book Selector Overlay - INSIDE main Modal */}
+        
+        {/* Smart Assistant Button - Fixed at bottom */}
+        {view === 'books' && (
+          <Animated.View style={[styles.aiButtonContainer, { backgroundColor: theme.background, borderTopColor: theme.border, opacity: bookFadeAnims[2], transform: [{ translateY: bookSlideAnims[2] }] }]}>
+            <TouchableOpacity
+              style={[styles.aiAssistantButton, { backgroundColor: theme.card, borderColor: theme.border }]}
+              activeOpacity={0.7}
+              onPress={() => {
+                console.log('🤖 AI button tapped!');
+                try {
+                  hapticFeedback.medium();
+                  
+                  if (onNavigateToAI) {
+                    onNavigateToAI(null);
+                  } else {
+                    onClose();
+                  }
+                  console.log('🤖 Navigating to AI chat');
+                } catch (error) {
+                  console.error('Error opening AI chat:', error);
+                }
+              }}
+            >
+              <View style={styles.aiButtonContent}>
+                <MaterialIcons name="chat-bubble-outline" size={20} color={theme.primary} />
+                <Text style={[styles.aiButtonText, { color: theme.text }]}>
+                  Ask me anything...
+                </Text>
+                <MaterialIcons name="arrow-forward" size={16} color={theme.textSecondary} />
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+          </View>
+          
+          {/* Overlay sheets: book selector, version picker, search.
+              Same recipe as the verse menu below. Each is a real RN <Modal>,
+              i.e. its own window ABOVE the presentation:'modal' screen, so the
+              pull-down drag reaches its JS PanResponder instead of being
+              claimed by UIKit's sheet-dismissal recognizer. Only one of these
+              windows is ever up at a time (openOverlaySheet), and anything a
+              sheet opens next runs from its onDismiss handoff. Each has a
+              tap-outside backdrop and an X, so closing never depends on the
+              gesture. */}
+          <Modal
+            visible={showBookSelector}
+            transparent
+            animationType="none"
+            statusBarTranslucent
+            presentationStyle="overFullScreen"
+            onRequestClose={() => closeBookSelector()}
+            onDismiss={flushAfterSheetDismiss}
+          >
             {showBookSelector && (() => {
               const testamentBooks = books.filter(book => book.testament === currentBook?.testament);
-              console.log('🟢 Rendering book selector with', testamentBooks.length, 'books for', currentBook?.testament);
               return (
-              <Animated.View style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                zIndex: 99999,
-                opacity: bookSelectorFadeAnim
-              }}>
-                {/* Tap outside to close: the drag on the grabber can be stolen
-                    by the parent sheet's dismissal recognizer, so this sheet
-                    needs an affordance that never depends on a gesture */}
-                <TouchableOpacity
-                  style={StyleSheet.absoluteFill}
-                  activeOpacity={1}
-                  onPress={() => { hapticFeedback.light(); setShowBookSelector(false); }}
-                />
+              <View style={StyleSheet.absoluteFill}>
+                {/* Backdrop, tap to close */}
+                <Animated.View style={{
+                  ...StyleSheet.absoluteFillObject,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  opacity: bookSelectorFadeAnim
+                }}>
+                  <TouchableOpacity
+                    style={{ flex: 1 }}
+                    activeOpacity={1}
+                    onPress={() => { hapticFeedback.light(); closeBookSelector(); }}
+                  />
+                </Animated.View>
                 <Animated.View style={{
                   position: 'absolute',
                   bottom: 0,
                   left: 0,
                   right: 0,
+                  height: bookSelectorHeight,
                   backgroundColor: theme.card,
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
-                  height: '80%',
                   overflow: 'hidden',
                   transform: [{ translateY: bookSelectorPanY }]
                 }}>
+                  {/* Header carries the drag; the list below keeps its scroll */}
                   <View {...bookSelectorPanResponder.panHandlers} style={{ alignItems: 'center' }}>
                     <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)', marginVertical: 8 }} />
                     <Text style={{ fontSize: 24, fontWeight: '700', textAlign: 'center', color: theme.text, marginBottom: 2 }}>
                       {currentBook?.testament === 'old' ? 'Old Testament' : 'New Testament'}
                     </Text>
                     <Text style={{ fontSize: 14, textAlign: 'center', color: theme.textSecondary, marginBottom: 12 }}>
-                      {books.filter(book => book.testament === currentBook?.testament).length} books
+                      {testamentBooks.length} books
                     </Text>
-          </View>
-        
-                  <ScrollView 
-                    style={{ flex: 1, margin: 0 }} 
-                    contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 0, paddingBottom: 0, marginTop: 0, marginBottom: 0 }}
+                    <TouchableOpacity
+                      style={{ position: 'absolute', top: 10, right: 12, padding: 8 }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={() => { hapticFeedback.light(); closeBookSelector(); }}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close"
+                    >
+                      <MaterialIcons name="close" size={24} color={theme.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView
+                    style={{ flex: 1, margin: 0 }}
+                    contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 0, paddingBottom: 20 + insets.bottom, marginTop: 0, marginBottom: 0 }}
                     showsVerticalScrollIndicator={true}
                   >
-                    {books.filter(book => book.testament === currentBook?.testament).map((book) => {
+                    {testamentBooks.map((book) => {
                       const isExpanded = expandedBook === book.id;
                       const isCurrentBook = currentBook?.id === book.id;
-                      
+
                       return (
                         <View key={book.id}>
                           {/* Book Row */}
-            <TouchableOpacity
+                          <TouchableOpacity
                             style={{
                               flexDirection: 'row',
                               alignItems: 'center',
@@ -4602,21 +4788,20 @@ const BibleReader = ({
                               paddingHorizontal: 20,
                               borderRadius: 12,
                               marginBottom: isExpanded ? 0 : 8,
-                              backgroundColor: isCurrentBook 
-                                ? `${theme.primary}20` 
+                              backgroundColor: isCurrentBook
+                                ? `${theme.primary}20`
                                 : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)')
                             }}
                             onPress={async () => {
-                              console.log('📖 Book tapped:', book.name);
                               hapticFeedback.light();
-                              
+
                               if (isExpanded) {
                                 // Collapse
                                 setExpandedBook(null);
                               } else {
                                 // Expand and load chapters
                                 setExpandedBook(book.id);
-                                
+
                                 // Load chapters if not already loaded
                                 if (!bookChapters[book.id]) {
                                   try {
@@ -4626,7 +4811,7 @@ const BibleReader = ({
                                       ...prev,
                                       [book.id]: chaptersData
                                     }));
-                } catch (error) {
+                                  } catch (error) {
                                     console.error('Error loading chapters:', error);
                                   }
                                 }
@@ -4639,14 +4824,14 @@ const BibleReader = ({
                               fontWeight: isCurrentBook ? '700' : '500'
                             }}>
                               {book.name}
-                </Text>
-                            <MaterialIcons 
-                              name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                              size={24} 
-                              color={isCurrentBook ? theme.primary : theme.textSecondary} 
+                            </Text>
+                            <MaterialIcons
+                              name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                              size={24}
+                              color={isCurrentBook ? theme.primary : theme.textSecondary}
                             />
-            </TouchableOpacity>
-                          
+                          </TouchableOpacity>
+
                           {/* Chapters Dropdown */}
                           {isExpanded && (
                             <View style={{
@@ -4673,12 +4858,13 @@ const BibleReader = ({
                                         alignItems: 'center'
                                       }}
                                       onPress={() => {
-                                        console.log('📖 Chapter selected:', book.name, chapter.number);
                                         hapticFeedback.light();
-                                        setCurrentBook(book); // Set the book
+                                        // The chapter loads in place (no window
+                                        // opens), so it starts now and its spinner
+                                        // shows behind the closing sheet
+                                        setCurrentBook(book);
                                         loadVerses(chapter);
-                                        setShowBookSelector(false);
-                                        setExpandedBook(null);
+                                        closeBookSelector();
                                       }}
                                     >
                                       <Text style={{
@@ -4693,50 +4879,55 @@ const BibleReader = ({
                                 ) : (
                                   <ActivityIndicator size="small" color={theme.primary} />
                                 )}
-          </View>
-          </View>
-        )}
-        </View>
+                              </View>
+                            </View>
+                          )}
+                        </View>
                       );
                     })}
                   </ScrollView>
                 </Animated.View>
-              </Animated.View>
+              </View>
               );
             })()}
-            
-            {/* Version Picker Overlay - INSIDE main Modal */}
-            {showVersionPicker && (() => {
-              console.log('🟢 Rendering version picker modal');
-              return (
-              <Animated.View style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                zIndex: 99998,
-                opacity: versionPickerFadeAnim
-              }}>
-                {/* Tap outside to close (see the book selector above) */}
-                <TouchableOpacity
-                  style={StyleSheet.absoluteFill}
-                  activeOpacity={1}
-                  onPress={() => { hapticFeedback.light(); setShowVersionPicker(false); }}
-                />
+          </Modal>
+
+          <Modal
+            visible={showVersionPicker}
+            transparent
+            animationType="none"
+            statusBarTranslucent
+            presentationStyle="overFullScreen"
+            onRequestClose={() => closeVersionPicker()}
+            onDismiss={flushAfterSheetDismiss}
+          >
+            {showVersionPicker && (
+              <View style={StyleSheet.absoluteFill}>
+                {/* Backdrop, tap to close */}
+                <Animated.View style={{
+                  ...StyleSheet.absoluteFillObject,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  opacity: versionPickerFadeAnim
+                }}>
+                  <TouchableOpacity
+                    style={{ flex: 1 }}
+                    activeOpacity={1}
+                    onPress={() => { hapticFeedback.light(); closeVersionPicker(); }}
+                  />
+                </Animated.View>
                 <Animated.View style={{
                   position: 'absolute',
                   bottom: 0,
                   left: 0,
                   right: 0,
+                  height: versionPickerHeight,
                   backgroundColor: theme.card,
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
-                  height: '70%',
                   overflow: 'hidden',
                   transform: [{ translateY: versionPickerPanY }]
                 }}>
+                  {/* Header carries the drag; the list below keeps its scroll */}
                   <View {...versionPickerPanResponder.panHandlers} style={{ alignItems: 'center' }}>
                     <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)', marginVertical: 8 }} />
                     <Text style={{ fontSize: 24, fontWeight: '700', textAlign: 'center', color: theme.text, marginBottom: 2 }}>
@@ -4745,19 +4936,29 @@ const BibleReader = ({
                     <Text style={{ fontSize: 14, textAlign: 'center', color: theme.textSecondary, marginBottom: 12 }}>
                       {bibleVersions.filter(v => v.isAvailable).length} versions available
                     </Text>
-            </View>
-            
-                  <ScrollView 
-                    style={{ flex: 1 }} 
-                    contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 0, paddingBottom: 20 }}
+                    <TouchableOpacity
+                      style={{ position: 'absolute', top: 10, right: 12, padding: 8 }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={() => { hapticFeedback.light(); closeVersionPicker(); }}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close"
+                    >
+                      <MaterialIcons name="close" size={24} color={theme.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 0, paddingBottom: 20 + insets.bottom }}
                     showsVerticalScrollIndicator={true}
                   >
-              {bibleVersions.map((version) => {
-                const isSelected = selectedBibleVersion === version.id;
-                
-                return (
-                  <TouchableOpacity
-                    key={version.id}
+                    {bibleVersions.map((version) => {
+                      const isSelected = selectedBibleVersion === version.id;
+
+                      return (
+                        <TouchableOpacity
+                          key={version.id}
                           style={{
                             flexDirection: 'row',
                             alignItems: 'center',
@@ -4765,8 +4966,8 @@ const BibleReader = ({
                             padding: 16,
                             borderRadius: 12,
                             marginBottom: 8,
-                            backgroundColor: isSelected 
-                              ? `${theme.primary}20` 
+                            backgroundColor: isSelected
+                              ? `${theme.primary}20`
                               : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'),
                             borderWidth: isSelected ? 2 : 0,
                             borderColor: isSelected ? theme.primary : 'transparent',
@@ -4775,15 +4976,17 @@ const BibleReader = ({
                           onPress={() => {
                             if (version.isAvailable) {
                               hapticFeedback.light();
+                              // Closes the sheet itself (animated) and reloads
+                              // the chapter in place
                               handleVersionChange(version.id);
                             }
                           }}
-                    disabled={!version.isAvailable}
-                  >
+                          disabled={!version.isAvailable}
+                        >
                           <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 18, color: isSelected ? theme.primary : theme.text, fontWeight: isSelected ? '700' : '500', marginBottom: 4 }}>
                               {version.name}
-                      </Text>
+                            </Text>
                             {version.abbreviation && (
                               <Text style={{ fontSize: 14, color: theme.textSecondary, marginBottom: 2 }}>
                                 {version.abbreviation}
@@ -4791,57 +4994,59 @@ const BibleReader = ({
                             )}
                             {version.description && (
                               <Text style={{ fontSize: 12, color: theme.textSecondary }}>
-                        {version.description}
-                      </Text>
+                                {version.description}
+                              </Text>
                             )}
-                    </View>
-                    {isSelected && version.isAvailable && (
-                      <MaterialIcons name="check-circle" size={24} color={theme.primary} />
-                    )}
-                    {!version.isAvailable && (
+                          </View>
+                          {isSelected && version.isAvailable && (
+                            <MaterialIcons name="check-circle" size={24} color={theme.primary} />
+                          )}
+                          {!version.isAvailable && (
                             <MaterialIcons name="lock" size={20} color={theme.textSecondary} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 </Animated.View>
-              </Animated.View>
-              );
-            })()}
-            
-            {/* Search Modal - INSIDE main Modal */}
+              </View>
+            )}
+          </Modal>
+
+          <Modal
+            visible={showSearchModal}
+            transparent
+            animationType="none"
+            statusBarTranslucent
+            presentationStyle="overFullScreen"
+            onRequestClose={() => closeSearchSheet()}
+            onDismiss={flushAfterSheetDismiss}
+            // Focus once the Modal window is key (a timer from the open effect
+            // can fire before that on iOS and the keyboard never appears)
+            onShow={() => {
+              setTimeout(() => searchInputRef.current?.focus(), 100);
+            }}
+          >
             {showSearchModal && (
-              <Animated.View style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                zIndex: 99997,
-                opacity: searchModalFadeAnim,
-                justifyContent: 'flex-end'
-              }}>
-                {/* Backdrop - tap to close */}
-                <TouchableOpacity
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0
-                  }}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    hapticFeedback.light();
-                    setShowSearchModal(false);
-                    setSearchQuery('');
-                    setSearchResults([]);
-                  }}
-                />
+              <View style={StyleSheet.absoluteFill}>
+                {/* Backdrop, tap to close */}
                 <Animated.View style={{
-                  height: '94%',
+                  ...StyleSheet.absoluteFillObject,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  opacity: searchModalFadeAnim
+                }}>
+                  <TouchableOpacity
+                    style={{ flex: 1 }}
+                    activeOpacity={0.7}
+                    onPress={() => { hapticFeedback.light(); closeSearchSheet(); }}
+                  />
+                </Animated.View>
+                <Animated.View style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: searchSheetHeight,
                   backgroundColor: theme.background,
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
@@ -4853,21 +5058,21 @@ const BibleReader = ({
                   shadowRadius: 12,
                   elevation: 10
                 }}>
-                  {/* Drag Handle */}
-                  <View {...searchModalPanResponder.panHandlers} style={{ 
+                  {/* Drag handle + header carry the drag */}
+                  <View {...searchModalPanResponder.panHandlers} style={{
                     alignItems: 'center',
                     paddingTop: 12,
                     paddingBottom: 10,
                     backgroundColor: theme.background
                   }}>
-                    <View style={{ 
-                      width: 40, 
-                      height: 5, 
-                      borderRadius: 3, 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)', 
-                      marginBottom: 20 
+                    <View style={{
+                      width: 40,
+                      height: 5,
+                      borderRadius: 3,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)',
+                      marginBottom: 20
                     }} />
-                    
+
                     {/* Header */}
                     <View style={{
                       flexDirection: 'row',
@@ -4877,16 +5082,26 @@ const BibleReader = ({
                       paddingHorizontal: 20,
                       marginBottom: 20
                     }}>
-                      <Text style={{ 
-                        fontSize: 24, 
-                        fontWeight: '700', 
-                        color: theme.text 
+                      <Text style={{
+                        fontSize: 24,
+                        fontWeight: '700',
+                        color: theme.text
                       }}>
                         Search the Bible
                       </Text>
+                      <TouchableOpacity
+                        style={{ padding: 4 }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        onPress={() => { hapticFeedback.light(); closeSearchSheet(); }}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="Close"
+                      >
+                        <MaterialIcons name="close" size={26} color={theme.textSecondary} />
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  
+
                   {/* Search Input */}
                   <View style={{
                     paddingHorizontal: 20,
@@ -4927,17 +5142,20 @@ const BibleReader = ({
                       )}
                     </View>
                   </View>
-                  
-                  {/* Content */}
+
+                  {/* Content. Bottom padding grows by the measured keyboard
+                      height so the last results scroll clear of it; taps on
+                      results go through with the keyboard up. */}
                   <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={{
                       paddingHorizontal: 20,
-                      paddingBottom: 40
+                      paddingBottom: 40 + Math.max(searchKeyboardHeight, insets.bottom)
                     }}
+                    keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                   >
-                    {loading ? (
+                    {searchLoading ? (
                       // Loading State
                       <View style={{
                         flex: 1,
@@ -5033,12 +5251,12 @@ const BibleReader = ({
                           color: theme.textSecondary,
                           marginBottom: 16
                         }}>
-                          {searchResults.length >= 100 
-                            ? `Showing first ${searchResults.length} results for "${searchQuery}"` 
+                          {searchResults.length >= 100
+                            ? `Showing first ${searchResults.length} results for "${searchQuery}"`
                             : `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'} for "${searchQuery}"`
                           }
                         </Text>
-                        
+
                         {searchResults.map((result, index) => (
                           <TouchableOpacity
                             key={index}
@@ -5048,20 +5266,21 @@ const BibleReader = ({
                               padding: 16,
                               marginBottom: 12
                             }}
-                            onPress={() => {
+                            onPress={async () => {
                               hapticFeedback.light();
                               addRecentSearch(result.reference);
-                              if (result.bookId && result.chapter && result.verse) {
-                                const book = books.find(b => b.id === result.bookId);
-                                if (book) {
-                                  setShowSearchModal(false);
-                                  setSearchQuery('');
-                                  setSearchResults([]);
-                                  // From the books sheet this pushes the reading
-                                  // sheet; inside it the chapter swaps in place
-                                  openBook(book, result.chapter, result.verse);
-                                }
-                              }
+                              if (!(result.bookId && result.chapter && result.verse)) return;
+                              // A reading sheet may not have the book index yet
+                              const bookList = books.length > 0 ? books : await ensureBooks();
+                              const book = bookList.find(b => b.id === result.bookId);
+                              if (!book) return;
+                              // Close first, open after. From the books sheet
+                              // openBook pushes a native-stack sheet, which must
+                              // not be presented while this Modal window is
+                              // still up (it would land on the Modal's view
+                              // controller and go down with it); inside the
+                              // reading sheet it swaps the chapter in place.
+                              closeSearchSheet(() => openBook(book, result.chapter, result.verse));
                             }}
                           >
                             <Text style={{
@@ -5085,50 +5304,17 @@ const BibleReader = ({
                     )}
                   </ScrollView>
                 </Animated.View>
-              </Animated.View>
-            )}
-        
-        {/* Smart Assistant Button - Fixed at bottom */}
-        {view === 'books' && (
-          <Animated.View style={[styles.aiButtonContainer, { backgroundColor: theme.background, borderTopColor: theme.border, opacity: bookFadeAnims[2], transform: [{ translateY: bookSlideAnims[2] }] }]}>
-            <TouchableOpacity
-              style={[styles.aiAssistantButton, { backgroundColor: theme.card, borderColor: theme.border }]}
-              activeOpacity={0.7}
-              onPress={() => {
-                console.log('🤖 AI button tapped!');
-                try {
-                  hapticFeedback.medium();
-                  
-                  if (onNavigateToAI) {
-                    onNavigateToAI(null);
-                  } else {
-                    onClose();
-                  }
-                  console.log('🤖 Navigating to AI chat');
-                } catch (error) {
-                  console.error('Error opening AI chat:', error);
-                }
-              }}
-            >
-              <View style={styles.aiButtonContent}>
-                <MaterialIcons name="chat-bubble-outline" size={20} color={theme.primary} />
-                <Text style={[styles.aiButtonText, { color: theme.text }]}>
-                  Ask me anything...
-                </Text>
-                <MaterialIcons name="arrow-forward" size={16} color={theme.textSecondary} />
               </View>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
-          </View>
-          
+            )}
+          </Modal>
+
           {/* Verse Action Menu.
               Rendered in a real RN <Modal>, i.e. its own window ABOVE the
               presentation:'modal' screen. In-tree overlays can't be pulled
               down: UIKit's sheet-dismissal pan recognizer claims every
               downward drag before a JS PanResponder sees it, and
               modalInPresentation (what gestureEnabled maps to) only blocks
-              the dismissal — it doesn't hand the drag back. A separate window
+              the dismissal, it doesn't hand the drag back. A separate window
               never competes, so the drag-to-close below actually works. */}
           <Modal
             visible={!!(showVerseMenu && selectedVerseForMenu)}
@@ -5136,6 +5322,7 @@ const BibleReader = ({
             animationType="none"
             statusBarTranslucent
             onRequestClose={() => closeVerseMenu()}
+            onDismiss={flushAfterSheetDismiss}
           >
             {showVerseMenu && selectedVerseForMenu && (
             <View style={{
@@ -6827,15 +7014,20 @@ const BibleReader = ({
             );
           })()}
 
-          {/* Text Selection Modal for partial verse sharing */}
-          {showTextSelectionModal && (
-            <Modal
-              visible={showTextSelectionModal}
-              transparent={false}
-              animationType="slide"
-              presentationStyle="fullScreen"
-              onRequestClose={() => setShowTextSelectionModal(false)}
-            >
+          {/* Text Selection Modal for partial verse sharing. Stays mounted
+              like the four overlay sheets: RN routes onDismiss through the
+              still-mounted Modal component, so unmounting it on close would
+              silence the dismiss handoff and leave only the timer backstop.
+              The body itself still unmounts with the flag. */}
+          <Modal
+            visible={showTextSelectionModal}
+            transparent={false}
+            animationType="slide"
+            presentationStyle="fullScreen"
+            onRequestClose={() => setShowTextSelectionModal(false)}
+            onDismiss={flushAfterSheetDismiss}
+          >
+            {showTextSelectionModal && (
               <SafeAreaProvider>
               <View style={{ flex: 1, backgroundColor: '#000' }}>
                 <SafeAreaView style={{ flex: 1 }}>
@@ -6932,9 +7124,9 @@ const BibleReader = ({
                 </SafeAreaView>
               </View>
               </SafeAreaProvider>
-            </Modal>
-          )}
-          
+            )}
+          </Modal>
+
           {/* Audio Player Bar */}
           <AudioPlayerBar
             visible={showAudioPlayer}

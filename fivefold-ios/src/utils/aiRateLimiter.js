@@ -43,7 +43,7 @@ function isEmailVerified() {
 function showVerificationPrompt() {
   Alert.alert(
     'Email Verification Required',
-    'To keep our community safe and prevent misuse, smart features are only available to verified accounts. It only takes a moment — go to Profile > Settings > Verify Email to get started.',
+    'To prevent misuse, smart features are only available to verified accounts. It only takes a moment. Go to Profile > Settings > Verify Email to get started.',
     [{ text: 'OK' }],
   );
 }
@@ -53,7 +53,7 @@ const checkAiUsageFn = httpsCallable(functions, 'checkAiUsage');
 async function checkLimit(category) {
   if (!isEmailVerified()) {
     showVerificationPrompt();
-    return { allowed: false, limit: 0, used: 0, message: 'To keep our community safe and prevent misuse, smart features are only available to verified accounts. Go to Profile > Settings > Verify Email to get started.', alertShown: true };
+    return { allowed: false, limit: 0, used: 0, message: 'To prevent misuse, smart features are only available to verified accounts. Go to Profile > Settings > Verify Email to get started.', alertShown: true };
   }
 
   const limit = LIMITS[category];

@@ -88,6 +88,8 @@ const mk = (kind, id, title, startMin, minutes, raw, extra = {}) => {
     startMin,
     endMin: clamp(startMin + dur, startMin + 1, DAY_MIN),
     color: extra.color || KINDS[kind].color,
+    // A colour of its own (Work purple): the calendar-sync recolour skips it.
+    ownColor: !!extra.color,
     icon: extra.icon || KINDS[kind].icon,
     movable: kind === 'prayer' || kind === 'reminder' || kind === 'task' || kind === 'gym' || kind === 'block',
     subtitle: extra.subtitle || '',
@@ -134,7 +136,7 @@ export const loadDayItems = async (date) => {
     if (td) { keep = td.keep; hide = td.hide; }
     for (const b of blocks) {
       if (b.source) { fromCalendar.push(b); continue; }
-      out.push(mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, subtitle: b.moved ? `${b.templateName} · moved today` : b.templateName }));
+      out.push(mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, color: b.color, subtitle: b.moved ? `${b.templateName} · moved today` : b.templateName }));
     }
   } catch {}
 
@@ -153,10 +155,12 @@ export const loadDayItems = async (date) => {
       const cals = (await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT)) || [];
       syncKindColors(cals);
       // Own items were built before the calendars were read: recolour them.
-      for (const it of out) if (KINDS[it.kind]) it.color = KINDS[it.kind].color;
+      for (const it of out) if (KINDS[it.kind] && !it.ownColor) it.color = KINDS[it.kind].color;
       const byId = {};
       for (const c of cals) byId[c.id] = c;
-      const ids = cals.filter((c) => c.title !== BIBLELY_CAL).map((c) => c.id);
+      // Skip Biblely's own mirror calendars ("Biblely", "Biblely Work"):
+      // their events are this screen's own items, shown from the source.
+      const ids = cals.filter((c) => !/^Biblely( |$)/.test(c.title || '')).map((c) => c.id);
       if (ids.length) {
         const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
         const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
@@ -215,7 +219,7 @@ export const loadDayItems = async (date) => {
       ev.raw = { ...ev.raw, templateBlock: { blockId: b.blockId, templateId: b.templateId, templateName: b.templateName }, fixed: !!b.fixed, ...(b.fixed ? { pinned: true } : {}) };
       ev.subtitle = `${b.templateName} · ${ev.raw.calendarTitle || 'Calendar'}`;
     } else {
-      const it = mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, subtitle: b.templateName });
+      const it = mk('block', `${key}~${b.blockId}`, b.title, b.startMin, b.endMin - b.startMin, { ...b, dateKey: key, pinned: !!b.fixed }, { icon: b.icon, color: b.color, subtitle: b.templateName });
       if (it) out.push(it);
     }
   }

@@ -60,7 +60,7 @@ const dupE = [
 check(T.dedupeMirrors(dupE).map((i) => `${i.kind}:${i.title}`).join() === 'calendar:Social Media time,biblely:5th Prayer', 'EyeCandy: the iPhone event wins over Biblely\'s mirror of the same reminder');
 check(/applyTakeover\(dedupeMirrors\(out\)\)/.test(src('utils/dayItems.js')) && /applyTakeover\(dedupeMirrors\(out\)\)/.test(fs.readFileSync(path.join(root, '..', '..', '..', 'eyecandy', 'src', 'utils', 'dayItems.js'), 'utf8')), 'both loaders dedupe then take over');
 check(/if \(b\.source\) \{ fromCalendar\.push\(b\); continue; \}/.test(src('utils/dayItems.js')) && /templateBlock: \{ blockId: b\.blockId/.test(src('utils/dayItems.js')), 'Biblely loader: a calendar-backed block tags the matching event, else shows the block');
-check(/if \(b\.source\) continue;/.test(src('services/calendarSync.js')), 'calendar mirror never writes a calendar-backed block (no duplicate event)');
+check(!/if \(b\.source\)[^\n]*continue;/.test(src('services/calendarSync.js')) && /Calendar-backed blocks mirror like any other/.test(src('services/calendarSync.js')), 'calendar mirror writes calendar-backed blocks too (Biblely owns the day plan in the Calendar app)');
 check(/ev\.source = 'block'; else push\(out, b\.title/.test(src('utils/dayBusy.js')), 'busy lists: the event counts as the block');
 check(/From your Calendar/.test(src('screens/DayTemplatesScreen.js')) && /recurrenceRule/.test(src('screens/DayTemplatesScreen.js')) && /source: \{ kind: 'calendar', title: e\.title/.test(src('screens/DayTemplatesScreen.js')), 'template editor offers repeating events from the user\'s other calendars as blocks');
 

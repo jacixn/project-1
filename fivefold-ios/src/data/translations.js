@@ -23,7 +23,7 @@ export const translations = {
         description: 'Never miss a prayer with customizable reminders and tracking'
       },
       friendChat: {
-        title: 'Friend Chat',
+        title: 'Guide',
         description: 'Get biblical wisdom and guidance whenever you need it'
       }
     },

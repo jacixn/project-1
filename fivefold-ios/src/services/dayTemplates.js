@@ -87,6 +87,9 @@ export const useTemplateOn = async (dateKey, templateId, { everyWeek = false, do
   return savePlan(plan);
 };
 export const clearWeekday = async (dow) => savePlan(withWeekdayTemplate(await getPlan(), dow, null));
+// Standing weekday rule ("Work Remote every Monday") without touching any
+// date's own choice: single-date overrides keep beating the rule.
+export const setWeekdayRule = async (dow, templateId) => savePlan(withWeekdayTemplate(await getPlan(), dow, templateId));
 
 // Per-day exceptions (Move panel, planner, Calendar adoption).
 export const moveBlockForDay = async (dateKey, blockId, { startMin, endMin }) =>

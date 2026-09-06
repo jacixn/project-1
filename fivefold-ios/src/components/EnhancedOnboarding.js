@@ -81,7 +81,7 @@ const EnhancedOnboarding = ({ onComplete }) => {
       features: [
         { icon: 'flash', text: 'Smart Tasks & Goals' },
         { icon: 'time', text: 'Prayer Time Tracking' },
-        { icon: 'chatbubbles', text: 'Friend Chat Support' },
+        { icon: 'chatbubbles', text: 'Guide' },
       ]
     },
     {

@@ -262,8 +262,12 @@ export const completeReminder = async (id, dateStr) => {
     if (!reminders[idx].completions) reminders[idx].completions = {};
     reminders[idx].completions[dateStr] = true;
     await persist(reminders);
-    // Completing it stops any relentless escalation pings still queued for today
-    notificationService.cancelItemEscalation({ type: 'user_reminder', reminderId: id }).catch(() => {});
+    // Completing TODAY's occurrence stops any relentless escalation pings
+    // still queued; ticking off a past day (Reminders can page back now)
+    // must leave today's pings alone.
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (dateStr === todayKey) notificationService.cancelItemEscalation({ type: 'user_reminder', reminderId: id }).catch(() => {});
   } catch (e) {
     console.error('[Reminders] completeReminder failed:', e);
   }

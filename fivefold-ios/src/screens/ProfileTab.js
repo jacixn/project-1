@@ -2479,8 +2479,8 @@ const ProfileTab = () => {
         setUploadCooldownKey(prev => prev + 1);
         hapticFeedback.error();
         const tail = cooledDown
-          ? "You've reached the limit. You can try again in 24 hours."
-          : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before a 24-hour cooldown.`;
+          ? "You've reached the limit. You cannot try again until midnight."
+          : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before a cooldown that lasts until midnight.`;
         Alert.alert(
           'Image Not Accepted',
           `${reason}\n\n${tail}`,
@@ -5574,7 +5574,7 @@ const ProfileTab = () => {
                             } else if (error.message === 'PASSWORD_REQUIRED') {
                               Alert.alert('Password Required', 'Please enter your password to delete your account.');
                             } else if (error.message === 'NO_EMAIL') {
-                              Alert.alert('Cannot Delete', 'This account was created with a social login. Please contact support to delete your account.');
+                              Alert.alert('Cannot Delete', 'This account has no password set. Please contact support to delete it.');
                             } else if (error.message === 'TOO_MANY_ATTEMPTS') {
                               Alert.alert('Too Many Attempts', 'You have tried too many times. Please wait a few minutes and try again.');
                             } else {

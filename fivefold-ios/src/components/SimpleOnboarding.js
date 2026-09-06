@@ -270,7 +270,6 @@ const CountrySearchScreen = React.memo(({
                   setSelectedCountry(country);
                 }}
               >
-                <Text style={{ fontSize: 24, marginRight: 12 }}>{country.flag}</Text>
                 <Text style={[
                   { flex: 1, fontSize: 16 },
                   isSelected && { color: screenTheme.accent, fontWeight: '600' }
@@ -338,7 +337,7 @@ const SCREEN_THEMES = {
   notifications: { bg: '#E0F2F1', accent: '#00695C' },    // Teal
   verifyEmail: { bg: '#EDE7F6', accent: '#6C63FF' },      // Soft purple - trust/verify
   setup2FA: { bg: '#E0F2F1', accent: '#00796B' },         // Teal - security
-  referral: { bg: '#FFF3E0', accent: '#E65100' },         // Warm orange - community/sharing
+  referral: { bg: '#FFF3E0', accent: '#E65100' },         // Warm orange - referral credit
   howFound: { bg: '#EDE7F6', accent: '#5E35B1' },         // Purple
   gift: { bg: '#FCE4EC', accent: '#AD1457' },             // Pink
   rate: { bg: '#FFF8E1', accent: '#FFB300' },             // Amber - rating stars
@@ -348,26 +347,26 @@ const SCREEN_THEMES = {
 
 // Available languages
 const LANGUAGES = [
-  { id: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸', available: true },
-  { id: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', available: false },
-  { id: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', available: false },
-  { id: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', available: false },
-  { id: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇧🇷', available: false },
-  { id: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹', available: false },
-  { id: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳', available: false },
-  { id: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', available: false },
-  { id: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', available: false },
-  { id: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', available: false },
-  { id: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', available: false },
-  { id: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺', available: false },
-  { id: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱', available: false },
-  { id: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱', available: false },
-  { id: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷', available: false },
-  { id: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳', available: false },
-  { id: 'th', name: 'Thai', nativeName: 'ไทย', flag: '🇹🇭', available: false },
-  { id: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flag: '🇮🇩', available: false },
-  { id: 'fil', name: 'Filipino', nativeName: 'Filipino', flag: '🇵🇭', available: false },
-  { id: 'sw', name: 'Swahili', nativeName: 'Kiswahili', flag: '🇰🇪', available: false },
+  { id: 'en', name: 'English', nativeName: 'English', available: true },
+  { id: 'es', name: 'Spanish', nativeName: 'Español', available: false },
+  { id: 'fr', name: 'French', nativeName: 'Français', available: false },
+  { id: 'de', name: 'German', nativeName: 'Deutsch', available: false },
+  { id: 'pt', name: 'Portuguese', nativeName: 'Português', available: false },
+  { id: 'it', name: 'Italian', nativeName: 'Italiano', available: false },
+  { id: 'zh', name: 'Chinese', nativeName: '中文', available: false },
+  { id: 'ko', name: 'Korean', nativeName: '한국어', available: false },
+  { id: 'ja', name: 'Japanese', nativeName: '日本語', available: false },
+  { id: 'ar', name: 'Arabic', nativeName: 'العربية', available: false },
+  { id: 'hi', name: 'Hindi', nativeName: 'हिन्दी', available: false },
+  { id: 'ru', name: 'Russian', nativeName: 'Русский', available: false },
+  { id: 'nl', name: 'Dutch', nativeName: 'Nederlands', available: false },
+  { id: 'pl', name: 'Polish', nativeName: 'Polski', available: false },
+  { id: 'tr', name: 'Turkish', nativeName: 'Türkçe', available: false },
+  { id: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', available: false },
+  { id: 'th', name: 'Thai', nativeName: 'ไทย', available: false },
+  { id: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', available: false },
+  { id: 'fil', name: 'Filipino', nativeName: 'Filipino', available: false },
+  { id: 'sw', name: 'Swahili', nativeName: 'Kiswahili', available: false },
 ];
 
 // Pain point options (like Bread's "What's on your mind?")
@@ -847,7 +846,7 @@ const SimpleOnboarding = ({ onComplete }) => {
   const totalScreens = screens.length;
   const progress = (currentScreen + 1) / totalScreens;
 
-  // No cross-fade — the fade animation itself was being perceived as a flash.
+  // No cross-fade: the fade animation itself was being perceived as a flash.
   // Parent View bg matches the current screen so any unmount/remount frame
   // paints the destination color instead of a transparent default.
   const currentScreenName = screens[currentScreen];
@@ -898,12 +897,12 @@ const SimpleOnboarding = ({ onComplete }) => {
 
       if (!approved) {
         setSelectedAvatar(previousAvatar);
-        let tail = 'You can try uploading a different photo in 24 hours.';
+        let tail = 'You can try uploading a different photo tomorrow.';
         if (user?.uid) {
           const { cooledDown, remaining } = await recordRejection(user.uid);
           tail = cooledDown
-            ? "You've reached the limit. You can try again in 24 hours."
-            : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before a 24-hour cooldown.`;
+            ? "You've reached the limit. You can try again tomorrow (the cooldown ends at midnight)."
+            : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before you have to wait until tomorrow.`;
         }
         hapticFeedback.error();
         Alert.alert(
@@ -1047,7 +1046,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     steps.push({ id: 'profile', label: `Setting up your profile${userName ? `, ${userName.trim()}` : ''}...`, icon: 'person', done: false });
     
     if (selectedCountry) {
-      steps.push({ id: 'country', label: `Setting location to ${selectedCountry.flag || ''} ${selectedCountry.name}...`, icon: 'public', done: false });
+      steps.push({ id: 'country', label: `Setting location to ${selectedCountry.name}...`, icon: 'public', done: false });
     }
     
     steps.push({ id: 'bible', label: `Setting Bible to ${selectedBibleVersion?.toUpperCase() || 'NIV'}...`, icon: 'menu-book', done: false });
@@ -1240,7 +1239,6 @@ const SimpleOnboarding = ({ onComplete }) => {
   const HOLD_DURATION_MS = 7000;
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
-  const [giftDisplayEmoji, setGiftDisplayEmoji] = useState('🎁');
   const holdTimerRef = useRef(null);
   const holdIntervalRef = useRef(null);
   const burstTimeoutsRef = useRef([]);
@@ -1265,7 +1263,6 @@ const SimpleOnboarding = ({ onComplete }) => {
 
     setIsHolding(true);
     setHoldProgress(0);
-    setGiftDisplayEmoji('🎁');
     giftScaleAnim.setValue(1);
     giftRotateAnim.setValue(0);
 
@@ -1278,7 +1275,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       useNativeDriver: true,
     }).start();
 
-    // Continuous wobble (intensifies via shake amplitude — see below)
+    // Continuous wobble (intensifies via shake amplitude, see below)
     Animated.loop(
       Animated.sequence([
         Animated.timing(giftShakeAnim, { toValue: 4, duration: 120, useNativeDriver: true }),
@@ -1295,7 +1292,7 @@ const SimpleOnboarding = ({ onComplete }) => {
     const tiers = [
       { interval: 850, fn: hapticFeedback.light },   // 0–30%   calm
       { interval: 420, fn: hapticFeedback.medium },  // 30–60%  building
-      { interval: 200, fn: hapticFeedback.medium },  // 60–85%  urgent (medium, not heavy — heavy at high freq feels mushy)
+      { interval: 200, fn: hapticFeedback.medium },  // 60-85%  urgent (medium, not heavy: heavy at high freq feels mushy)
       { interval: 110, fn: hapticFeedback.heavy },   // 85–100% crescendo (~9 Hz, within JS-bridge headroom)
     ];
     const TICK_MS = 50; // decoupled from progress; just for sampling
@@ -1327,7 +1324,7 @@ const SimpleOnboarding = ({ onComplete }) => {
         try { hapticFeedback.heavy?.(); } catch (e) {}
         burstTimeoutsRef.current.push(setTimeout(() => { try { hapticFeedback.success?.(); } catch (e) {} }, 180));
 
-        // "Open" animation — gift pops, no emoji swap
+        // "Open" animation: gift pops, no icon swap
         Animated.parallel([
           Animated.sequence([
             Animated.timing(giftScaleAnim, { toValue: 3.6, duration: 220, useNativeDriver: true }),
@@ -1373,7 +1370,6 @@ const SimpleOnboarding = ({ onComplete }) => {
     giftRotateAnim.stopAnimation();
     setIsHolding(false);
     setHoldProgress(0);
-    setGiftDisplayEmoji('🎁');
     giftScaleAnim.setValue(1);
     giftShakeAnim.setValue(0);
     giftRotateAnim.setValue(0);
@@ -1562,8 +1558,6 @@ const SimpleOnboarding = ({ onComplete }) => {
                   disabled={!isAvailable}
                   activeOpacity={isAvailable ? 0.7 : 1}
                 >
-                  <Text style={{ fontSize: 28, marginRight: 14 }}>{lang.flag}</Text>
-                  
                   <View style={{ flex: 1 }}>
                     <Text style={{ 
                       fontSize: 17, 
@@ -2038,7 +2032,7 @@ const SimpleOnboarding = ({ onComplete }) => {
             <Text style={styles.motivationText}>
               "Do you not know that your bodies are temples of the Holy Spirit?"
             </Text>
-            <Text style={styles.motivationRef}>— 1 Corinthians 6:19</Text>
+            <Text style={styles.motivationRef}>1 Corinthians 6:19</Text>
           </View>
         </ScrollView>
         
@@ -2109,7 +2103,7 @@ const SimpleOnboarding = ({ onComplete }) => {
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Eligibility</Text>
             <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
-              You must be at least 12 years old to use this app. If you are under 18, you confirm you have parental or guardian consent.
+              You must be at least 13 years old to use this app (or older if the law where you live sets a higher age). If you are under 18, you confirm you have parental or guardian consent.
             </Text>
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Your Account</Text>
@@ -2119,7 +2113,7 @@ const SimpleOnboarding = ({ onComplete }) => {
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Acceptable Use</Text>
             <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
-              You agree not to post offensive, hateful, or inappropriate content. You will not harass other users. Violation may result in account suspension.
+              You agree to use Biblely lawfully and to keep your username, display name and profile photo free of offensive, hateful, or inappropriate content. Violation may result in account suspension.
             </Text>
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Automated Features</Text>
@@ -2134,7 +2128,7 @@ const SimpleOnboarding = ({ onComplete }) => {
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Content</Text>
             <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
-              Bible translations are provided for personal, non-commercial use only. User-generated content is moderated with profanity filtering and user reporting. We reserve the right to remove content that violates our guidelines.
+              Bible translations are provided for personal, non-commercial use only. Usernames and display names are checked with a profanity filter, and custom profile photos are checked automatically. We reserve the right to remove any that violate these terms.
             </Text>
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Limitation of Liability</Text>
@@ -2154,7 +2148,7 @@ const SimpleOnboarding = ({ onComplete }) => {
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Data We Collect</Text>
             <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
-              Account info (email, name, username, profile photo), prayers, journal entries, workout logs, nutrition data (food logs, calories, macros), body profile (height, weight, age), tasks, saved verses, messages, and push notification tokens.
+              Account info (email, name, username, profile photo), prayers, journal entries, workout logs, nutrition data (food logs, calories, macros), body profile (height, weight, age), tasks, saved verses, chat messages with Guide and Coach, and push notification tokens.
             </Text>
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>How Your Data Is Used</Text>
@@ -2164,7 +2158,7 @@ const SimpleOnboarding = ({ onComplete }) => {
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Third-Party Services</Text>
             <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
-              We use Google Firebase (cloud database, authentication), Apple iCloud (sync), and external services for automated analysis. Some data, including health and fitness information, may be processed by servers located outside your country, including in China (DeepSeek) and the United States (Google, Firebase). Data sent for analysis is processed and not permanently stored by these services.
+              We use Google Firebase (cloud database, authentication, file storage), Apple iCloud (sync), and AI providers (Groq, Cerebras, SambaNova, DeepSeek, OpenRouter, Mistral AI and Google Gemini) for chat, voice input and automated analysis. Voice recordings may also go to Google Cloud Speech-to-Text. Google Cloud Text-to-Speech, OCR.space, Open Food Facts, Open-Meteo, Resend, Expo and GitHub are also used as described in the full Privacy Policy. Some data, including health and fitness information, may be processed by servers located outside your country, including in the United States (Google, Firebase) and China (DeepSeek). Apart from Guide chat history, which is saved to your account so it syncs across devices, we do not keep copies of the requests sent for analysis.
             </Text>
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Data Storage & Retention</Text>
@@ -3059,7 +3053,7 @@ const SimpleOnboarding = ({ onComplete }) => {
             {[
               { icon: 'mail-outline', text: 'Verification code sent to your email' },
               { icon: 'lock-outline', text: 'Protects against unauthorised access' },
-              { icon: 'flash-on', text: 'Quick and easy — just 6 digits' },
+              { icon: 'flash-on', text: 'Quick and easy, just 6 digits' },
             ].map((item, i) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={{
@@ -3197,7 +3191,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               marginBottom: 40,
               paddingHorizontal: 8,
             }}>
-              @{referralUsername.toLowerCase().trim()} has been credited as the person who referred you.
+              @{referralUsername.toLowerCase().trim()} has been credited for referring you.
             </Text>
             
             <TouchableOpacity
@@ -3240,7 +3234,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               alignItems: 'center',
               marginBottom: 24,
             }}>
-              <MaterialIcons name="people" size={36} color={screenTheme.accent} />
+              <MaterialIcons name="redeem" size={36} color={screenTheme.accent} />
             </View>
             
             <Text style={{
@@ -3261,7 +3255,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               marginBottom: 12,
               paddingHorizontal: 8,
             }}>
-              If a friend told you about Biblely, enter their username below to give them credit.
+              If someone told you about Biblely, enter their Biblely username below to give them credit.
             </Text>
             
             <Text style={{
@@ -3272,7 +3266,7 @@ const SimpleOnboarding = ({ onComplete }) => {
               marginBottom: 32,
               paddingHorizontal: 16,
             }}>
-              This is optional — you can always do this later in your profile.
+              This is optional. You can always do this later in Settings.
             </Text>
             
             {/* Username Input */}
@@ -3374,7 +3368,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                 <ActivityIndicator color="#FFF" />
               ) : (
                 <>
-                  <MaterialIcons name="person-add" size={20} color="#FFF" />
+                  <MaterialIcons name="check" size={20} color="#FFF" />
                   <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFF' }}>Submit Referral</Text>
                 </>
               )}
@@ -3717,7 +3711,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       }
     };
     
-    // Price breakdown in USD — anchored to comparable subscription tiers
+    // Price breakdown in USD, anchored to comparable subscription tiers
     // (AI chat ≈ ChatGPT Plus, audio ≈ Audible, fitness ≈ MyFitnessPal Premium).
     const basePrices = [
       { feature: 'Smart Bible Companion', usd: 12.99 },
@@ -3774,13 +3768,13 @@ const SimpleOnboarding = ({ onComplete }) => {
                 ],
               }}>
                 <View style={styles.giftBox}>
-                  <Text style={styles.giftEmoji}>{giftDisplayEmoji}</Text>
+                  <MaterialIcons name="redeem" size={120} color={screenTheme.accent} />
                 </View>
               </Animated.View>
             </TouchableOpacity>
             </View>
 
-            {/* Hold instruction & progress — sibling of content so the
+            {/* Hold instruction & progress, sibling of content so the
                 growing gift doesn't overlap it */}
             <View style={styles.holdInstructionContainer}>
               {!isHolding ? (
@@ -3886,7 +3880,7 @@ const SimpleOnboarding = ({ onComplete }) => {
                 </View>
               </Animated.View>
           </ScrollView>
-            {/* Falling confetti — on TOP of everything */}
+            {/* Falling confetti, on TOP of everything */}
             <GlitterOverlay />
           </View>
         )}
@@ -4077,7 +4071,7 @@ const SimpleOnboarding = ({ onComplete }) => {
       { icon: 'task-alt', label: 'Smart tasks & goals' },
       { icon: 'favorite', label: 'Prayer tracking' },
       { icon: 'restaurant', label: 'Nutrition tracker' },
-      { icon: 'people', label: 'Community & friends' },
+      { icon: 'event-available', label: 'Habits & reminders' },
     ];
     
     return (
@@ -4115,7 +4109,7 @@ const SimpleOnboarding = ({ onComplete }) => {
           
           <Text style={styles.completeVerse}>
             "For I know the plans I have for you..."{'\n'}
-            <Text style={styles.completeVerseRef}>— Jeremiah 29:11</Text>
+            <Text style={styles.completeVerseRef}>Jeremiah 29:11</Text>
           </Text>
         </ScrollView>
         
@@ -5172,9 +5166,6 @@ const styles = StyleSheet.create({
   },
   giftBox: {
     alignItems: 'center',
-  },
-  giftEmoji: {
-    fontSize: 120,
   },
   giftTapText: {
     fontSize: 16,

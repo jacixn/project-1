@@ -258,16 +258,27 @@ export async function updateMyWeekWidget() {
   try {
     const { loadDayItems, KINDS } = require('./dayItems');
     const { getTemplateDayFor } = require('../services/dayTemplates');
+    // Forecast per day for the widget header (null when no city is set).
+    let wxByDay = {};
+    let shortWx = () => null;
+    try {
+      const weather = require('../services/weather');
+      shortWx = weather.shortLineForDay;
+      const w = await weather.getWeek();
+      wxByDay = (w && w.byDay) || {};
+    } catch {}
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const days = [];
     for (let i = 0; i < 3; i++) {
       const d = new Date(today.getTime() + i * 86400000);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       let items = [];
       try { items = await loadDayItems(d); } catch {}
       let template = null;
       try { const td = await getTemplateDayFor(d); template = td && td.template ? td.template.name : null; } catch {}
       days.push({
-        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        key,
+        weather: shortWx(wxByDay[key]) || null,
         weekday: WEEKDAYS[d.getDay()],
         day: d.getDate(),
         month: MONTHS[d.getMonth()],

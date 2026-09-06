@@ -22,7 +22,8 @@ import { loadReminderPresets, addReminder } from '../services/reminderService';
 import WorkoutService from '../services/workoutService';
 import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
 import { addPrayer } from '../services/simplePrayersService';
-import { getTemplates as getDayTemplates, getPlan as getDayPlan, useTemplateOn, clearWeekday, DAY_PLAN_CHANGED } from '../services/dayTemplates';
+import { getTemplates as getDayTemplates, getPlan as getDayPlan, useTemplateOn, clearWeekday, setWeekdayRule, DAY_PLAN_CHANGED } from '../services/dayTemplates';
+import { getWeek as getWeather, getPlace as getWeatherPlace, setPlaceByName as setWeatherPlace, lineForDay as weatherLine } from '../services/weather';
 import { templateForDay, templateIdForDay, templateSummary, freeMinutes, blocksForDay, hideGroupsFor } from '../utils/dayTemplates';
 import { GROUP_LABELS } from '../utils/takeover';
 import { DeviceEventEmitter as Emitter } from 'react-native';
@@ -491,6 +492,32 @@ const MyWeekScreen = ({ navigation }) => {
   };
   const closeAdd = () => { setAddOpen(false); setAddPick(null); };
 
+  // Weather: 7-day forecast for the user's typed city (Open-Meteo, no key).
+  const [wx, setWx] = useState(null); // { place, byDay } | null (no city yet)
+  const loadWeather = useCallback(async () => { try { setWx(await getWeather()); } catch {} }, []);
+  useEffect(() => { loadWeather(); }, [loadWeather]);
+  const askCity = () => {
+    Alert.prompt('Your city', 'The forecast shows on every day of My Week.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Save', onPress: async (q) => {
+        try {
+          const p = await setWeatherPlace(q);
+          if (!p) { Alert.alert('Could not find that place', 'Check the spelling and try again.'); return; }
+          loadWeather();
+        } catch { Alert.alert('No connection', 'Could not look that place up right now.'); }
+      } },
+    ], 'plain-text');
+  };
+  const onWeatherTap = async () => {
+    hapticFeedback.light();
+    const place = await getWeatherPlace().catch(() => null);
+    if (!place) { askCity(); return; }
+    Alert.alert(place.name, 'Forecast for this place.', [
+      { text: 'Change city', onPress: askCity },
+      { text: 'OK', style: 'cancel' },
+    ]);
+  };
+
   // Day templates: the day's shape (Work Remote: work 9 to 5:30, meals).
   const [templates, setTemplates] = useState([]);
   const [dayPlan, setDayPlan] = useState(null);
@@ -504,7 +531,6 @@ const MyWeekScreen = ({ navigation }) => {
   const anchorKey = dateKeyOf(anchor);
   const dayTemplate = useMemo(() => templateForDay(templates, dayPlan, anchorKey, anchor.getDay()), [templates, dayPlan, anchorKey, anchor]);
   const weekdayTemplateId = dayPlan?.weekdays?.[String(anchor.getDay())] || null;
-  const weekdayName = anchor.toLocaleDateString('en', { weekday: 'long' });
   const openPlan = () => { hapticFeedback.light(); loadPlan(); setPlanOpen(true); };
   const pickTemplate = async (id) => {
     hapticFeedback.selection();
@@ -516,11 +542,17 @@ const MyWeekScreen = ({ navigation }) => {
       setTimeout(() => setStatus(null), 4000);
     } catch (e) { Alert.alert('Could not set that', e?.message || 'Please try again.'); }
   };
-  const toggleWeekday = async () => {
+  // One chip per weekday: on = this template repeats that day. Toggling the
+  // viewed day's own chip on goes through useTemplateOn so the weekday rule
+  // absorbs today's one-off choice; other days keep their date overrides.
+  const toggleRuleDay = async (d) => {
+    if (!dayTemplate) return;
     hapticFeedback.selection();
     try {
-      if (weekdayTemplateId) await clearWeekday(anchor.getDay());
-      else if (dayTemplate) await useTemplateOn(anchorKey, dayTemplate.id, { everyWeek: true, dow: anchor.getDay() });
+      const current = dayPlan?.weekdays?.[String(d)] || null;
+      if (current === dayTemplate.id) await clearWeekday(d);
+      else if (d === anchor.getDay()) await useTemplateOn(anchorKey, dayTemplate.id, { everyWeek: true, dow: d });
+      else await setWeekdayRule(d, dayTemplate.id);
     } catch {}
   };
   const pickFromLibrary = (item) => { hapticFeedback.selection(); setAddPick(item); setAddRepeat('once'); setAddDays([anchor.getDay()]); };
@@ -844,6 +876,19 @@ const MyWeekScreen = ({ navigation }) => {
         <Text style={[styles.headline, { color: theme.text }]}>{anchor.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'short' })}</Text>
         <Text style={[styles.summary, { color: theme.textSecondary }]}>{loading ? 'Checking every source...' : daySummary(dayItems)}</Text>
 
+        {/* Weather line: rain first, so a wet commute is never a surprise. */}
+        {(() => {
+          const day = wx && wx.byDay ? wx.byDay[anchorKey] : null;
+          const rainy = !!(day && (day.rainWindow || day.rainPct >= 50));
+          const line = !wx ? 'Add your city for the forecast' : (weatherLine(day) || 'No forecast this far ahead yet');
+          return (
+            <TouchableOpacity onPress={onWeatherTap} style={styles.wxRow} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Weather: ${line}`}>
+              <MaterialIcons name={day ? day.icon : 'wb-cloudy'} size={16} color={rainy ? '#5AC8FA' : theme.textSecondary} />
+              <Text style={[styles.wxText, { color: rainy ? theme.text : theme.textSecondary }]}>{line}</Text>
+            </TouchableOpacity>
+          );
+        })()}
+
         {/* Day template: the shape of the day. Tap to pick or change it. */}
         <TouchableOpacity onPress={openPlan} style={styles.planRow} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={dayTemplate ? `${dayTemplate.name} day, change the day template` : 'Plan this day with a template'}>
           <MaterialIcons name="schedule" size={18} color={KINDS.block.color} />
@@ -1116,11 +1161,22 @@ const MyWeekScreen = ({ navigation }) => {
             </TouchableOpacity>
           </ScrollView>
           {dayTemplate ? (
-            <TouchableOpacity onPress={toggleWeekday} style={[styles.pinRow, { backgroundColor: tile, marginTop: 0 }]} activeOpacity={0.7} accessibilityRole="switch" accessibilityState={{ checked: !!weekdayTemplateId }}>
-              <MaterialIcons name="repeat" size={18} color={weekdayTemplateId ? KINDS.block.color : theme.textSecondary} />
-              <Text style={[styles.pinText, { color: theme.text }]}>{weekdayTemplateId ? `Every ${weekdayName} is a ${templates.find((t) => t.id === weekdayTemplateId)?.name || dayTemplate.name} day` : `Use ${dayTemplate.name} every ${weekdayName}`}</Text>
-              <Text style={[styles.pinState, { color: weekdayTemplateId ? KINDS.block.color : theme.textSecondary }]}>{weekdayTemplateId ? 'On' : 'Off'}</Text>
-            </TouchableOpacity>
+            <View style={[styles.ruleBox, { backgroundColor: tile }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <MaterialIcons name="repeat" size={18} color={weekdayTemplateId === dayTemplate.id ? KINDS.block.color : theme.textSecondary} />
+                <Text style={[styles.pinText, { color: theme.text }]}>{`${dayTemplate.name} repeats every`}</Text>
+              </View>
+              <View style={styles.addDays}>
+                {DAY_LETTERS_SUN.map((l, d) => {
+                  const on = (dayPlan?.weekdays?.[String(d)] || null) === dayTemplate.id;
+                  return (
+                    <TouchableOpacity key={d} onPress={() => toggleRuleDay(d)} style={[styles.addDay, styles.ruleDay, { backgroundColor: on ? KINDS.block.color : theme.background }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`Repeat every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d]}`}>
+                      <Text style={[styles.addDayText, { color: on ? '#fff' : theme.textSecondary, fontSize: 14 }]}>{l}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           ) : null}
           <TouchableOpacity onPress={() => { hapticFeedback.light(); setPlanOpen(false); navigation.navigate('DayTemplates'); }} style={[styles.saveBtn, { backgroundColor: KINDS.block.color, marginTop: 12, marginBottom: Math.max(insets.bottom, 12) }]} activeOpacity={0.8} accessibilityRole="button">
             <MaterialIcons name="edit" size={20} color="#fff" />
@@ -1334,6 +1390,8 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 13, fontWeight: '600' },
   headline: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginTop: 2 },
   summary: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+  wxRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  wxText: { fontSize: 13, fontWeight: '700', flexShrink: 1 },
   chipsScroll: { marginHorizontal: -20, marginTop: 8 },
   chipsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   chip: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 12, borderRadius: 12 },
@@ -1448,6 +1506,8 @@ const styles = StyleSheet.create({
   saveBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
   removeBtn: { alignItems: 'center', justifyContent: 'center', height: 40, marginTop: -6, marginBottom: 2 },
   pinRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, borderRadius: 12, paddingHorizontal: 12, marginTop: 10 },
+  ruleBox: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  ruleDay: { height: 36, borderRadius: 10 },
   pinText: { flex: 1, fontSize: 14, fontWeight: '700' },
   pinState: { fontSize: 13, fontWeight: '800' },
   fitAltBtn: { alignSelf: 'flex-start', paddingLeft: 14, paddingBottom: 6, marginTop: -4 },
