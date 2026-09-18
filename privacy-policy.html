@@ -18,7 +18,7 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p class="date">Last updated: September 5, 2026</p>
+  <p class="date">Last updated: September 19, 2026</p>
 
   <p>Biblely, developed and operated by Jason ("we", "our", or "the app"), is a faith, fitness, and productivity companion for iPhone, available at <a href="https://biblely.uk">biblely.uk</a>. Your privacy matters to us. This policy explains what data the app handles, where it goes, who we share it with, and your rights.</p>
   <p>Biblely has no social features. There is no feed, no friends list, no messaging between users, and no leaderboard. Nothing you create in the app is shown to other users.</p>
@@ -68,7 +68,7 @@
   <h3>1.7 Photos and Camera</h3>
   <p>If you choose to use the camera or photo library, images are used as follows:</p>
   <ul>
-    <li><strong>Profile photo:</strong> if your email is verified, you can upload a custom photo. It is first sent to Google Gemini for automated content moderation (nudity, violence, hate symbols, and similar). If it passes, it is uploaded to Firebase Storage and the link is saved in your profile. If it fails, nothing is stored and you are told why. You get three attempts. After a third rejected photo, and after each accepted upload, you cannot upload another custom photo until the following day (the cooldown ends at midnight). Rejected photos are not stored.</li>
+    <li><strong>Profile photo:</strong> if your email is verified, you can upload a custom photo. It is uploaded to Firebase Storage exactly as you chose it and the link is saved in your profile. It is not sent to any AI service and is not scanned or analysed.</li>
     <li><strong>Food photos:</strong> sent to Google Gemini to estimate calories and macronutrients. We do not store them on our servers. If you type a food name instead of taking a photo, that text is sent to Google Gemini to estimate its nutrition.</li>
     <li><strong>Gym photos in the Coach chat:</strong> sent to Google Gemini for analysis. The text description Gemini returns is then sent to the text AI providers in Section 4.3 to write the Coach's reply. We do not store the photo on our servers.</li>
     <li><strong>Photos of text in the Guide chat:</strong> sent to OCR.space to extract the words, which are then sent to the text AI providers.</li>
@@ -157,7 +157,7 @@
   <p><strong>Important:</strong> DeepSeek is operated by a company based in the People's Republic of China. Text sent to DeepSeek may be processed on servers in China. By using AI features you acknowledge that your request may be handled by any provider in this list.</p>
 
   <h3>4.4 Google Gemini (Images)</h3>
-  <p>Used for food photo nutrition estimates, Coach gym photo analysis, and custom profile photo moderation. Only the photo and a fixed analysis instruction are sent to Google; any caption you type is sent to the text providers in Section 4.3 together with Gemini's description. If you type a food name instead of taking a photo, that text is sent to Google Gemini to estimate its nutrition. We do not store these photos on our servers. Google handles them under its privacy policy and the Gemini API terms linked above.</p>
+  <p>Used for food photo nutrition estimates and Coach gym photo analysis. Profile photos are never sent to Gemini. Only the photo and a fixed analysis instruction are sent to Google; any caption you type is sent to the text providers in Section 4.3 together with Gemini's description. If you type a food name instead of taking a photo, that text is sent to Google Gemini to estimate its nutrition. We do not store these photos on our servers. Google handles them under its privacy policy and the Gemini API terms linked above.</p>
 
   <h3>4.5 Speech-to-Text</h3>
   <p>When you use the microphone in the Guide or Coach chat, the app records a short audio clip and sends it to the first available provider in this order: Groq (Whisper), Mistral AI (Voxtral), Google Gemini, then Google Cloud Speech-to-Text. The provider returns the transcript, which is then sent to the text providers in Section 4.3 as your message. The audio clip is not kept by us. Each provider handles the audio under its own policy (see the links in Section 4.3 and <a href="https://cloud.google.com/speech-to-text/docs/data-logging">Google Cloud Speech-to-Text data logging</a>).</p>

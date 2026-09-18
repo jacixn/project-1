@@ -58,7 +58,6 @@ import AchievementsModal from '../components/AchievementsModal';
 import AvatarDisplay from '../components/AvatarDisplay';
 import AvatarPicker from '../components/AvatarPicker';
 import * as ImagePicker from 'expo-image-picker';
-import { moderateProfileImage, setUploadCooldown, clearUploadCooldown, recordRejection, resetRejectionCount, cacheCustomPhoto, abandonCachedPhoto, restoreCachedPhoto } from '../services/profileImageModeration';
 import { uploadProfilePicture } from '../services/storageService';
 import NotificationSettings from '../components/NotificationSettings';
 import calendarSync from '../services/calendarSync';
@@ -295,8 +294,7 @@ const ProfileTab = () => {
       setProfilePictureRaw(uri);
     }
   }, []);
-  const [uploadCooldownKey, setUploadCooldownKey] = useState(0);
-  // null | 'analyzing' | 'uploading' — drives the profile-picture progress overlay
+  // null | 'uploading', drives the profile-picture progress overlay
   const [photoUploadStatus, setPhotoUploadStatus] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -2143,20 +2141,8 @@ console.warn('Error checking email verification:', e?.message || e);
   const handleAvatarSelected = async (avatarId) => {
     try {
       const value = avatarId || '';
-      const oldValue = profilePicture || '';
-      const isOldCustom = oldValue.startsWith('http://') || oldValue.startsWith('https://');
-      const isNewCustom = value.startsWith('http://') || value.startsWith('https://');
-
-      if (isOldCustom && !isNewCustom && user?.uid) {
-        await abandonCachedPhoto(user.uid).catch(() => {});
-      }
-
-      if (isNewCustom && user?.uid) {
-        await restoreCachedPhoto(user.uid).catch(() => {});
-      }
 
       setProfilePicture(value);
-      setUploadCooldownKey(prev => prev + 1);
       hapticFeedback.buttonPress();
 
       if (user) {
@@ -2191,6 +2177,8 @@ console.warn('Error checking email verification:', e?.message || e);
     }
   };
 
+  const UPLOAD_TIMEOUT_MS = 45 * 1000;
+  const UPLOAD_TIMED_OUT = 'profile_upload_timed_out';
   const handleUploadPhoto = async () => {
     try {
       const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -2211,31 +2199,26 @@ console.warn('Error checking email verification:', e?.message || e);
       const uri = pickerResult.assets[0].uri;
       const previousPicture = profilePicture;
 
+      // The photo goes straight to storage. It is never sent to an AI
+      // service or scanned: the user's picture is theirs to choose.
       setProfilePicture(uri);
-      setPhotoUploadStatus('analyzing');
-
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      const { approved, reason } = await moderateProfileImage(base64);
-
-      if (!approved) {
-        setPhotoUploadStatus(null);
-        setProfilePicture(previousPicture);
-        const { cooledDown, remaining } = await recordRejection(user.uid);
-        setUploadCooldownKey(prev => prev + 1);
-        hapticFeedback.error();
-        const tail = cooledDown
-          ? "You've reached the limit. You cannot try again until midnight."
-          : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before a cooldown that lasts until midnight.`;
-        Alert.alert(
-          'Image Not Accepted',
-          `${reason}\n\n${tail}`,
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
       setPhotoUploadStatus('uploading');
-      const downloadURL = await uploadProfilePicture(user.uid, uri);
+      // Firebase Storage retries a dead connection for up to ten minutes
+      // before it gives up, which would pin the overlay on screen with no
+      // way out. Cap the wait so an offline user gets told quickly.
+      let timer;
+      const timeout = new Promise((_, fail) => { timer = setTimeout(() => fail(new Error(UPLOAD_TIMED_OUT)), UPLOAD_TIMEOUT_MS); });
+      let downloadURL;
+      try {
+        downloadURL = await Promise.race([uploadProfilePicture(user.uid, uri), timeout]);
+      } catch (uploadError) {
+        // Put the old avatar back so a local file uri never lingers as
+        // the shown picture after a failed upload.
+        setProfilePicture(previousPicture);
+        throw uploadError;
+      } finally {
+        clearTimeout(timer);
+      }
 
       setProfilePicture(downloadURL);
       hapticFeedback.success();
@@ -2266,22 +2249,16 @@ console.warn('Error checking email verification:', e?.message || e);
       await userStorage.setRaw('userProfile', JSON.stringify(profile));
       setUserProfile(profile);
 
-      await cacheCustomPhoto(user.uid, downloadURL);
-      await setUploadCooldown(user.uid);
-      await resetRejectionCount(user.uid);
-      setUploadCooldownKey(prev => prev + 1);
       setPhotoUploadStatus(null);
     } catch (error) {
       console.error('[Upload] Failed:', error);
       setPhotoUploadStatus(null);
-      // Generic error (network, code bug, storage issue) is not a moderation
-      // rejection — don't start a 24h cooldown, and clear any prior cooldown
-      // that was incorrectly set by an earlier failed attempt.
-      if (user?.uid) {
-        await clearUploadCooldown(user.uid);
-      }
-      setUploadCooldownKey(prev => prev + 1);
-      Alert.alert('Upload Failed', 'Something went wrong. Please try again later.');
+      Alert.alert(
+        'Upload Failed',
+        error?.message === UPLOAD_TIMED_OUT
+          ? 'The upload took too long. Check your connection and try again.'
+          : 'Something went wrong. Please try again later.'
+      );
     }
   };
 
@@ -3226,7 +3203,6 @@ console.warn('Error checking email verification:', e?.message || e);
                 displayName={userName}
                 onAvatarSelected={handleAvatarSelected}
                 onUploadPhoto={handleUploadPhoto}
-                cooldownRefreshKey={uploadCooldownKey}
               />
             </View>
 
@@ -3361,7 +3337,7 @@ console.warn('Error checking email verification:', e?.message || e);
             </View>
           </Modal>
 
-          {/* Profile photo analysis/upload progress overlay */}
+          {/* Profile photo upload progress overlay */}
           <Modal visible={photoUploadStatus !== null} transparent animationType="fade">
             <View style={{
               flex: 1,
@@ -3386,7 +3362,7 @@ console.warn('Error checking email verification:', e?.message || e);
                   marginTop: 16,
                   textAlign: 'center',
                 }}>
-                  {photoUploadStatus === 'analyzing' ? 'Analyzing image…' : 'Uploading photo…'}
+                  Uploading photo…
                 </Text>
                 <Text style={{
                   color: theme.textSecondary,
@@ -3394,9 +3370,7 @@ console.warn('Error checking email verification:', e?.message || e);
                   marginTop: 6,
                   textAlign: 'center',
                 }}>
-                  {photoUploadStatus === 'analyzing'
-                    ? 'Checking the photo is safe to use.'
-                    : 'Saving to your profile. Hang tight.'}
+                  Saving to your profile. Hang tight.
                 </Text>
               </View>
             </View>

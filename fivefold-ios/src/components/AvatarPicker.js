@@ -1,17 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
 import { hapticFeedback } from '../utils/haptics';
 import { isEmailVerified } from '../services/authService';
-import { checkUploadCooldown, clearUploadCooldown, getCachedCustomPhoto } from '../services/profileImageModeration';
 import AvatarDisplay, { PRESET_IDS } from './AvatarDisplay';
-
-// One-time clear of cooldowns set by the pre-fix expo-file-system bug.
-// Bumping the version key re-runs this for all users on upgrade.
-const COOLDOWN_BUG_RESET_FLAG = 'pfp_cooldown_bug_reset_v1';
 
 const COLUMNS = 5;
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -22,50 +15,11 @@ const BORDER_SPACE = 8;
 const PARENT_HORIZONTAL_PADDING = 40;
 const AVATAR_SIZE = Math.floor((SCREEN_WIDTH - PARENT_HORIZONTAL_PADDING - GRID_PADDING * 2 - GAP * (COLUMNS - 1) - BORDER_SPACE * COLUMNS) / COLUMNS);
 
-const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPhoto, cooldownRefreshKey }) => {
+// Custom photos go straight from the picker to storage. There is no
+// scan, no cooldown and no attempt counter: the only gate on the
+// upload button is a verified email.
+const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPhoto }) => {
   const { theme } = useTheme();
-  const { user } = useAuth();
-  const [cooldownDate, setCooldownDate] = useState(null);
-  const [checkingCooldown, setCheckingCooldown] = useState(false);
-  const [cachedPhotoUrl, setCachedPhotoUrl] = useState(null);
-
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.uid) return;
-      try {
-        const alreadyReset = await AsyncStorage.getItem(COOLDOWN_BUG_RESET_FLAG);
-        if (alreadyReset !== 'done') {
-          await clearUploadCooldown(user.uid);
-          await AsyncStorage.setItem(COOLDOWN_BUG_RESET_FLAG, 'done');
-        }
-      } catch {}
-      checkCooldown();
-      loadCachedPhoto();
-    };
-    run();
-  }, [user?.uid, cooldownRefreshKey]);
-
-  const checkCooldown = async () => {
-    if (!user?.uid) return;
-    setCheckingCooldown(true);
-    try {
-      const { allowed, retryDate } = await checkUploadCooldown(user.uid);
-      setCooldownDate(allowed ? null : retryDate);
-    } catch (e) {
-      // noop
-    }
-    setCheckingCooldown(false);
-  };
-
-  const loadCachedPhoto = async () => {
-    if (!user?.uid) return;
-    try {
-      const cached = await getCachedCustomPhoto(user.uid);
-      setCachedPhotoUrl(cached?.abandonedAt ? cached.url : null);
-    } catch (e) {
-      // noop
-    }
-  };
 
   const handleSelect = (avatarId) => {
     hapticFeedback.buttonPress();
@@ -82,12 +36,6 @@ const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPh
   const isCustomPhotoSelected = currentAvatar && (currentAvatar.startsWith('http://') || currentAvatar.startsWith('https://'));
 
   const verified = isEmailVerified();
-  const inCooldown = cooldownDate !== null;
-
-  const formatCooldownDate = (date) => {
-    if (!date) return '';
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
 
   const selectedStyle = { borderColor: theme.primary, borderWidth: 2.5 };
 
@@ -112,23 +60,6 @@ const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPh
           </TouchableOpacity>
         )}
 
-        {/* Cached custom photo (abandoned but within 24h grace period) */}
-        {cachedPhotoUrl && cachedPhotoUrl !== currentAvatar && (
-          <TouchableOpacity
-            onPress={() => {
-              hapticFeedback.buttonPress();
-              if (onAvatarSelected) onAvatarSelected(cachedPhotoUrl);
-            }}
-            style={[styles.option, styles.cachedOption]}
-            activeOpacity={0.7}
-          >
-            <AvatarDisplay profilePicture={cachedPhotoUrl} displayName={displayName} size={AVATAR_SIZE} />
-            <View style={styles.cachedBadge}>
-              <MaterialIcons name="history" size={10} color="#FFF" />
-            </View>
-          </TouchableOpacity>
-        )}
-
         {/* 25 image presets */}
         {PRESET_IDS.map((id) => (
           <TouchableOpacity
@@ -149,13 +80,6 @@ const AvatarPicker = ({ currentAvatar, displayName, onAvatarSelected, onUploadPh
             <MaterialIcons name="lock" size={18} color={theme.textSecondary} />
             <Text style={[styles.uploadBannerText, { color: theme.textSecondary }]}>
               Verify your email to upload your own photo
-            </Text>
-          </View>
-        ) : inCooldown ? (
-          <View style={[styles.uploadBanner, { backgroundColor: `${theme.primary}10` }]}>
-            <MaterialIcons name="schedule" size={18} color={theme.textSecondary} />
-            <Text style={[styles.uploadBannerText, { color: theme.textSecondary }]}>
-              You can upload again on {formatCooldownDate(cooldownDate)}
             </Text>
           </View>
         ) : (
@@ -196,20 +120,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
     padding: 2,
-  },
-  cachedOption: {
-    borderColor: 'rgba(99,102,241,0.4)',
-  },
-  cachedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: 'rgba(99,102,241,0.85)',
-    borderRadius: 8,
-    width: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   uploadSection: {
     marginTop: 14,

@@ -26,8 +26,6 @@ import userStorage from '../utils/userStorage';
 import AvatarDisplay from './AvatarDisplay';
 import AvatarPicker from './AvatarPicker';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { moderateProfileImage, setUploadCooldown, recordRejection, resetRejectionCount } from '../services/profileImageModeration';
 import { uploadProfilePicture } from '../services/storageService';
 import * as Notifications from 'expo-notifications';
 import notificationService from '../services/notificationService';
@@ -870,6 +868,8 @@ const SimpleOnboarding = ({ onComplete }) => {
     return () => { cancelled = true; clearTimeout(t); };
   }, [currentScreenName]);
 
+  const UPLOAD_TIMEOUT_MS = 45 * 1000;
+  const UPLOAD_TIMED_OUT = 'profile_upload_timed_out';
   const handleUploadPhoto = async () => {
     try {
       const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -890,40 +890,37 @@ const SimpleOnboarding = ({ onComplete }) => {
       const uri = pickerResult.assets[0].uri;
       const previousAvatar = selectedAvatar;
 
+      // Straight to storage: no scan, no AI service, no attempt counter.
       setSelectedAvatar(uri);
 
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      const { approved, reason } = await moderateProfileImage(base64);
-
-      if (!approved) {
-        setSelectedAvatar(previousAvatar);
-        let tail = 'You can try uploading a different photo tomorrow.';
-        if (user?.uid) {
-          const { cooledDown, remaining } = await recordRejection(user.uid);
-          tail = cooledDown
-            ? "You've reached the limit. You can try again tomorrow (the cooldown ends at midnight)."
-            : `You have ${remaining} attempt${remaining === 1 ? '' : 's'} left before you have to wait until tomorrow.`;
-        }
-        hapticFeedback.error();
-        Alert.alert(
-          'Image Not Accepted',
-          `${reason}\n\n${tail}`,
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
       if (user?.uid) {
-        const downloadURL = await uploadProfilePicture(user.uid, uri);
+        // Cap the wait: Firebase Storage retries a dead connection for up
+        // to ten minutes before it fails on its own.
+        let timer;
+        const timeout = new Promise((_, fail) => { timer = setTimeout(() => fail(new Error(UPLOAD_TIMED_OUT)), UPLOAD_TIMEOUT_MS); });
+        let downloadURL;
+        try {
+          downloadURL = await Promise.race([uploadProfilePicture(user.uid, uri), timeout]);
+        } catch (uploadError) {
+          setSelectedAvatar(previousAvatar);
+          throw uploadError;
+        } finally {
+          clearTimeout(timer);
+        }
         setSelectedAvatar(downloadURL);
-        await resetRejectionCount(user.uid);
         hapticFeedback.success();
       } else {
+        setSelectedAvatar(previousAvatar);
         Alert.alert('Not Signed In', 'Please complete sign-up first to upload a photo.');
       }
     } catch (error) {
       console.error('[Onboarding Upload] Failed:', error);
-      Alert.alert('Upload Failed', 'Something went wrong. Please try again later.');
+      Alert.alert(
+        'Upload Failed',
+        error?.message === UPLOAD_TIMED_OUT
+          ? 'The upload took too long. Check your connection and try again.'
+          : 'Something went wrong. Please try again later.'
+      );
     }
   };
 
@@ -2128,7 +2125,7 @@ const SimpleOnboarding = ({ onComplete }) => {
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Content</Text>
             <Text style={{ fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 10 }}>
-              Bible translations are provided for personal, non-commercial use only. Usernames and display names are checked with a profanity filter, and custom profile photos are checked automatically. We reserve the right to remove any that violate these terms.
+              Bible translations are provided for personal, non-commercial use only. Usernames and display names are checked with a profanity filter. Custom profile photos are not scanned or sent to any AI service. We reserve the right to remove any name or photo that violates these terms.
             </Text>
 
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 }}>Limitation of Liability</Text>
