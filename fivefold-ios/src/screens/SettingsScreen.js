@@ -989,7 +989,7 @@ console.warn('Error checking email verification:', e?.message || e);
                   Sync to iPhone Calendar
                 </Text>
                 <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
-                  Add your prayers, reminders, workouts and tasks to your calendar
+                  Prayers, reminders, workouts and tasks
                 </Text>
               </View>
             </View>
@@ -1004,14 +1004,14 @@ console.warn('Error checking email verification:', e?.message || e);
           {calendarSyncEnabled && (
             <>
               <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }} />
-              <View style={{ padding: 16 }}>
+              <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
                 <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>
-                  Calendar Alert
+                  Calendar alert
                 </Text>
                 <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>
-                  When the Calendar app reminds you. Off silences every calendar alert; other values let items with their own reminder time keep it.
+                  How early the Calendar app reminds you. Off silences all.
                 </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10, marginHorizontal: -16 }} contentContainerStyle={{ flexDirection: 'row', gap: 6, paddingHorizontal: 16 }}>
                   {[
                     { value: -1, label: 'Off' },
                     { value: 0, label: 'At start' },
@@ -1027,22 +1027,22 @@ console.warn('Error checking email verification:', e?.message || e);
                         key={opt.value}
                         onPress={() => handleSelectCalAlarm(opt.value)}
                         style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 7,
-                          borderRadius: 9,
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: 8,
                           borderWidth: 1,
                           borderColor: on ? theme.primary : (isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'),
                           backgroundColor: on ? `${theme.primary}22` : 'transparent',
                         }}
                         activeOpacity={0.7}
                       >
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: on ? theme.primary : modalTextColor }}>
+                        <Text style={{ fontSize: 12.5, fontWeight: '600', color: on ? theme.primary : modalTextColor }}>
                           {opt.label}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
-                </View>
+                </ScrollView>
               </View>
             </>
           )}
@@ -1056,7 +1056,7 @@ console.warn('Error checking email verification:', e?.message || e);
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 16, fontWeight: '500', color: modalTextColor }}>Add quick tasks to calendar</Text>
-                <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>Quick tasks get this time so they show on your calendar</Text>
+                <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginTop: 2 }}>Quick tasks land at this time</Text>
               </View>
             </View>
             <Switch
@@ -1067,22 +1067,22 @@ console.warn('Error checking email verification:', e?.message || e);
             />
           </View>
           {quickTaskCalEnabled && (
-            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-              <Text style={{ fontSize: 12, color: modalTextSecondaryColor, marginBottom: 8 }}>Default time</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={{ paddingBottom: 12, marginTop: -4 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', gap: 6, paddingHorizontal: 16 }}>
                 {[['09:00', '9 AM'], ['12:00', '12 PM'], ['15:00', '3 PM'], ['18:00', '6 PM'], ['21:00', '9 PM']].map(([val, label]) => {
                   const active = quickTaskTime === val;
                   return (
                     <TouchableOpacity
                       key={val}
                       onPress={() => handleQuickTaskTimeSelect(val)}
-                      style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, borderWidth: 1, backgroundColor: active ? theme.primary : 'transparent', borderColor: active ? theme.primary : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }}
+                      style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, backgroundColor: active ? `${theme.primary}22` : 'transparent', borderColor: active ? theme.primary : (isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)') }}
+                      activeOpacity={0.7}
                     >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: active ? '#fff' : modalTextColor }}>{label}</Text>
+                      <Text style={{ fontSize: 12.5, fontWeight: '600', color: active ? theme.primary : modalTextColor }}>{label}</Text>
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScrollView>
             </View>
           )}
         </View>
