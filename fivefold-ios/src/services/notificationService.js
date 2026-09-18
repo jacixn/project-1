@@ -74,8 +74,9 @@ const SNOOZE_MINUTES = 10;
 
 // Notification types that must NEVER escalate or gain urgency: transient,
 // self-resolving, or informational. Rest timers end on their own; achievements
-// and test pings aren't reminders you can "miss".
-const NON_URGENT_TYPES = new Set(['rest_timer', 'achievement', 'test']);
+// and test pings aren't reminders you can "miss". Weather alerts are a
+// heads-up, not a task, so they never gain escalation follow-ups either.
+const NON_URGENT_TYPES = new Set(['rest_timer', 'achievement', 'test', 'weather_alert']);
 
 // expo-notifications on iOS serializes notification.date in epoch SECONDS
 // (EXNotificationSerializer.m: timeIntervalSince1970, no *1000), while Android
@@ -696,6 +697,15 @@ class NotificationService {
         additionalData = { visionId: data.visionId, showCompletion: true };
         console.log('📱 Navigating to Vision screen for expiry:', data.visionId);
         break;
+
+      case 'weather_alert':
+        // 'MyWeek' is a root-stack route (RootNavigator), and App.js navigates
+        // with navigationRef.navigate(tab), the same call the My Week widget
+        // deep link uses, so the forecast screen opens directly.
+        targetTab = 'MyWeek';
+        additionalData = { dateKey: data.dateKey };
+        console.log('[Weather] Navigating to My Week for alert:', data.dateKey);
+        break;
         
       default:
         console.log('📱 Unknown notification type, no navigation');
@@ -1275,6 +1285,20 @@ class NotificationService {
         await this.scheduleWeeklyBodyCheckIn();
       }
 
+      // Weather alerts: re-plan from the latest forecast when on (this also
+      // covers the master toggle coming back on after cancelAllNotifications),
+      // clear the one-shots when off. Lazy require: weatherAlerts imports
+      // this file at its top.
+      if (settings.weatherAlerts === true) {
+        try {
+          await require('./weatherAlerts').rebuildWeatherAlerts();
+        } catch (e) {
+          console.warn('[Weather] settings re-arm failed:', e?.message);
+        }
+      } else if (settings.weatherAlerts === false) {
+        await this.cancelNotificationsByType('weather_alert');
+      }
+
       // Vision check-in is a repeating trigger that bakes its urgency in at
       // schedule time, so an Alert Style change must re-arm it — but only when
       // one is already queued (scheduleVisionCheckIn has no vision-existence
@@ -1347,6 +1371,19 @@ class NotificationService {
 
       if (settings.weeklyBodyCheckIn !== false && !scheduledTypes.has('weekly_body_checkin')) {
         await this.scheduleWeeklyBodyCheckIn();
+      }
+
+      if (settings.weatherAlerts) {
+        // Re-plan the weather_alert one-shots on every open: the forecast may
+        // have changed since they were planned. Last and NOT awaited: it can
+        // sit on a network fetch when the 45 minute cache is stale, and
+        // weather must never delay the re-arms above. Lazy require:
+        // weatherAlerts imports this file at its top.
+        try {
+          require('./weatherAlerts').rebuildWeatherAlerts().catch((e) => console.warn('[Weather] refresh failed:', e?.message));
+        } catch (e) {
+          console.warn('[Weather] refresh failed:', e?.message);
+        }
       }
 
       console.log('[Notifications] Foreground refresh complete');

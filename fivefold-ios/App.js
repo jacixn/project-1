@@ -627,6 +627,10 @@ const ThemedApp = () => {
       case 'achievement':
         tab = 'Profile';
         break;
+      case 'weather_alert':
+        tab = 'MyWeek'; // root-stack route, same target as the My Week widget deep link
+        additionalData = { dateKey: data.dateKey };
+        break;
       default:
         console.log('📱 [mapNotificationToNavPayload] Unknown type:', data.type);
         return null;
@@ -948,6 +952,10 @@ const ThemedApp = () => {
         if (notificationSettings.pushNotifications !== false && notificationSettings.streakReminders) {
           await notificationService.scheduleDailyStreakReminder(20, 0);
         }
+
+        // Weather alerts: one-shots planned from the forecast, rebuilt on every
+        // open (the module checks its own setting; network, so never awaited)
+        try { require('./src/services/weatherAlerts').rebuildWeatherAlerts().catch(() => {}); } catch {}
 
         if (notificationSettings.pushNotifications !== false && notificationSettings.reminderNotifications !== false) {
           await notificationService.rescheduleAllReminderNotifications();

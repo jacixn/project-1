@@ -75,7 +75,7 @@ export const shortLineForDay = (day) => {
   return `${day.label} · ${temps}`;
 };
 
-// { 'YYYY-MM-DD': { hi, lo, rainPct, icon, label, rainWindow } } for the
+// { 'YYYY-MM-DD': { code, hi, lo, rainPct, icon, label, rainWindow } } for the
 // stored place, or null when no place is set yet. Network errors fall back
 // to the last cached forecast, however old.
 export const getWeek = async () => {
@@ -108,9 +108,15 @@ export const getWeek = async () => {
     const day = data.daily.time[i];
     const code = data.daily.weather_code[i];
     const hrs = rainHours[day] || [];
+    // Open-Meteo returns null for days the model has no temperature for.
+    // Math.round(null) is 0, which would read as a freezing day, so keep a
+    // missing value non-finite (the alert planner ignores non-finite hi/lo).
+    const tmax = data.daily.temperature_2m_max[i];
+    const tmin = data.daily.temperature_2m_min[i];
     byDay[day] = {
-      hi: Math.round(data.daily.temperature_2m_max[i]),
-      lo: Math.round(data.daily.temperature_2m_min[i]),
+      code: Number(code),
+      hi: Number.isFinite(tmax) ? Math.round(tmax) : NaN,
+      lo: Number.isFinite(tmin) ? Math.round(tmin) : NaN,
       rainPct: Math.round(data.daily.precipitation_probability_max[i] || 0),
       ...wxLook(code),
       rainWindow: hrs.length ? `${fmtHour(hrs[0])} to ${fmtHour(Math.min(23, hrs[hrs.length - 1] + 1))}` : null,

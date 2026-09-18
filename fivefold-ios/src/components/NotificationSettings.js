@@ -10,8 +10,10 @@ import {
   ScrollView,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import userStorage from '../utils/userStorage';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../contexts/ThemeContext';
@@ -21,6 +23,18 @@ import notificationService from '../services/notificationService';
 import WorkoutService from '../services/workoutService';
 import { Audio } from 'expo-av';
 import { SOUND_OPTIONS, ensureSoundsInstalled } from '../services/notificationSounds';
+import { CONDITIONS, DEFAULT_WEATHER_PREFS } from '../utils/weatherAlerts';
+import { getPlace, setPlaceByName } from '../services/weather';
+import { rebuildWeatherAlerts, previewTodayAlert } from '../services/weatherAlerts';
+
+const WEATHER_TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const weatherTimeToDate = (hm) => {
+  const m = WEATHER_TIME_RE.exec(hm || '') || WEATHER_TIME_RE.exec(DEFAULT_WEATHER_PREFS.time);
+  const d = new Date();
+  d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+  return d;
+};
+const pad2 = (n) => (n < 10 ? `0${n}` : String(n));
 
 const SETTING_TO_TAB = {
   prayerReminders: 'BiblePrayer',
@@ -49,8 +63,18 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
     vibration: true,
     insistenceLevel: 'gentle', // 'gentle' | 'strong' | 'relentless'
     soundName: 'default', // 'default' or a filename from SOUND_OPTIONS
+    // Weather alerts (planned from the Open-Meteo forecast, see services/weatherAlerts)
+    weatherAlerts: false,
+    weatherAlertTime: DEFAULT_WEATHER_PREFS.time, // 'HH:mm'
+    weatherConditions: [...DEFAULT_WEATHER_PREFS.conditions],
+    weatherHotAbove: DEFAULT_WEATHER_PREFS.hotAbove,
+    weatherColdBelow: DEFAULT_WEATHER_PREFS.coldBelow,
+    weatherEveryDay: DEFAULT_WEATHER_PREFS.everyDay,
   });
   const [hiddenTabs, setHiddenTabs] = useState(new Set());
+  // Latest settings for rapid taps (chips, stepper) that land before a re-render
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   useEffect(() => {
     if (visible || asScreen) {
@@ -156,6 +180,100 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
     { key: 'strong', label: 'Strong', desc: 'Urgent alert that breaks through Focus and Do Not Disturb.' },
     { key: 'relentless', label: 'Relentless', desc: 'Urgent, and keeps re-alerting until you act on it.' },
   ];
+
+  // ─── Weather alerts ───
+  const [weatherPlaceName, setWeatherPlaceName] = useState(null);
+  const [cityInput, setCityInput] = useState('');
+  const [citySaving, setCitySaving] = useState(false);
+
+  useEffect(() => {
+    if (!(visible || asScreen)) return;
+    let alive = true;
+    getPlace().then((p) => { if (alive) setWeatherPlaceName(p ? p.name : null); }).catch(() => {});
+    return () => { alive = false; };
+  }, [visible, asScreen]);
+
+  // Lighter than saveNotificationSettings: weather picks only affect the
+  // weather one-shots, so skip the full re-arm of every other type.
+  const saveWeatherPrefs = async (patch) => {
+    const next = { ...settingsRef.current, ...patch };
+    settingsRef.current = next;
+    setSettings(next);
+    try {
+      await saveData('notificationSettings', next);
+    } catch (error) {
+      console.error('Failed to save weather settings:', error);
+    }
+    rebuildWeatherAlerts().catch(() => {});
+  };
+
+  const onWeatherTimeChange = (_, d) => {
+    if (!d) return;
+    const hm = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    if (hm === settingsRef.current.weatherAlertTime) return;
+    saveWeatherPrefs({ weatherAlertTime: hm });
+  };
+
+  const toggleWeatherCondition = (id) => {
+    if (settings.vibration) hapticFeedback.selection();
+    const cur = Array.isArray(settingsRef.current.weatherConditions)
+      ? settingsRef.current.weatherConditions
+      : [...DEFAULT_WEATHER_PREFS.conditions];
+    const next = cur.includes(id) ? cur.filter((c) => c !== id) : [...cur, id];
+    saveWeatherPrefs({ weatherConditions: next });
+  };
+
+  const stepWeatherThreshold = (key, delta, min, max) => {
+    const cur = Number(settingsRef.current[key]);
+    const base = Number.isFinite(cur) ? cur : DEFAULT_WEATHER_PREFS[key === 'weatherHotAbove' ? 'hotAbove' : 'coldBelow'];
+    const next = Math.max(min, Math.min(max, base + delta));
+    if (next === base) return;
+    if (settings.vibration) hapticFeedback.selection();
+    saveWeatherPrefs({ [key]: next });
+  };
+
+  const setWeatherEveryDay = (value) => {
+    if (settingsRef.current.weatherEveryDay === value) return;
+    if (settings.vibration) hapticFeedback.light();
+    saveWeatherPrefs({ weatherEveryDay: value });
+  };
+
+  const saveWeatherCity = async () => {
+    const q = cityInput.trim();
+    if (!q || citySaving) return;
+    setCitySaving(true);
+    try {
+      const place = await setPlaceByName(q);
+      if (!place) {
+        Alert.alert('City not found', 'Try the city name on its own, or add the country.');
+        return;
+      }
+      setWeatherPlaceName(place.name);
+      setCityInput('');
+      if (settings.vibration) hapticFeedback.success();
+      rebuildWeatherAlerts().catch(() => {});
+    } catch (error) {
+      console.error('Failed to set weather city:', error);
+      Alert.alert('City not found', 'Check your connection and try again.');
+    } finally {
+      setCitySaving(false);
+    }
+  };
+
+  const showWeatherPreview = async () => {
+    if (settings.vibration) hapticFeedback.light();
+    try {
+      const preview = await previewTodayAlert();
+      if (!preview) {
+        Alert.alert('Set your city first.', 'Weather alerts need a city so the forecast has somewhere to look.');
+        return;
+      }
+      Alert.alert(preview.title, preview.body);
+    } catch (error) {
+      console.error('Weather preview failed:', error);
+      Alert.alert('Preview unavailable', 'The forecast could not be loaded. Try again in a moment.');
+    }
+  };
 
   const sendTestNotification = async () => {
     try {
@@ -377,7 +495,9 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
       }
     }
     
-    // Save settings first
+    // Save settings first. Weather alerts are re-planned (or cleared) inside
+    // notificationService.updateSettings, for this toggle and for the master
+    // Push Notifications toggle alike, so no extra rebuild call here.
     await saveNotificationSettings(newSettings);
 
     // When toggling task reminders ON, reschedule notifications for existing tasks
@@ -502,10 +622,11 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
           <View style={styles.placeholder} />
         </View>
 
-        <ScrollView 
-          style={styles.content} 
+        <ScrollView
+          style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Main Toggle */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
@@ -713,6 +834,172 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
             />
           </View>
 
+          {/* Weather: a morning heads-up planned from the forecast */}
+          <View style={[styles.section, { backgroundColor: theme.card }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Weather</Text>
+            <NotificationToggle
+              title="Weather Alerts"
+              subtitle="A heads-up at your chosen time when rain, drizzle or heat is on the way"
+              icon="umbrella"
+              settingKey="weatherAlerts"
+              iconColor="#0A84FF"
+            />
+
+            {settings.weatherAlerts && settings.pushNotifications && (() => {
+              const hairline = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+              const picked = Array.isArray(settings.weatherConditions) ? settings.weatherConditions : [];
+              const hotOn = picked.includes('hot');
+              const coldOn = picked.includes('cold');
+              const hotAbove = Number.isFinite(Number(settings.weatherHotAbove)) ? Number(settings.weatherHotAbove) : DEFAULT_WEATHER_PREFS.hotAbove;
+              const coldBelow = Number.isFinite(Number(settings.weatherColdBelow)) ? Number(settings.weatherColdBelow) : DEFAULT_WEATHER_PREFS.coldBelow;
+              const WHEN_OPTIONS = [
+                { key: false, label: 'Only when something is coming', desc: 'Quiet on days that match none of your picks.' },
+                { key: true, label: 'Every day, whatever the weather', desc: 'A short forecast each morning, even when it is calm.' },
+              ];
+              return (
+                <View>
+                  {/* Time */}
+                  <View style={[styles.weatherRow, { borderTopColor: hairline }]}>
+                    <Text style={[styles.weatherRowLabel, { color: theme.text }]}>Notify me at</Text>
+                    <DateTimePicker
+                      value={weatherTimeToDate(settings.weatherAlertTime)}
+                      mode="time"
+                      display={Platform.OS === 'ios' ? 'compact' : 'default'}
+                      onChange={onWeatherTimeChange}
+                      accessibilityLabel="Weather alert time"
+                    />
+                  </View>
+
+                  {/* City */}
+                  <View style={[styles.weatherRow, { borderTopColor: hairline }]}>
+                    <Text style={[styles.weatherRowLabel, { color: theme.text }]}>City</Text>
+                    <Text style={[styles.weatherRowValue, { color: weatherPlaceName ? theme.textSecondary : theme.textTertiary || theme.textSecondary }]}>
+                      {weatherPlaceName || 'Not set'}
+                    </Text>
+                  </View>
+                  <View style={styles.cityInputRow}>
+                    <TextInput
+                      value={cityInput}
+                      onChangeText={setCityInput}
+                      placeholder="Type a city, e.g. London"
+                      placeholderTextColor={theme.textTertiary || theme.textSecondary}
+                      style={[styles.cityInput, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.border }]}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                      returnKeyType="done"
+                      onSubmitEditing={saveWeatherCity}
+                      editable={!citySaving}
+                      accessibilityLabel="Weather city"
+                    />
+                    <TouchableOpacity
+                      onPress={saveWeatherCity}
+                      disabled={citySaving || !cityInput.trim()}
+                      activeOpacity={0.7}
+                      style={[styles.cityButton, { opacity: citySaving || !cityInput.trim() ? 0.4 : 1 }]}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.cityButtonText, { color: theme.primary }]}>{citySaving ? 'Saving' : 'Save'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={[styles.weatherHint, { color: theme.textSecondary }]}>
+                    Forecasts come from Open-Meteo for this city.
+                  </Text>
+
+                  {/* Conditions */}
+                  <Text style={[styles.weatherLabel, { color: theme.text }]}>Tell me about</Text>
+                  <View style={styles.chipWrap}>
+                    {CONDITIONS.map((c) => {
+                      const on = picked.includes(c.id);
+                      return (
+                        <TouchableOpacity
+                          key={c.id}
+                          onPress={() => toggleWeatherCondition(c.id)}
+                          activeOpacity={0.7}
+                          style={[
+                            styles.chip,
+                            on
+                              ? { backgroundColor: theme.primary, borderColor: theme.primary }
+                              : { backgroundColor: theme.surface, borderColor: theme.border },
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: on }}
+                        >
+                          <Text style={[styles.chipText, { color: on ? '#FFFFFF' : theme.text }]}>{c.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {hotOn && (
+                    <View style={[styles.stepperRow, { borderTopColor: hairline }]}>
+                      <Text style={[styles.stepperLabel, { color: theme.text }]}>Hot when above {hotAbove}°C</Text>
+                      <View style={styles.stepperButtons}>
+                        <TouchableOpacity onPress={() => stepWeatherThreshold('weatherHotAbove', -1, 15, 45)} activeOpacity={0.7} style={[styles.stepperButton, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityRole="button" accessibilityLabel="Lower hot threshold">
+                          <Text style={[styles.stepperButtonText, { color: theme.text }]}>-</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => stepWeatherThreshold('weatherHotAbove', 1, 15, 45)} activeOpacity={0.7} style={[styles.stepperButton, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityRole="button" accessibilityLabel="Raise hot threshold">
+                          <Text style={[styles.stepperButtonText, { color: theme.text }]}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                  {coldOn && (
+                    <View style={[styles.stepperRow, { borderTopColor: hairline }]}>
+                      <Text style={[styles.stepperLabel, { color: theme.text }]}>Cold when below {coldBelow}°C</Text>
+                      <View style={styles.stepperButtons}>
+                        <TouchableOpacity onPress={() => stepWeatherThreshold('weatherColdBelow', -1, -20, 15)} activeOpacity={0.7} style={[styles.stepperButton, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityRole="button" accessibilityLabel="Lower cold threshold">
+                          <Text style={[styles.stepperButtonText, { color: theme.text }]}>-</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => stepWeatherThreshold('weatherColdBelow', 1, -20, 15)} activeOpacity={0.7} style={[styles.stepperButton, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityRole="button" accessibilityLabel="Raise cold threshold">
+                          <Text style={[styles.stepperButtonText, { color: theme.text }]}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* When to notify, same option-row pattern as Alert Style */}
+                  <Text style={[styles.weatherLabel, { color: theme.text }]}>When to notify</Text>
+                  {WHEN_OPTIONS.map((opt) => {
+                    const active = !!settings.weatherEveryDay === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={String(opt.key)}
+                        onPress={() => setWeatherEveryDay(opt.key)}
+                        activeOpacity={0.7}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 12,
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: hairline,
+                        }}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                      >
+                        <MaterialIcons
+                          name={active ? 'radio-button-checked' : 'radio-button-unchecked'}
+                          size={22}
+                          color={active ? theme.primary : theme.textSecondary}
+                        />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: theme.text }}>{opt.label}</Text>
+                          <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>{opt.desc}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  <TouchableOpacity onPress={showWeatherPreview} activeOpacity={0.7} style={styles.weatherLink} accessibilityRole="button">
+                    <Text style={[styles.weatherLinkText, { color: theme.primary }]}>Preview today's alert</Text>
+                  </TouchableOpacity>
+                  <Text style={[styles.weatherHint, { color: theme.textSecondary }]}>
+                    Alerts are planned from the forecast each time you open Biblely, up to 7 days ahead.
+                  </Text>
+                </View>
+              );
+            })()}
+          </View>
+
         </ScrollView>
       </View>
   );
@@ -820,6 +1107,112 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   diagnosticButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  // Weather section (rounded rectangles only, no circles)
+  weatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  weatherRowLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginRight: 12,
+  },
+  weatherRowValue: {
+    flex: 1,
+    flexShrink: 1,
+    fontSize: 15,
+    textAlign: 'right',
+  },
+  cityInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 2,
+  },
+  cityInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  cityButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+  },
+  cityButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  weatherLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  weatherHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    marginTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  stepperLabel: {
+    flex: 1,
+    flexShrink: 1,
+    fontSize: 15,
+    marginRight: 12,
+  },
+  stepperButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  stepperButton: {
+    width: 36,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  weatherLink: {
+    paddingVertical: 12,
+    alignSelf: 'flex-start',
+  },
+  weatherLinkText: {
     fontSize: 15,
     fontWeight: '600',
   },
