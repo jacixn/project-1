@@ -6,6 +6,7 @@ import { Platform, DeviceEventEmitter } from 'react-native';
 import { getStoredData, saveData } from '../utils/localStorage';
 import WorkoutService from './workoutService';
 import { ensureSoundsInstalled, resolveSoundName } from './notificationSounds';
+import { todoNotifyPlan, todoAlertText } from '../utils/todoTime';
 
 const TAB_NOTIFICATION_MAP = {
   BiblePrayer: {
@@ -226,6 +227,13 @@ class NotificationService {
       // app from a killed state. The response event can fire at any time after the
       // listener is registered, so we must register before awaiting anything.
       this.setupNotificationListeners();
+
+      // Any screen or service that saves to-dos emits 'todosChanged'. Re-arm
+      // task alerts from that one place so an added or moved task is always
+      // scheduled at ITS time (registered once; initialize can run again).
+      if (!this._todosChangedSub) {
+        this._todosChangedSub = DeviceEventEmitter.addListener('todosChanged', () => this.scheduleTaskNotificationsSoon());
+      }
 
       // Register the Done / Snooze action buttons so alerts are actionable
       // straight from the lock screen.
@@ -1345,7 +1353,12 @@ class NotificationService {
         await this.rescheduleBlockNotifications();
       }
 
-      if (settings.taskReminders !== false && !scheduledTypes.has('task_reminder')) {
+      // Tasks are ALWAYS rebuilt here, not only when nothing is pending: with
+      // the old "none pending" gate a task added while another task's alert
+      // was still queued never got armed at all (its alert only appeared once
+      // the queue happened to drain). The rebuild is a full sweep and re-arm,
+      // so it is idempotent and cheap.
+      if (settings.taskReminders !== false) {
         await this._rescheduleTaskNotifications();
       }
 
@@ -2196,6 +2209,29 @@ class NotificationService {
     }
   }
 
+  // Public entry point used by the settings screen (toggles) so there is one
+  // scheduler for task alerts in the whole app.
+  rescheduleTaskNotifications(soundEnabled) {
+    return this._rescheduleTaskNotifications(soundEnabled);
+  }
+
+  // Coalesces bursts of 'todosChanged' (add + calendar mirror + fit offer can
+  // all emit within a second) into ONE rebuild.
+  scheduleTaskNotificationsSoon(delayMs = 800) {
+    if (this._taskRearmTimer) clearTimeout(this._taskRearmTimer);
+    this._taskRearmTimer = setTimeout(async () => {
+      this._taskRearmTimer = null;
+      try {
+        // Same gate refreshAllScheduledNotifications and the settings toggles
+        // honor: a user who turned task alerts (or all push) off must not get
+        // them re-armed by editing a to-do.
+        const s = (await getStoredData('notificationSettings')) || {};
+        if (s.pushNotifications === false || s.taskReminders === false) return;
+        await this._rescheduleTaskNotifications(s.sound !== false);
+      } catch {}
+    }, delayMs);
+  }
+
   async _rescheduleTaskNotifications(soundEnabled) {
     try {
       if (soundEnabled === undefined) {
@@ -2211,36 +2247,31 @@ class NotificationService {
       if (!storedTodos) return;
 
       const tasks = JSON.parse(storedTodos);
-      const now = new Date();
       let count = 0;
       const hiddenTasks = await hiddenDays('oneOffs', 21);
 
-      for (const task of tasks) {
-        if (task.completed || !task.scheduledDate) continue;
-        const taskDate = new Date(task.scheduledDate);
-        if (taskDate <= now) continue;
-        if (hiddenTasks.has(dateKeyOfLocal(taskDate))) continue; // a day template turned one-off things off
+      // The moment comes from utils/todoTime: scheduledDateTime first, then
+      // scheduledDate + scheduledTime as LOCAL time. The alert fires AT the
+      // task's time unless the task carries an explicit reminderBefore.
+      for (const task of Array.isArray(tasks) ? tasks : []) {
+        const plan = todoNotifyPlan(task, { nowMs: Date.now() });
+        if (!plan) continue;
+        if (hiddenTasks.has(plan.dateKey)) continue; // a day template turned one-off things off
 
-        const reminderMin = task.reminderBefore || 60;
-        const notifyTime = new Date(taskDate.getTime() - reminderMin * 60 * 1000);
-        if (notifyTime <= now) continue;
-
-        const reminderText = reminderMin >= 60
-          ? `${Math.floor(reminderMin / 60)} hour${reminderMin >= 120 ? 's' : ''}`
-          : `${reminderMin} minutes`;
-
+        const { title, body } = todoAlertText(task, plan.offsetMin, task.durationMinutes);
         await Notifications.cancelScheduledNotificationAsync(task.id).catch(() => {});
         await this.scheduleNotif({
           identifier: task.id,
           content: {
-            title: 'Task Reminder',
-            body: `"${task.text}" is scheduled in ${reminderText}!`,
+            title,
+            body,
             data: { type: 'task_reminder', taskId: task.id },
             sound: soundEnabled ? 'default' : null,
           },
-          trigger: { type: 'date', date: notifyTime },
+          trigger: { type: 'date', date: new Date(plan.notifyMs) },
         });
         count++;
+        console.log('[Notif] Task alert', JSON.stringify(task.text), 'at', new Date(plan.notifyMs).toString());
       }
       console.log(`[Notif] Rescheduled ${count} task notifications`);
     } catch (error) {

@@ -15,13 +15,11 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as Notifications from 'expo-notifications';
 import notificationService from '../services/notificationService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import { scoreTask } from '../utils/todoScorer';
-import { getStoredData } from '../utils/localStorage';
 import profanityFilter from '../services/profanityFilterService';
 
 const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) => {
@@ -102,58 +100,6 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
     });
   };
 
-  const scheduleTaskNotification = async (task, taskDateTime) => {
-    try {
-      // Check if task reminders are enabled in settings
-      const notificationSettings = await getStoredData('notificationSettings') || {};
-      if (notificationSettings.taskReminders === false || notificationSettings.pushNotifications === false) {
-        console.log('Task reminders are disabled, skipping notification');
-        return;
-      }
-
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('Notification permissions not granted');
-        return;
-      }
-
-      // Cancel any existing notification for this task
-      try {
-        await Notifications.cancelScheduledNotificationAsync(task.id);
-      } catch (cancelError) {
-        // Ignore cancel errors
-      }
-
-      const notifyTime = new Date(taskDateTime.getTime() - reminderBefore * 60 * 1000);
-      
-      if (notifyTime > new Date()) {
-        const reminderText = reminderBefore >= 60 
-          ? `${Math.floor(reminderBefore / 60)} hour${reminderBefore >= 120 ? 's' : ''}` 
-          : `${reminderBefore} minutes`;
-
-        try {
-          await notificationService.scheduleNotif({
-            identifier: task.id,
-            content: {
-              title: 'Task Reminder',
-              body: `"${task.text}" is scheduled in ${reminderText}`,
-              data: { type: 'task_reminder', taskId: task.id },
-              sound: notificationSettings.sound !== false ? 'default' : null,
-            },
-            trigger: { type: 'date', date: notifyTime },
-          });
-          console.log('✅ Task notification scheduled for:', notifyTime);
-        } catch (scheduleError) {
-          console.warn('Failed to schedule notification:', scheduleError);
-          // Don't throw - notification failure shouldn't break task creation
-        }
-      }
-    } catch (error) {
-      console.error('Error in scheduleTaskNotification:', error);
-      // Don't throw - let task creation continue
-    }
-  };
-
   const handleTaskSubmit = async () => {
     if (!taskText.trim()) {
       Alert.alert('Error', 'Please enter a task');
@@ -193,7 +139,9 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
         text: taskText.trim(),
         completed: false,
         createdAt: new Date().toISOString(),
-        scheduledDate: selectedDate.toISOString().split('T')[0],
+        // LOCAL calendar date. toISOString() gives the UTC date, which for a
+        // local-midnight Date in BST is the day BEFORE the one the user tapped.
+        scheduledDate: `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`,
         scheduledTime: `${String(selectedTime.getHours()).padStart(2, '0')}:${String(selectedTime.getMinutes()).padStart(2, '0')}`,
         scheduledDateTime: taskDateTime.toISOString(),
         reminderBefore: reminderBefore,
@@ -205,6 +153,9 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
 
       // Add task to parent
       await onTaskAdd(newTask);
+      // Alert is armed by the single app-wide scheduler; reminderBefore on the
+      // task (1 hour / 6 hours picked above) is honored there.
+      notificationService.scheduleTaskNotificationsSoon();
       
       // Success! Reset state first
       setIsAnalyzing(false);
@@ -218,11 +169,6 @@ const FullCalendarModal = ({ visible, onClose, onTaskAdd, asScreen = false }) =>
       // Close modal with a small delay to ensure state updates complete
       setTimeout(() => {
         onClose();
-        
-        // Schedule notification AFTER modal is closed (non-blocking)
-        setTimeout(() => {
-          scheduleTaskNotification(newTask, taskDateTime).catch(() => {});
-        }, 300);
       }, 50);
       
     } catch (error) {

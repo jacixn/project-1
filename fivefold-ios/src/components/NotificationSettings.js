@@ -309,61 +309,11 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
     }
   };
 
-  // Reschedule notifications for all future tasks when taskReminders is toggled ON
+  // Reschedule notifications for all future tasks when taskReminders is toggled ON.
+  // One scheduler for the whole app (notificationService owns the time maths:
+  // scheduledDateTime / local scheduledDate+scheduledTime, explicit reminderBefore).
   const rescheduleTaskNotifications = async (soundEnabled) => {
-    try {
-      // Load tasks from storage
-      const storedTodos = await userStorage.getRaw('fivefold_todos');
-      if (!storedTodos) {
-        console.log('No tasks found to reschedule notifications for');
-        return;
-      }
-
-      const tasks = JSON.parse(storedTodos);
-      const now = new Date();
-      let scheduledCount = 0;
-
-      for (const task of tasks) {
-        // Only schedule for incomplete tasks with a scheduled date/time in the future
-        if (task.completed || !task.scheduledDate) continue;
-
-        const taskDateTime = new Date(task.scheduledDate);
-        if (taskDateTime <= now) continue;
-
-        // Default reminder is 60 minutes before
-        const reminderMinutes = task.reminderBefore || 60;
-        const notifyTime = new Date(taskDateTime.getTime() - reminderMinutes * 60 * 1000);
-
-        if (notifyTime <= now) continue;
-
-        const reminderText = reminderMinutes >= 60 
-          ? `${Math.floor(reminderMinutes / 60)} hour${reminderMinutes >= 120 ? 's' : ''}` 
-          : `${reminderMinutes} minutes`;
-
-        try {
-          // Cancel any existing notification for this task first
-          await Notifications.cancelScheduledNotificationAsync(task.id).catch(() => {});
-
-          await notificationService.scheduleNotif({
-            identifier: task.id,
-            content: {
-              title: 'Task Reminder',
-              body: `"${task.text}" is scheduled in ${reminderText}!`,
-              data: { type: 'task_reminder', taskId: task.id },
-              sound: soundEnabled ? 'default' : null,
-            },
-            trigger: { type: 'date', date: notifyTime },
-          });
-          scheduledCount++;
-        } catch (err) {
-          console.error('Error scheduling task notification:', err);
-        }
-      }
-
-      console.log(`✅ Rescheduled ${scheduledCount} task notifications`);
-    } catch (error) {
-      console.error('Failed to reschedule task notifications:', error);
-    }
+    return notificationService.rescheduleTaskNotifications(soundEnabled);
   };
 
   // Reschedule notifications for all workout schedules when workoutReminders is toggled ON

@@ -11,6 +11,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { scoreTask } from '../utils/todoScorer';
 import { hapticFeedback } from '../utils/haptics';
 import DurationField from './DurationField';
+import { parseLocalDate } from '../utils/todoTime';
 
 // Liquid Glass Container - MUST be outside the main component to prevent re-creation on every render
 const LiquidGlassTodoContainer = ({ children, isDark, theme }) => {
@@ -181,9 +182,11 @@ const TodoList = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onViewAll })
     // If no scheduled date, always show it
     if (!t.scheduledDate) return true;
     
-    // If has scheduled date, only show if it's within the next 7 days or overdue
-    const scheduledDate = new Date(t.scheduledDate);
-    scheduledDate.setHours(0, 0, 0, 0);
+    // If has scheduled date, only show if it's within the next 7 days or overdue.
+    // 'YYYY-MM-DD' is a LOCAL calendar date; new Date(str) would read it as UTC midnight.
+    const p = parseLocalDate(t.scheduledDate);
+    if (!p) return true;
+    const scheduledDate = new Date(p.y, p.m - 1, p.d);
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);

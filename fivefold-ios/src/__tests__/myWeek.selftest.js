@@ -92,7 +92,7 @@ check(/getStoredData\('todos'\)/.test(src) && /t\.completed \|\| t\.scheduledDat
 check(/if \(item\.kind === 'task'\) \{/.test(resrc) && /await saveData\('todos', updated\);/.test(resrc) && /syncTodos\(updated\)/.test(resrc) && /DeviceEventEmitter\.emit\('todosChanged'\)/.test(resrc) && /scheduledDateTime: when\.toISOString\(\)/.test(resrc), 'moving a task rewrites scheduledDate/Time/DateTime through the To Do write path (cloud, Calendar mirror, widget, event)');
 const busy = read('utils/dayBusy.js');
 check(/excludeTaskId = null/.test(busy) && /getStoredData\('todos'\)/.test(busy) && /push\(out, t\.text \|\| 'Task', minutesOf\(t\.scheduledTime\), Number\(t\.durationMinutes\) > 0 \? t\.durationMinutes : 30, 'task'\)/.test(busy), 'tasks count as busy time for free-gap picking');
-check(/k === 'task' \|\| k === 'gym' \? 's'/.test(screen), 'legend chip says Tasks');
+// (the kind-count legend chips were removed from My Week on 2026-09-18; no chip check)
 
 // ---- just today / every day, and planning right after a move -------------
 check(/const isSeriesReminder = \(it\)/.test(screen) && /'Just today'/.test(screen) && /todayOnly = isSeriesReminder\(moving\) && !moveAll/.test(screen) && /from: dateKeyOf\(anchor\), todayOnly \}\)/.test(screen), 'Move panel: a repeating reminder moves just today unless Every day is chosen');

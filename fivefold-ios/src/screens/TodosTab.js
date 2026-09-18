@@ -516,6 +516,8 @@ const TodosTab = () => {
     const updatedTodos = [...todos, todo];
     setTodos(updatedTodos);
     await saveData('todos', updatedTodos);
+    // Arm the alert for the new task at ITS time (one debounced rebuild).
+    notificationService.scheduleTaskNotificationsSoon();
     pushToCloud('todos', updatedTodos);
     // Mirror scheduled to-dos to iPhone Calendar (no-op if off / not scheduled).
     try { require('../services/calendarSync').syncTodos(updatedTodos); } catch {}

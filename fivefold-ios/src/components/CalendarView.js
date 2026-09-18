@@ -13,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { dateKeyLocal } from '../utils/todoTime';
 
 const CalendarView = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onDateSelect }) => {
   const { theme } = useTheme();
@@ -31,13 +32,14 @@ const CalendarView = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onDateSe
 
   // Get tasks for a specific date
   const getTasksForDate = (date) => {
-    const dateString = date.toISOString().split('T')[0];
+    // Grid cells are local-midnight Dates; toISOString() would give the UTC date (previous day in BST).
+    const dateString = dateKeyLocal(date.getTime());
     return todos.filter(todo => {
       if (todo.scheduledDate) {
         return todo.scheduledDate === dateString;
       }
       // If no scheduled date, check creation date
-      const createdDate = new Date(todo.createdAt).toISOString().split('T')[0];
+      const createdDate = dateKeyLocal(new Date(todo.createdAt).getTime());
       return createdDate === dateString;
     });
   };
@@ -97,7 +99,7 @@ const CalendarView = ({ todos, onTodoAdd, onTodoComplete, onTodoDelete, onDateSe
       text: newTaskText.trim(),
       completed: false,
       createdAt: new Date().toISOString(),
-      scheduledDate: selectedDate.toISOString().split('T')[0],
+      scheduledDate: dateKeyLocal(selectedDate.getTime()), // local calendar date, never the UTC slice
       points: Math.floor(Math.random() * 50) + 10, // Random points 10-60
     };
     

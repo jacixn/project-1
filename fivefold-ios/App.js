@@ -957,6 +957,13 @@ const ThemedApp = () => {
         // open (the module checks its own setting; network, so never awaited)
         try { require('./src/services/weatherAlerts').rebuildWeatherAlerts().catch(() => {}); } catch {}
 
+        // Task alerts: re-arm at their real local times on every launch, so
+        // anything queued by an older build (or a stale forecast of the day)
+        // is replaced without waiting for a foreground event or a todo edit.
+        if (notificationSettings.pushNotifications !== false && notificationSettings.taskReminders !== false) {
+          notificationService.scheduleTaskNotificationsSoon();
+        }
+
         if (notificationSettings.pushNotifications !== false && notificationSettings.reminderNotifications !== false) {
           await notificationService.rescheduleAllReminderNotifications();
         }

@@ -14,6 +14,7 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { parseLocalDate } from '../utils/todoTime';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -53,9 +54,10 @@ const TasksOverviewModal = ({ visible, onClose, todos, onTodoComplete, onTodoDel
 
       let dateKey, dateLabel, sortOrder;
 
-      if (todo.scheduledDate) {
-        const scheduledDate = new Date(todo.scheduledDate);
-        scheduledDate.setHours(0, 0, 0, 0);
+      const p = parseLocalDate(todo.scheduledDate);
+      if (p) {
+        // 'YYYY-MM-DD' is a LOCAL calendar date; new Date(str) would read it as UTC midnight.
+        const scheduledDate = new Date(p.y, p.m - 1, p.d);
         const diffDays = Math.ceil((scheduledDate - today) / (1000 * 60 * 60 * 24));
 
         if (diffDays < 0) {
