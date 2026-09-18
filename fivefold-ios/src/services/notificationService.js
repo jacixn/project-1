@@ -78,6 +78,13 @@ const SNOOZE_MINUTES = 10;
 // and test pings aren't reminders you can "miss". Weather alerts are a
 // heads-up, not a task, so they never gain escalation follow-ups either.
 const NON_URGENT_TYPES = new Set(['rest_timer', 'achievement', 'test', 'weather_alert']);
+// Reminder types that must break through iOS Scheduled Summary / Focus.
+const TIME_SENSITIVE_TYPES = new Set([
+  'prayer_reminder', 'custom_prayer', 'missed_prayer',
+  'user_reminder', 'custom_reminder', 'block_reminder',
+  'task_reminder', 'habit_reminder',
+  'workout_reminder', 'workout_overdue',
+]);
 
 // expo-notifications on iOS serializes notification.date in epoch SECONDS
 // (EXNotificationSerializer.m: timeIntervalSince1970, no *1000), while Android
@@ -427,7 +434,12 @@ class NotificationService {
   // action-button category, and a group key on the data. Sound is left as the
   // call site set it (respecting the user's sound toggle).
   _applyUrgency(content, level, groupKey, soundName) {
-    const urgent = level === 'strong' || level === 'relentless';
+    // Scheduled reminders the user set themselves are always Time Sensitive:
+    // iOS "Scheduled Summary" and Focus modes otherwise hold them until the
+    // next summary (8 AM / 6 PM), which reads as "no notifications at all".
+    // Nudges (streak, weekly check-in) stay ordinary alerts.
+    const type = content?.data?.type;
+    const urgent = level === 'strong' || level === 'relentless' || TIME_SENSITIVE_TYPES.has(type);
     // The call site decided WHETHER this alert makes sound (user's sound
     // toggle); the picked tone decides WHICH sound. false/null stay silent.
     const sound = content.sound ? resolveSoundName(soundName) : content.sound;
