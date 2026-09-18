@@ -685,6 +685,11 @@ const RootNavigator = () => {
         component={require('../screens/TwoFactorSetupScreen').default}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen
+        name="AdminAnalytics"
+        component={require('../screens/AdminAnalyticsScreen').default}
+        options={{ presentation: 'modal' }}
+      />
 
       {/* Prayer wizard modals — same native pull-to-dismiss sheets */}
       <Stack.Screen

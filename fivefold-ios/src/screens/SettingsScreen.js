@@ -16,6 +16,7 @@ import * as StoreReview from 'expo-store-review';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { isAdminEmail } from '../config/admin';
 import SheetHeader from '../components/SheetHeader';
 import userStorage from '../utils/userStorage';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -56,8 +57,7 @@ const SettingsScreen = ({ navigation }) => {
   const [quickTaskTime, setQuickTaskTime] = useState('18:00');
 
   // Admin gate (replicated from ProfileTab)
-  const ADMIN_EMAILS = ['biblelyios@gmail.com'];
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isAdmin = isAdminEmail(user?.email);
 
   // ── Loaders ──
   const loadCalendarSyncSetting = async () => {
@@ -1117,7 +1117,7 @@ const SettingsScreen = ({ navigation }) => {
                 }}
                 onPress={() => {
                   hapticFeedback.buttonPress();
-                  openChild('adminAnalytics');
+                  navigation.navigate('AdminAnalytics');
                 }}
                 activeOpacity={0.7}
               >
@@ -1133,72 +1133,6 @@ const SettingsScreen = ({ navigation }) => {
                     <MaterialIcons name="bar-chart" size={20} color={theme.primary} />
                   </View>
                   <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>User Analytics</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-
-              {/* Separator */}
-              <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', marginHorizontal: 16 }} />
-
-              {/* Reports Button */}
-              <TouchableOpacity
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  openChild('adminReports');
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: '#FF3B3020',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <MaterialIcons name="report" size={20} color="#FF3B30" />
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>User Reports</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-
-              {/* Separator */}
-              <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', marginHorizontal: 16 }} />
-
-              {/* User Experience / Feedback */}
-              <TouchableOpacity
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 16,
-                }}
-                onPress={() => {
-                  hapticFeedback.buttonPress();
-                  openChild('adminFeedback');
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: '#FF950020',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <MaterialIcons name="rate-review" size={20} color="#FF9500" />
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>User Experience</Text>
                 </View>
                 <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
               </TouchableOpacity>

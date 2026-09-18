@@ -42,7 +42,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
   const navigation = useNavigation();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { signIn, signUp, sendPasswordResetCode, resetPasswordWithCode, verify2FAAndSignIn, loading } = useAuth();
+  const { signIn, signUp, sendPasswordResetCode, resetPasswordWithCode, verify2FAAndSignIn, verifyPassphraseAndSignIn, loading } = useAuth();
   
   // View mode: 'main' (social buttons) or 'email' (email form)
   const [viewMode, setViewMode] = useState('main');
@@ -74,6 +74,12 @@ const AuthScreen = ({ onAuthSuccess }) => {
   
   // Resolved email (actual email after username lookup, used for 2FA & password reset)
   const [resolvedEmail, setResolvedEmail] = useState('');
+
+  // Owner passphrase step (admin accounts only, after password and 2FA)
+  const [passphrase, setPassphrase] = useState('');
+  const [passphraseLoading, setPassphraseLoading] = useState(false);
+  const [showPassphrase, setShowPassphrase] = useState(false);
+  const [passphraseAttempts, setPassphraseAttempts] = useState(0);
   
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -192,6 +198,16 @@ const AuthScreen = ({ onAuthSuccess }) => {
     };
   }, [username, emailMode]);
   
+  const enterPassphraseMode = (pwd, emailForVerify) => {
+    setTwoFAPassword(pwd);
+    setResolvedEmail(emailForVerify);
+    setPassphrase('');
+    setPassphraseAttempts(0);
+    setShowPassphrase(false);
+    setEmailMode('passphrase');
+    hapticFeedback.light();
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Missing Fields', 'Please enter your email or username and password.');
@@ -213,6 +229,17 @@ const AuthScreen = ({ onAuthSuccess }) => {
         setTwoFACode('');
         setEmailMode('2fa');
         setTwoFAResendCooldown(60);
+        return;
+      }
+      // Admin account: owner passphrase step
+      if (error.requiresPassphrase) {
+        enterPassphraseMode(password, error.resolvedEmail || email);
+        return;
+      }
+      // Server cooldown or security-check failure: show the real reason.
+      if (error.friendly) {
+        if (error.rateLimited) hapticFeedback.warning(); else hapticFeedback.error();
+        Alert.alert(error.rateLimited ? 'Please Wait' : 'Login Failed', error.message);
         return;
       }
       hapticFeedback.error();
@@ -237,10 +264,65 @@ const AuthScreen = ({ onAuthSuccess }) => {
       setTwoFACode('');
       setResolvedEmail('');
     } catch (error) {
+      // Admin account: 2FA passed, owner passphrase step comes next (keep twoFAPassword for the final sign-in)
+      if (error.requiresPassphrase) {
+        enterPassphraseMode(twoFAPassword, error.resolvedEmail || resolvedEmail || email);
+        return;
+      }
       hapticFeedback.error();
       Alert.alert('Verification Failed', 'The code you entered is incorrect. Please try again.');
     } finally {
       setTwoFALoading(false);
+    }
+  };
+
+  const handlePassphraseVerify = async () => {
+    if (!passphrase.trim()) {
+      Alert.alert('Passphrase Required', 'Enter the owner passphrase to continue.');
+      return;
+    }
+    setPassphraseLoading(true);
+    try {
+      hapticFeedback.light();
+      await verifyPassphraseAndSignIn(resolvedEmail || email, twoFAPassword, passphrase);
+      hapticFeedback.success();
+      // Clear sensitive data
+      setPassphrase('');
+      setTwoFAPassword('');
+      setTwoFACode('');
+      setResolvedEmail('');
+    } catch (e) {
+      hapticFeedback.error();
+      if (e?.wrongPassphrase) {
+        // Only a genuine passphrase mismatch consumes an attempt.
+        const n = passphraseAttempts + 1;
+        setPassphraseAttempts(n);
+        setPassphrase('');
+        if (n >= 5) {
+          Alert.alert('Too Many Attempts', 'Sign in again to retry.');
+          setEmailMode('login');
+          setPassword('');
+          setTwoFAPassword('');
+          setTwoFACode('');
+          setResolvedEmail('');
+        } else {
+          Alert.alert('Wrong Passphrase', 'That is not the owner passphrase. Try again.');
+        }
+      } else if (e?.passphraseSessionLost) {
+        // Pending email no longer matches (app restarted or state cleared). Start over.
+        setEmailMode('login');
+        setPassphrase('');
+        setTwoFAPassword('');
+        setTwoFACode('');
+        setResolvedEmail('');
+        Alert.alert('Session Expired', 'Sign in again to continue.');
+      } else {
+        // The passphrase was accepted but the final sign-in failed (network, rate limit, etc).
+        // Keep the typed passphrase and do not count an attempt.
+        Alert.alert('Sign In Failed', e?.message || 'Please try again.');
+      }
+    } finally {
+      setPassphraseLoading(false);
     }
   };
   
@@ -259,7 +341,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
         setTwoFAResendCooldown(60);
       } else {
         hapticFeedback.error();
-        Alert.alert('Resend Failed', 'Unable to resend the code. Please try again later.');
+        Alert.alert('Resend Failed', error.friendly ? error.message : 'Unable to resend the code. Please try again later.');
       }
     } finally {
       setTwoFALoading(false);
@@ -610,6 +692,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 {emailMode === 'forgot' && 'Reset Password'}
                 {emailMode === 'resetCode' && 'Enter Code'}
                 {emailMode === '2fa' && 'Verify Identity'}
+                {emailMode === 'passphrase' && 'Owner Check'}
               </Text>
               <Text style={[styles.formSubtitle, { color: 'rgba(255,255,255,0.7)' }]}>
                 {emailMode === 'login' && 'Sign in with your email or username'}
@@ -617,13 +700,14 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 {emailMode === 'forgot' && 'Enter your email or username to reset'}
                 {emailMode === 'resetCode' && `We sent a 6-digit code to ${resetMaskedEmail}`}
                 {emailMode === '2fa' && `We sent a verification code to ${twoFAMaskedEmail}`}
+                {emailMode === 'passphrase' && 'This account has an extra lock. Enter the owner passphrase to continue.'}
               </Text>
             </View>
             
             {/* Form card */}
             <View style={styles.formCard}>
               {/* Mode tabs */}
-              {emailMode !== 'forgot' && emailMode !== 'resetCode' && emailMode !== '2fa' && (
+              {emailMode !== 'forgot' && emailMode !== 'resetCode' && emailMode !== '2fa' && emailMode !== 'passphrase' && (
                 <View style={styles.modeTabs}>
                   <TouchableOpacity
                     style={[styles.modeTab, emailMode === 'login' && styles.modeTabActive]}
@@ -657,7 +741,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
               )}
               
               {/* Email/Username input (hidden during reset code entry and 2FA) */}
-              {emailMode !== 'resetCode' && emailMode !== '2fa' && (
+              {emailMode !== 'resetCode' && emailMode !== '2fa' && emailMode !== 'passphrase' && (
                 <View style={styles.inputWrapper}>
                   <Text style={styles.inputLabel}>
                     {emailMode === 'signup' ? 'Email' : 'Email or Username'}
@@ -809,9 +893,39 @@ const AuthScreen = ({ onAuthSuccess }) => {
                   </TouchableOpacity>
                 </>
               )}
+
+              {/* Owner passphrase input (admin accounts only) */}
+              {emailMode === 'passphrase' && (
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputLabel}>Passphrase</Text>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="key-outline" size={20} color="#888" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Owner passphrase"
+                      placeholderTextColor="#BBB"
+                      value={passphrase}
+                      onChangeText={setPassphrase}
+                      secureTextEntry={!showPassphrase}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoFocus
+                      returnKeyType="go"
+                      onSubmitEditing={handlePassphraseVerify}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassphrase(!showPassphrase)}>
+                      <Ionicons 
+                        name={showPassphrase ? 'eye-outline' : 'eye-off-outline'} 
+                        size={20} 
+                        color="#888" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
               
               {/* Password fields */}
-              {emailMode !== 'forgot' && emailMode !== 'resetCode' && emailMode !== '2fa' && (
+              {emailMode !== 'forgot' && emailMode !== 'resetCode' && emailMode !== '2fa' && emailMode !== 'passphrase' && (
                 <>
                   <View style={styles.inputWrapper}>
                     <Text style={styles.inputLabel}>Password</Text>
@@ -872,7 +986,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
               {(() => {
                 const isResetFlow = emailMode === 'forgot' || emailMode === 'resetCode';
                 const is2FAFlow = emailMode === '2fa';
-                const isButtonLoading = is2FAFlow ? twoFALoading : isResetFlow ? resetLoading : loading;
+                const isPassphraseFlow = emailMode === 'passphrase';
+                const isButtonLoading = isPassphraseFlow ? passphraseLoading : is2FAFlow ? twoFALoading : isResetFlow ? resetLoading : loading;
                 return (
                   <TouchableOpacity
                     style={[styles.actionButton, isButtonLoading && styles.actionButtonDisabled]}
@@ -881,6 +996,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                       else if (emailMode === 'signup') handleSignup();
                       else if (emailMode === 'resetCode') handleResetWithCode();
                       else if (emailMode === '2fa') handle2FAVerify();
+                      else if (emailMode === 'passphrase') handlePassphraseVerify();
                       else handleForgotPassword();
                     }}
                     disabled={isButtonLoading}
@@ -901,6 +1017,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
                             {emailMode === 'forgot' && 'Send Reset Code'}
                             {emailMode === 'resetCode' && 'Reset Password'}
                             {emailMode === '2fa' && 'Verify & Sign In'}
+                            {emailMode === 'passphrase' && 'Unlock'}
                           </Text>
                           <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
                         </View>
@@ -910,10 +1027,13 @@ const AuthScreen = ({ onAuthSuccess }) => {
                 );
               })()}
               
-              {/* Back to login from forgot/resetCode/2fa */}
-              {(emailMode === 'forgot' || emailMode === 'resetCode' || emailMode === '2fa') && (
+              {/* Back to login from forgot/resetCode/2fa/passphrase */}
+              {(emailMode === 'forgot' || emailMode === 'resetCode' || emailMode === '2fa' || emailMode === 'passphrase') && (
                 <TouchableOpacity onPress={() => {
                   setEmailMode('login');
+                  setPassphrase('');
+                  setPassphraseAttempts(0);
+                  setShowPassphrase(false);
                   setResetCode('');
                   setNewPassword('');
                   setConfirmNewPassword('');

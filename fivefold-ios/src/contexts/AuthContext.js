@@ -31,6 +31,7 @@ import { performFullSync } from '../services/userSyncService';
 import { savePushToken } from '../services/socialNotificationService';
 import notificationService from '../services/notificationService';
 import userStorage from '../utils/userStorage';
+import { isAdminEmail, verifyAdminPassphrase } from '../config/admin';
 import { useTheme } from './ThemeContext';
 
 // Create the context
@@ -63,6 +64,11 @@ export const AuthProvider = ({ children }) => {
   
   // When true, the next signIn call skips the 2FA check (used after 2FA verification)
   const skip2FACheck = React.useRef(false);
+
+  // Admin accounts must also enter the owner passphrase at sign-in (third step, after 2FA).
+  // skipPassphraseCheck is set only by verifyPassphraseAndSignIn for the final re-sign-in.
+  const skipPassphraseCheck = React.useRef(false);
+  const passphrasePendingEmail = React.useRef(null);
 
   // Load cached user data on mount
   useEffect(() => {
@@ -329,17 +335,38 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (twoFAError) {
           if (twoFAError.requires2FA) throw twoFAError;
-          console.error('[Auth] 2FA check failed, blocking login for safety:', twoFAError?.message);
+          // Expected when a code was requested moments ago (server cooldown), so warn, not error.
+          console.warn('[Auth] 2FA check failed, blocking login for safety:', twoFAError?.message);
           await authSignOut();
           userStorage.clearUser();
-          const msg = (twoFAError?.message || '').toLowerCase();
-          if (msg.includes('wait') || msg.includes('too many') || msg.includes('rate') || msg.includes('seconds')) {
-            throw new Error('Too many login attempts. Please wait a moment and try again.');
-          }
-          throw new Error('Could not verify your security settings. Please try again.');
+          const raw = twoFAError?.message || '';
+          const msg = raw.toLowerCase();
+          const rateLimited = msg.includes('wait') || msg.includes('too many') || msg.includes('rate') || msg.includes('seconds');
+          const err = new Error(
+            rateLimited
+              ? (/^please wait/i.test(raw) ? raw : 'Too many login attempts. Please wait a moment and try again.')
+              : 'Could not verify your security settings. Please try again.'
+          );
+          err.friendly = true; // AuthScreen shows this message as-is
+          err.rateLimited = rateLimited;
+          throw err;
         }
       }
       skip2FACheck.current = false;
+
+      // Owner passphrase gate: admin accounts only. The 2FA gate above has already
+      // passed (whether or not the account has 2FA), so this is strictly the third step.
+      if (isAdminEmail(result.email) && !skipPassphraseCheck.current) {
+        await authSignOut();
+        userStorage.clearUser();
+        passphrasePendingEmail.current = String(result.email).toLowerCase();
+        const err = new Error('Owner passphrase required');
+        err.requiresPassphrase = true;
+        err.resolvedEmail = result.email;
+        throw err;
+      }
+      skipPassphraseCheck.current = false;
+      passphrasePendingEmail.current = null;
       
       // 2FA passed or not required — NOW show the full-screen progress overlay.
       // AuthScreen will be unmounted at this point, which is fine because
@@ -413,7 +440,8 @@ export const AuthProvider = ({ children }) => {
       
       return result;
     } catch (error) {
-      if (error.requires2FA) {
+      skipPassphraseCheck.current = false;
+      if (error.requires2FA || error.requiresPassphrase || error.friendly) {
         isAuthFlowActive.current = false;
         setLoading(false);
         throw error;
@@ -616,9 +644,43 @@ export const AuthProvider = ({ children }) => {
       return await signIn(email, password);
     } catch (error) {
       skip2FACheck.current = false;
+      skipPassphraseCheck.current = false;
+      // Admin accounts continue to the owner passphrase step; pass that error through untouched
+      if (error?.requiresPassphrase) throw error;
       // Format the error message nicely
       const msg = error?.message || 'Verification failed. Please try again.';
       throw new Error(msg);
+    }
+  }, [signIn]);
+
+  /**
+   * Verify the owner passphrase and complete sign-in for an admin account.
+   * Called after signIn (or verify2FAAndSignIn) threw a 'requiresPassphrase' error.
+   * A wrong passphrase never touches the network and keeps the pending email so the user can retry.
+   * @param {string} email - Resolved email of the account
+   * @param {string} password - User's password (stored from first attempt)
+   * @param {string} passphrase - The owner passphrase
+   */
+  const verifyPassphraseAndSignIn = useCallback(async (email, password, passphrase) => {
+    const key = String(email || '').trim().toLowerCase();
+    if (!passphrasePendingEmail.current || passphrasePendingEmail.current !== key) {
+      const e = new Error('Please sign in again.');
+      e.passphraseSessionLost = true;
+      throw e;
+    }
+    if (!verifyAdminPassphrase(passphrase)) {
+      const e = new Error('Wrong passphrase');
+      e.wrongPassphrase = true;
+      throw e;
+    }
+    try {
+      // 2FA (if any) was already completed in this same flow before the passphrase step was raised.
+      skip2FACheck.current = true;
+      skipPassphraseCheck.current = true;
+      return await signIn(email, password);
+    } finally {
+      skip2FACheck.current = false;
+      skipPassphraseCheck.current = false;
     }
   }, [signIn]);
 
@@ -672,6 +734,7 @@ export const AuthProvider = ({ children }) => {
     sendPasswordResetCode,
     resetPasswordWithCode,
     verify2FAAndSignIn,
+    verifyPassphraseAndSignIn,
     refreshUserProfile,
     updateLocalProfile,
     checkUsernameAvailability,
