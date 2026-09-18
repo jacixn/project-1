@@ -55,6 +55,8 @@ check(zoomLabelFor(64) === '1 hr' && zoomLabelFor(600) === '5 min' && clampZoom(
 const Z = layoutDay(day, { pxPerHour: 600 });
 check(Z.hours.some((h) => h.label === '11:05') && card(Z, 'work').h === 8.5 * 600, 'at 5-min zoom the ruler shows minutes and Work is 8.5 hours tall');
 check(layoutDay([]).cards.length === 0 && layoutDay(null).height > 0 && !('rails' in layoutDay([])), 'empty / null safe, no rails output');
+check(E.axisEnd === 1440 && E.hours[E.hours.length - 1].label === '12 AM' && E.hours[E.hours.length - 1].y === ((1440 - E.axisStart) / 60) * PX_PER_HOUR, 'the day runs to midnight: the 11 PM hour has full room and the ruler ends at 12 AM');
+check(layoutDay([it('late', 23 * 60 + 1, 23 * 60 + 59)]).cards[0].y === ((23 * 60 + 1 - 6 * 60) / 60) * PX_PER_HOUR, 'an item from 11:01 to 11:59 PM sits inside the last hour, not clamped to the bottom edge');
 check(layoutDay(evening, { nowMin: 1100 }).nowY === ((1100 - E.axisStart) / 60) * PX_PER_HOUR, 'now line');
 
 const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScreen.js'), 'utf8');

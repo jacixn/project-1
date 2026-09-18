@@ -53,9 +53,10 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
     .sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
 
   const first = list.length ? Math.min(...list.map((i) => i.startMin)) : 6 * 60;
-  const last = list.length ? Math.max(...list.map((i) => i.endMin)) : 22 * 60;
   const axisStart = Math.max(0, Math.floor(Math.min(first, 6 * 60) / 60) * 60);
-  const axisEnd = Math.min(24 * 60, Math.ceil(Math.max(last, 22 * 60) / 60) * 60);
+  // The day always runs to midnight, so the last hour (11 PM to 12 AM) has room
+  // like every other hour. It starts at 6 AM unless something is earlier.
+  const axisEnd = 24 * 60;
   const y = (min) => ((Math.min(Math.max(min, axisStart), axisEnd) - axisStart) / 60) * pxPerHour;
 
   // Cards. Two modes:

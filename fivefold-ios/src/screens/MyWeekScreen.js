@@ -222,7 +222,6 @@ const MyWeekScreen = ({ navigation }) => {
   useEffect(() => { const sub = DeviceEventEmitter.addListener('calendarAdopted', () => { loadWeek(); }); return () => sub.remove(); }, [loadWeek]);
 
   const dayItems = itemsByDay[dateKeyOf(anchor)] || [];
-  const counts = useMemo(() => countByKind(dayItems), [dayItems]);
   // Changes the rules would make around the newest thing (0 = no button:
   // an overlap nothing can fix is not worth offering)
   const fixableCount = useMemo(() => {
@@ -380,42 +379,38 @@ const MyWeekScreen = ({ navigation }) => {
   const doubleTap = useMemo(() => Gesture.Tap().numberOfTaps(2).runOnJS(true).onEnd(() => { hapticFeedback.light(); setPxPerHour(PX_PER_HOUR); }), []);
   const zoomGesture = useMemo(() => Gesture.Simultaneous(pinch, doubleTap), [pinch, doubleTap]);
 
-  const toggleKind = (k) => {
-    hapticFeedback.light();
-    setHidden((prev) => { const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n; });
-  };
-
   const shiftWeek = (dir) => {
     hapticFeedback.light();
     const d = new Date(anchor); d.setDate(d.getDate() + dir * 7); setAnchor(d);
   };
 
-  // Swipe the week strip: it follows the finger, then the old week slides out
-  // and the new one springs in from the other side.
+  // Swipe the week strip: a short, quiet slide. The strip gives a little under
+  // the finger, nudges out, and the new week eases in from the other side
+  // (small travel, no spring, no big fade).
   const stripX = useSharedValue(0);
   const stripO = useSharedValue(1);
   const [stripW, setStripW] = useState(360);
   const goWeek = (dir) => {
     const w = stripW || 360;
-    stripX.value = withTiming(-dir * w * 0.6, { duration: 140, easing: Easing.in(Easing.cubic) }, (done) => {
+    stripX.value = withTiming(-dir * w * 0.12, { duration: 110, easing: Easing.in(Easing.quad) }, (done) => {
       if (!done) return;
       runOnJS(shiftWeek)(dir);
-      stripX.value = dir * w * 0.5;
-      stripO.value = 0.2;
-      stripX.value = withSpring(0, { damping: 18, stiffness: 180 });
-      stripO.value = withTiming(1, { duration: 220 });
+      stripX.value = dir * w * 0.08;
+      stripO.value = 0.6;
+      stripX.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
+      stripO.value = withTiming(1, { duration: 160 });
     });
-    stripO.value = withTiming(0.3, { duration: 140 });
+    stripO.value = withTiming(0.5, { duration: 110 });
   };
   const weekSwipe = useMemo(() => Gesture.Pan()
     .activeOffsetX([-14, 14])
     .failOffsetY([-12, 12])
     .runOnJS(true)
-    .onUpdate((e) => { stripX.value = e.translationX * 0.55; })
+    .onUpdate((e) => { stripX.value = e.translationX * 0.25; })
     .onEnd((e) => {
       if (e.translationX < -50 || e.velocityX < -500) goWeek(1);
       else if (e.translationX > 50 || e.velocityX > 500) goWeek(-1);
-      else stripX.value = withSpring(0, { damping: 18, stiffness: 200 });
+      else stripX.value = withTiming(0, { duration: 160, easing: Easing.out(Easing.cubic) });
     }), [stripW, anchor]);
   const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: stripX.value }], opacity: stripO.value }));
   const weekLabel = (() => {
@@ -904,19 +899,6 @@ const MyWeekScreen = ({ navigation }) => {
           </TouchableOpacity>
         ) : null}
 
-        {/* Kind filters */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.chipsScroll, { marginTop: 14 }]} contentContainerStyle={styles.chipsRow}>
-          {KIND_ORDER.map((k) => {
-            const n = counts[k] || 0;
-            const off = hidden.has(k);
-            return (
-              <TouchableOpacity key={k} onPress={() => toggleKind(k)} style={[styles.chip, { backgroundColor: tile, opacity: off ? 0.45 : 1 }]} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ selected: !off }}>
-                <View style={[styles.dotBig, { backgroundColor: KINDS[k].color }]} />
-                <Text style={[styles.chipText, { color: theme.text }]}>{KINDS[k].label}{k === 'prayer' || k === 'reminder' || k === 'task' || k === 'gym' ? 's' : ''} {n}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
 
         {status ? <Text style={[styles.status, { color: accent }]}>{status}</Text> : null}
 
