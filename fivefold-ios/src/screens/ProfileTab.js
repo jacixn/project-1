@@ -1511,7 +1511,8 @@ const ProfileTab = () => {
           const verified = await refreshEmailVerificationStatus();
           setEmailVerified(verified);
         } catch (e) {
-          console.error('Error checking email verification:', e);
+          // Network blips are expected here; keep the last known status, no red box.
+console.warn('Error checking email verification:', e?.message || e);
         }
         try {
           const { auth } = require('../config/firebase');
