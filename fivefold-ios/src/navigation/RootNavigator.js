@@ -1086,6 +1086,11 @@ const RootNavigator = () => {
 
       {/* Exercise Detail — native modal sheet (matches the rest of the app) */}
       <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen
+        name="ExerciseVideo"
+        component={require('../screens/ExerciseVideoScreen').default}
+        options={{ presentation: 'modal' }}
+      />
       
     </Stack.Navigator>
   );

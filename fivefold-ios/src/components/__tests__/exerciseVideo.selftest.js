@@ -9,7 +9,8 @@ let fails = 0;
 const ok = (c, msg) => { if (c) console.log(`  PASS ${msg}`); else { console.log(`  FAIL ${msg}`); fails++; } };
 
 const player = read('components/ExerciseVideoPlayer.js');
-const sheet = read('components/ExerciseVideoSheet.js');
+const sheet = read('screens/ExerciseVideoScreen.js');
+const nav = read('navigation/RootNavigator.js');
 const service = read('services/exerciseVideoService.js');
 const exercises = read('components/ExercisesModal.js');
 const workout = read('components/WorkoutModal.js');
@@ -18,10 +19,17 @@ const pkg = JSON.parse(read('../package.json'));
 // ── The two places that used to leave the app ────────────────────────
 for (const [name, src] of [['ExercisesModal', exercises], ['WorkoutModal', workout]]) {
   ok(!/Linking\.openURL\(`https:\/\/www\.youtube\.com\/results/.test(src), `${name} no longer throws the user out to the YouTube app`);
-  ok(/<ExerciseVideoSheet/.test(src) && /import ExerciseVideoSheet from '\.\/ExerciseVideoSheet'/.test(src), `${name} opens the in-app sheet instead`);
+  ok(/navigate\('ExerciseVideo', \{ exerciseName/.test(src), `${name} opens the in-app tutorial screen instead`);
 }
-ok(/const \[videoOpen, setVideoOpen\] = useState\(false\);[\s\S]{0,200}if \(!exercise\) return null;/.test(exercises),
-  'ExerciseDetailScreen declares its state above the early return, so hook order cannot change between renders');
+ok(/const navigation = useNavigation\(\);[\s\S]{0,200}if \(!exercise\) return null;/.test(exercises),
+  'ExerciseDetailScreen calls its hooks above the early return, so hook order cannot change between renders');
+
+// The sheet drags like every other sheet in the app because it is the same
+// kind of thing: a native-stack modal screen, not a React Native <Modal>.
+ok(/name="ExerciseVideo"[\s\S]{0,200}presentation: 'modal'/.test(nav), 'the tutorial screen is registered as a native pull-to-dismiss modal');
+ok(!/presentationStyle=|from 'react-native'[\s\S]{0,400}\bModal\b/.test(sheet), 'it is not a hand-rolled React Native Modal');
+ok(/SheetHeader/.test(sheet), 'and it uses the shared sheet header, like the others');
+ok(/useIsFocused\(\)/.test(sheet) && /playing=\{isFocused\}/.test(sheet), 'leaving the screen pauses the video');
 
 // ── The origin, which is the whole ball game ─────────────────────────
 const origin = (player.match(/export const EMBED_ORIGIN = '([^']+)';/) || [])[1];

@@ -30,7 +30,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useWorkout } from '../contexts/WorkoutContext';
 import { hapticFeedback } from '../utils/haptics';
 import ExercisesModal from './ExercisesModal';
-import ExerciseVideoSheet from './ExerciseVideoSheet';
 import WorkoutExercisePicker from './WorkoutExercisePicker';
 import WorkoutService from '../services/workoutService';
 import WorkoutCompletionModal from './WorkoutCompletionModal';
@@ -56,8 +55,6 @@ const WorkoutModal = ({ visible, onClose, templateData = null, asScreen = false,
   const [exercises, setExercises] = useState([]);
   const [previousWorkout, setPreviousWorkout] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
-  // Exercise whose tutorial sheet is open, by name; null when closed.
-  const [videoExercise, setVideoExercise] = useState(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [showWorkoutExercisePicker, setShowWorkoutExercisePicker] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -1668,7 +1665,7 @@ const WorkoutModal = ({ visible, onClose, templateData = null, asScreen = false,
                 <TouchableOpacity
                   onPress={() => {
                     hapticFeedback.light();
-                    setVideoExercise(exercise.name);
+                    navigation?.navigate('ExerciseVideo', { exerciseName: exercise.name });
                   }}
                   activeOpacity={0.6}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -2434,12 +2431,6 @@ const WorkoutModal = ({ visible, onClose, templateData = null, asScreen = false,
         </Modal>
             </>
           )}
-
-          <ExerciseVideoSheet
-            visible={!!videoExercise}
-            exerciseName={videoExercise || ''}
-            onClose={() => setVideoExercise(null)}
-          />
         </Animated.View>
   );
 
