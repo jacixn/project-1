@@ -721,9 +721,22 @@ const ThemedApp = () => {
         // arrive after midnight), not the day the app happened to open
         const fired = fireDate ? new Date(fireDate) : new Date();
         const dateStr = `${fired.getFullYear()}-${String(fired.getMonth() + 1).padStart(2, '0')}-${String(fired.getDate()).padStart(2, '0')}`;
+        const { awardOnce, reminderKey, blockKey, habitKey } = require('./src/services/pointsService');
         if (type === 'user_reminder' && data?.reminderId) {
           const { completeReminder } = require('./src/services/reminderService');
           await completeReminder(data.reminderId, dateStr);
+          // Finishing it from the lock screen is finishing it. The award is
+          // recorded per thing per day, so ticking the same row in the app
+          // afterwards does not pay a second time.
+          await awardOnce(reminderKey(data.reminderId, dateStr));
+        } else if (type === 'block_reminder' && data?.blockId) {
+          // A day-template block ("Work Remote", "Breakfast"). These alerts
+          // carry the same Done button as any other, but nothing handled
+          // them: the tap ticked nothing and paid nothing.
+          const day = data.date || dateStr;
+          const { setBlockDone } = require('./src/services/dayTemplates');
+          await setBlockDone(day, data.blockId, true);
+          await awardOnce(blockKey(data.blockId, day));
         } else if (type === 'habit_reminder' && data?.habitId) {
           // Habit check-ins only support "today": skip if the alert fired on a
           // previous day rather than checking in the wrong date
@@ -734,9 +747,13 @@ const ThemedApp = () => {
           if (sameDay) {
             const { checkIn } = require('./src/services/habitsService');
             await checkIn(data.habitId);
+            // Checking in here used to pay nothing, and the screen then
+            // refused the in-app tap for the rest of the day, so those points
+            // could never be collected at all.
+            await awardOnce(habitKey(data.habitId, dateStr), 15 + Math.floor(Math.random() * 16));
           }
         }
-        // Tasks and prayers award points / run UI flows, so their "Done" just
+        // Tasks and prayers run UI flows of their own, so their "Done" just
         // stops the nagging here; the user finishes them in-app.
       } catch (e) {
         console.warn('notificationComplete handler failed:', e);

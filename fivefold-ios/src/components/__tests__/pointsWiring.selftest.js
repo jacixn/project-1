@@ -43,5 +43,14 @@ ok(!/export const revoke|oldTotal - |newTotal - |-= *points/.test(code),
   'undoing does not refund: the profile reads the maximum across stores, so a subtraction would be ignored anyway');
 ok(!/[\u{1F300}-\u{1FAFF}]/u.test(svc + screen.slice(0, 4000)) , 'no emojis');
 
+// The other way the same complaint arrives: the alert's own Done button.
+const app = fs.readFileSync(path.join(root, '..', 'App.js'), 'utf8');
+ok(/type === 'block_reminder' && data\?\.blockId/.test(app) && /setBlockDone\(day, data\.blockId, true\)/.test(app),
+  'Done on a day-template alert ticks the block, which nothing handled before');
+ok(/awardOnce\(blockKey\(data\.blockId, day\)\)/.test(app) && /awardOnce\(reminderKey\(data\.reminderId, dateStr\)\)/.test(app),
+  'and pays, from the lock screen as much as from the app');
+ok(/awardOnce\(habitKey\(data\.habitId, dateStr\)/.test(app),
+  'a habit checked in from the alert pays too, which it never could before');
+
 if (fails) { console.log(`\n${fails} FAILED`); process.exit(1); }
 console.log('\nAll points wiring checks passed');

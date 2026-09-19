@@ -213,6 +213,17 @@ class AchievementService {
    * Write the given stats object to BOTH storage keys so every
    * consumer in the app sees consistent data.
    */
+  // total_points is also written by the Vision screen on its own, and can be
+  // far ahead of userStats. Stamping it from userStats without comparing
+  // throws that away, so every write here only ever raises it.
+  static async _raiseTotalPoints(n) {
+    try {
+      const existing = parseInt((await userStorage.getRaw(TOTAL_POINTS_KEY)) || '0', 10) || 0;
+      const next = Math.max(existing, Number(n) || 0);
+      if (next !== existing) await userStorage.setRaw(TOTAL_POINTS_KEY, String(next));
+    } catch {}
+  }
+
   static async _writeBothKeys(stats) {
     const json = JSON.stringify(stats);
     await Promise.all([
@@ -280,7 +291,7 @@ class AchievementService {
 
       if (newlyUnlocked.length === 0) {
         // No new achievements — just keep total_points in sync with userStats
-        await userStorage.setRaw(TOTAL_POINTS_KEY, currentStatsPoints.toString());
+        await this._raiseTotalPoints(currentStatsPoints);
         return null;
       }
 
@@ -310,7 +321,7 @@ class AchievementService {
       await this._writeBothKeys(updatedStats);
 
       // ── Update central total_points key (single source of truth) ──
-      await userStorage.setRaw(TOTAL_POINTS_KEY, newPoints.toString());
+      await this._raiseTotalPoints(newPoints);
 
       // ── Sync to Firebase ──
       try {

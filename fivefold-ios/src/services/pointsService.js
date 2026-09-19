@@ -1,3 +1,4 @@
+import { DeviceEventEmitter } from 'react-native';
 import userStorage from '../utils/userStorage';
 import AchievementService from './achievementService';
 import { addSeasonalPoints } from './seasonService';
@@ -11,7 +12,8 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 // habits screen each had a local copy that wrote only the total, so points
 // earned there never reached the season or the cloud. And a day-template
 // block, ticked off on the reminders screen, awarded nothing at all, which is
-// the bug that started this.
+// the bug that started this. The reminders screen and the Focus card now come
+// through here; the habits screen still has its own copy.
 //
 // Awards are recorded against a key so the same thing cannot pay twice. That
 // matters more than it sounds: a reminder or a block can be ticked and
@@ -36,6 +38,7 @@ export const pointsForCompletion = () =>
 /** Stable award keys. The date is part of the key: the same reminder tomorrow pays again. */
 export const reminderKey = (id, dateStr) => `reminder:${id}:${dateStr}`;
 export const blockKey = (blockId, dateStr) => `block:${blockId}:${dateStr}`;
+export const habitKey = (id, dateStr) => `habit:${id}:${dateStr}`;
 
 const dateOf = (key) => {
   const m = String(key).match(/(\d{4}-\d{2}-\d{2})$/);
@@ -82,9 +85,15 @@ export const awardOnce = async (key, points = pointsForCompletion()) =>
       const ledger = rawLedger ? JSON.parse(rawLedger) : {};
       if (ledger[key]) return 0;
 
-      const rawStats = await userStorage.getRaw('userStats');
-      const stats = rawStats ? JSON.parse(rawStats) : {};
-      const oldTotal = stats.totalPoints || stats.points || 0;
+      // The total lives in three local stores that drift apart: two copies of
+      // userStats under different key prefixes, and total_points, which the
+      // Vision screen writes to on its own and nothing else raises. Starting
+      // from anything but the highest of them writes a smaller number over a
+      // bigger one, and since the same value is pushed to the cloud with
+      // merge, that loss does not heal on the next launch.
+      const stats = await AchievementService.getStats();
+      const prevTotal = parseInt((await userStorage.getRaw('total_points')) || '0', 10) || 0;
+      const oldTotal = Math.max(stats.totalPoints || 0, stats.points || 0, prevTotal);
       const newTotal = oldTotal + points;
       const updated = {
         ...stats,
@@ -93,11 +102,17 @@ export const awardOnce = async (key, points = pointsForCompletion()) =>
         level: AchievementService.getLevelFromPoints(newTotal),
       };
 
-      await userStorage.setRaw('userStats', JSON.stringify(updated));
-      // The profile takes the maximum across the stores, so this one is kept
-      // level rather than left behind.
+      // Both userStats keys. Writing only one leaves the other stale, and the
+      // next completion elsewhere writes that stale number back over this.
+      await AchievementService._writeBothKeys(updated);
+      // Strictly greater than what was there, because oldTotal already
+      // includes it.
       await userStorage.setRaw('total_points', String(newTotal));
       await userStorage.setRaw(LEDGER_KEY, JSON.stringify({ ...prune(ledger, todayKey()), [key]: points }));
+
+      // The Focus tab keeps userStats in React state and writes it back on the
+      // next completion, so it has to be told the number moved.
+      try { DeviceEventEmitter.emit('userStatsChanged'); } catch {}
 
       addSeasonalPoints(points).catch(() => {});
       const uid = auth?.currentUser?.uid;
@@ -125,4 +140,4 @@ export const wasAwarded = async (key) => {
   }
 };
 
-export default { awardOnce, wasAwarded, pointsForCompletion, reminderKey, blockKey, POINTS_MIN, POINTS_MAX };
+export default { awardOnce, wasAwarded, pointsForCompletion, reminderKey, blockKey, habitKey, POINTS_MIN, POINTS_MAX };

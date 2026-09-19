@@ -21,11 +21,31 @@ const build = () => {
   const seasonal = [];
   const cloud = [];
 
+  const events = [];
+  const DeviceEventEmitter = { emit: (n) => events.push(n) };
+
   const userStorage = {
     getRaw: async (k) => (store.has(k) ? store.get(k) : null),
     setRaw: async (k, v) => { store.set(k, v); },
   };
-  const AchievementService = { getLevelFromPoints: (p) => Math.floor(p / 300) + 1 };
+
+  // The app really does keep userStats under two different key prefixes, and
+  // a third number in total_points that the Vision screen writes on its own.
+  // Modelling only one of them is how the first version of this passed while
+  // the real thing threw points away.
+  const AchievementService = {
+    getLevelFromPoints: (p) => Math.floor(p / 300) + 1,
+    getStats: async () => {
+      const a = JSON.parse(store.get('userStats') || '{}');
+      const b = JSON.parse(store.get('fivefold_userStats') || '{}');
+      const best = Math.max(a.totalPoints || 0, a.points || 0, b.totalPoints || 0, b.points || 0);
+      return { ...b, ...a, totalPoints: best, points: best };
+    },
+    _writeBothKeys: async (stats) => {
+      store.set('userStats', JSON.stringify(stats));
+      store.set('fivefold_userStats', JSON.stringify(stats));
+    },
+  };
   const addSeasonalPoints = async (p) => { seasonal.push(p); };
   const auth = { currentUser: { uid: 'u1' } };
   const db = {};
@@ -40,13 +60,14 @@ const build = () => {
 
   // eslint-disable-next-line no-new-func
   const mod = new Function(
-    'userStorage', 'AchievementService', 'addSeasonalPoints', 'db', 'auth', 'doc', 'setDoc', 'serverTimestamp', '__DEV__',
+    'userStorage', 'AchievementService', 'addSeasonalPoints', 'db', 'auth', 'doc', 'setDoc', 'serverTimestamp', 'DeviceEventEmitter', '__DEV__',
     `${src}\nreturn { awardOnce, wasAwarded, pointsForCompletion, reminderKey, blockKey, POINTS_MIN, POINTS_MAX };`
-  )(userStorage, AchievementService, addSeasonalPoints, db, auth, doc, setDoc, serverTimestamp, false);
+  )(userStorage, AchievementService, addSeasonalPoints, db, auth, doc, setDoc, serverTimestamp, DeviceEventEmitter, false);
 
   const stats = () => JSON.parse(store.get('userStats') || '{}');
   const ledger = () => JSON.parse(store.get('points_awarded_v1') || '{}');
-  return { mod, store, stats, ledger, seasonal, cloud };
+  const other = () => JSON.parse(store.get('fivefold_userStats') || '{}');
+  return { mod, store, stats, other, ledger, seasonal, cloud, events };
 };
 
 const DAY = '2026-09-19';
@@ -143,6 +164,43 @@ const DAY = '2026-09-19';
     ok(await mod.awardOnce('', 15) === 0 && await mod.awardOnce(null) === 0, 'no key, no points');
     ok(await mod.awardOnce(mod.blockKey('b', DAY), 0) === 0, 'nor zero points');
     ok(!stats().totalPoints, 'and nothing was written');
+  }
+
+  // ── A total earned elsewhere must never be written down ───────────
+  {
+    const { mod, store, stats, cloud } = build();
+    // What a completed year-long Vision leaves behind: total_points alone.
+    store.set('total_points', '10000');
+    const pts = await mod.awardOnce(mod.blockKey('b1', DAY));
+    ok(stats().totalPoints === 10000 + pts,
+      `an award adds to the highest total already stored, it does not replace it (${stats().totalPoints})`);
+    ok(Number(store.get('total_points')) === 10000 + pts, 'and that store is raised, never lowered');
+    ok(cloud[0].totalPoints === 10000 + pts,
+      'the cloud gets the raised total, since a smaller one written with merge would not heal on next launch');
+  }
+
+  // ── Both copies of userStats move together ────────────────────────
+  {
+    const { mod, stats, other } = build();
+    const pts = await mod.awardOnce(mod.reminderKey('r1', DAY));
+    ok(stats().totalPoints === pts && other().totalPoints === pts,
+      'both copies of userStats are written, so neither can be written back over the other');
+  }
+
+  // ── A stale second copy cannot drag the total back ────────────────
+  {
+    const { mod, store, stats } = build();
+    store.set('fivefold_userStats', JSON.stringify({ totalPoints: 500, points: 500 }));
+    const pts = await mod.awardOnce(mod.blockKey('b1', DAY));
+    ok(stats().totalPoints === 500 + pts, `the higher of the two copies is the one built on (${stats().totalPoints})`);
+  }
+
+  // ── The screen holding stats in memory is told ────────────────────
+  {
+    const { mod, events } = build();
+    await mod.awardOnce(mod.blockKey('b1', DAY));
+    ok(events.includes('userStatsChanged'),
+      'the Focus tab is told the total moved, or it writes its stale copy back on the next completion');
   }
 
   if (fails) { console.log(`\n${fails} FAILED`); process.exit(1); }
