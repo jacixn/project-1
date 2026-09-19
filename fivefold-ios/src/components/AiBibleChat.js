@@ -1817,11 +1817,13 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
           {/* History Header */}
           <View style={[styles.historyHeader, { borderBottomColor: theme.border }]}>
             <TouchableOpacity
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', alignItems: 'center', justifyContent: 'center' }}
               onPress={() => setShowHistory(false)}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
             >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+              <MaterialIcons name="arrow-back" size={22} color={theme.text} />
             </TouchableOpacity>
             <Text style={[styles.historyTitle, { color: theme.text }]}>Chat History</Text>
             <TouchableOpacity
@@ -1941,20 +1943,25 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
             so screen mode needs only a small breathing gap */}
         <View style={{ height: asScreen ? 16 : (Platform.OS === 'ios' ? 60 : 30), backgroundColor: 'transparent' }} />
         <View style={[styles.solidHeader, { backgroundColor: 'transparent', borderBottomWidth: 0, paddingTop: 8, paddingBottom: 12 }]}>
+          {/* Same tile back button as My Week, Fuel and Habits: 44 square,
+              radius 14, plain back arrow in the text colour. It used to be a
+              green chevron in a circle, which matched nothing else. */}
           <TouchableOpacity
             onPress={handleClose}
-            style={{ 
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 1,
             }}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
           >
-            <MaterialIcons name="arrow-back-ios-new" size={18} color={theme.primary} />
+            <MaterialIcons name="arrow-back" size={22} color={theme.text} />
           </TouchableOpacity>
           
           <View style={{ position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
@@ -1963,18 +1970,22 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
             </Text>
           </View>
           
+          {/* Matches the back button, so the header is not a square at one
+              end and a circle at the other. */}
           <TouchableOpacity
             onPress={handleMenuPress}
-            style={{ 
-              backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-              width: 40,
-              height: 40,
-              borderRadius: 20,
+            style={{
+              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              width: 44,
+              height: 44,
+              borderRadius: 14,
               alignItems: 'center',
               justifyContent: 'center',
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Chat options"
           >
-            <MaterialIcons name="more-horiz" size={20} color={theme.text} />
+            <MaterialIcons name="more-horiz" size={22} color={theme.text} />
           </TouchableOpacity>
         </View>
       </BlurView>
