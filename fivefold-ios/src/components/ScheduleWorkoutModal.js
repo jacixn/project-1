@@ -23,6 +23,7 @@ import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
 import MultiDateCalendar from './MultiDateCalendar';
 import DurationField from './DurationField';
 import { formatDuration } from '../utils/duration';
+import { scheduleDurationFor } from '../utils/templateDuration';
 import { offerFit, nextDateFor } from '../services/fitOffer';
 
 const DAYS_OF_WEEK = [
@@ -88,7 +89,7 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
       }
       const [h, m] = (editingSchedule.time || '18:00').split(':').map(Number);
       setTime({ hour: Number.isFinite(h) ? h : 18, minute: Number.isFinite(m) ? m : 0 });
-      setDuration(editingSchedule.duration ?? DEFAULT_WORKOUT_DURATION);
+      setDuration(editingSchedule.duration ?? scheduleDurationFor(tmpl));
       // Legacy None (-1) or missing -> At start (default now that None is gone).
       setNotifyBefore(editingSchedule.notifyBefore == null || editingSchedule.notifyBefore < 0 ? 0 : editingSchedule.notifyBefore);
     } else {
@@ -96,7 +97,8 @@ const ScheduleWorkoutModal = ({ navigation, route }) => {
       setSelectedDays([]);
       setOneTimeDates([new Date()]);
       setTime({ hour: 18, minute: 0 });
-      setDuration(DEFAULT_WORKOUT_DURATION);
+      // The template's own length (set in its editor), else the usual hour.
+      setDuration(scheduleDurationFor(tmpl));
       setNotifyBefore(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

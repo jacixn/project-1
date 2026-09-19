@@ -11,7 +11,7 @@ check(/scheduledOn\(await WorkoutService\.getScheduledWorkouts\(\)/.test(src) &&
 check(!/chevron-right/.test(home), 'no chevrons on rows');
 check(!/styles\.templateCard\b/.test(home) && /renderTemplateRow\(template/.test(home) && /backgroundColor: tileColor/.test(src) && /Tap a workout to see its exercises/.test(home), 'template rows are soft tiles with a tap hint');
 check(/templateHistory\(historyList, template\)/.test(src) && /Last done \$\{insights\.lastDoneLabel\}/.test(src) && /Not done yet/.test(src), 'rows show last done from history');
-check(/about \$\{summary\.estMinutes\} min/.test(src) && /muscleSplit\.slice\(0, 2\)/.test(src), 'rows show time estimate and top muscles');
+check(/templateLengthLabel\(template, summary\.estMinutes\)/.test(src) && /muscleSplit\.slice\(0, 2\)/.test(src), 'rows show the length (chosen, else the estimate) and top muscles');
 check((src.match(/styles\.startPill, \{ backgroundColor: theme\.primary \}/g) || []).length >= 3 && /accessibilityLabel=\{`Start \$\{template\.name\}`\}/.test(src), 'solid Start pill on template, today and suggestion rows');
 check(!/styles\.folderHeader\b|folderIconContainer/.test(home) && /styles\.folderRow\b/.test(home), 'folders are plain rows, no icon box');
 check(!/styles\.smartCard\b|smartCardExPill|smartCardIconCircle/.test(home) && /smartExLine/.test(home), 'suggestion is an editorial block with numbered lines, no pills');

@@ -21,6 +21,7 @@ import { toModel, fixableOverlaps, pickAnchor, cascadePlan, planSize } from '../
 import { loadReminderPresets, addReminder } from '../services/reminderService';
 import WorkoutService from '../services/workoutService';
 import { scheduleWorkoutNotifications } from '../services/workoutSchedule';
+import { scheduleDurationFor } from '../utils/templateDuration';
 import { addPrayer } from '../services/simplePrayersService';
 import { getTemplates as getDayTemplates, getPlan as getDayPlan, useTemplateOn, clearWeekday, setWeekdayRule, DAY_PLAN_CHANGED } from '../services/dayTemplates';
 import { getWeek as getWeather, getPlace as getWeatherPlace, setPlaceByName as setWeatherPlace, lineForDay as weatherLine } from '../services/weather';
@@ -480,7 +481,7 @@ const MyWeekScreen = ({ navigation }) => {
       const [presets, templates] = await Promise.all([loadReminderPresets().catch(() => []), WorkoutService.getTemplates().catch(() => [])]);
       setLibrary({
         reminder: (presets || []).map((p) => ({ kind: 'reminder', id: p.id, title: p.title, icon: p.icon || 'notifications', color: p.color || KINDS.reminder.color, duration: Number(p.duration) > 0 ? p.duration : 30 })),
-        gym: (templates || []).map((t) => ({ kind: 'gym', id: t.id, templateId: t.id, title: t.name || 'Workout', icon: 'fitness-center', color: KINDS.gym.color, duration: Number(t.estimatedDuration || t.duration) > 0 ? Number(t.estimatedDuration || t.duration) : 60 })),
+        gym: (templates || []).map((t) => ({ kind: 'gym', id: t.id, templateId: t.id, title: t.name || 'Workout', icon: 'fitness-center', color: KINDS.gym.color, duration: scheduleDurationFor(t) })),
         prayer: PRAYER_PRESETS.map((p) => ({ kind: 'prayer', ...p })),
       });
     } catch {}

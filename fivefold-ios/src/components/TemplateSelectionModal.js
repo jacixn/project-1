@@ -34,6 +34,8 @@ import bodyCompositionService from "../services/bodyCompositionService";
 import WorkoutSplitModal, { EQUIPMENT_FIELD_MAP } from "./WorkoutSplitModal";
 import { useNavigation } from "@react-navigation/native";
 import { summarizeTemplate, templateHistory, lastLiftFor, formatDuration } from "../utils/templateSummary";
+import { suggestedDurationMinutes, templateLengthLabel } from "../utils/templateDuration";
+import DurationField from "./DurationField";
 import { scheduledOn } from "../utils/scheduleAgenda";
 import { formatTime as fmtClock } from "../services/reminderService";
 
@@ -760,6 +762,9 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     const finalTemplate = {
       ...editorTemplate,
       exercises: editorExercises,
+      // The Length control always shows a value (chosen, else the exercise
+      // estimate), and that value is what gets saved.
+      durationMinutes: suggestedDurationMinutes(editorTemplate, editorExercises),
     };
 
     try {
@@ -818,7 +823,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     const muscles = summary.muscleSplit.slice(0, 2).map((m) => m.bodyPart).join(', ');
     const meta = [
       `${summary.exerciseCount} ${summary.exerciseCount === 1 ? 'exercise' : 'exercises'}`,
-      summary.estMinutes ? `about ${summary.estMinutes} min` : null,
+      templateLengthLabel(template, summary.estMinutes),
       muscles || null,
     ].filter(Boolean).join('  ·  ');
     const last = insights.lastDoneLabel
@@ -1519,7 +1524,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                     <Text style={[styles.detailStats, { color: theme.textSecondary }]}>
                       {summary.exerciseCount} {summary.exerciseCount === 1 ? 'exercise' : 'exercises'}
                       {'  ·  '}{summary.totalSets} {summary.totalSets === 1 ? 'set' : 'sets'}
-                      {summary.estMinutes ? `  ·  about ${summary.estMinutes} min` : ''}
+                      {templateLengthLabel(selectedTemplate, summary.estMinutes) ? `  ·  ${templateLengthLabel(selectedTemplate, summary.estMinutes)}` : ''}
                     </Text>
                     {detailInsights?.lastDoneLabel ? (
                       <Text style={[styles.detailLastDone, { color: theme.textSecondary }]}>
@@ -1859,6 +1864,20 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                       placeholderTextColor={isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)"}
                       returnKeyType="done"
                     />
+                  </View>
+
+                  {/* Length: the block this workout fills when it is scheduled */}
+                  <View style={styles.editorBlock}>
+                    <Text style={[styles.editorOverline, { color: theme.textSecondary }]}>LENGTH</Text>
+                    <DurationField
+                      value={suggestedDurationMinutes(editorTemplate, editorExercises)}
+                      onChange={(m) => setEditorTemplate({ ...editorTemplate, durationMinutes: m })}
+                      accent={theme.primary}
+                      compact
+                    />
+                    <Text style={[styles.editorHint, { color: theme.textSecondary }]}>
+                      How long this workout takes. It sets the block on My Week and in your calendar when you schedule it.
+                    </Text>
                   </View>
 
                   {/* Exercises */}
@@ -2858,6 +2877,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1.4,
     marginBottom: 6,
+  },
+  editorHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 8,
   },
   editorNameInput: {
     fontSize: 28,
