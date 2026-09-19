@@ -17,7 +17,8 @@
     "test:exercise-video": "node scripts/test-exercise-video.js",
     "test:youtube-search": "node src/utils/__tests__/youtubeSearch.selftest.js",
     "test:points": "node scripts/test-points.js && node src/components/__tests__/pointsWiring.selftest.js",
-    "test:listen": "node src/utils/__tests__/ttsState.selftest.js && node src/components/__tests__/listenButton.selftest.js"
+    "test:listen": "node src/utils/__tests__/ttsState.selftest.js && node src/components/__tests__/listenButton.selftest.js",
+    "test:map": "node src/utils/__tests__/noDashes.selftest.js && node src/utils/__tests__/mapNoDashes.selftest.js"
   },
   "dependencies": {
     "@bottom-tabs/react-navigation": "^1.1.0",

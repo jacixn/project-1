@@ -16,6 +16,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_APPLE } from 'reac
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { deDash } from '../utils/noDashes';
 import userStorage from '../utils/userStorage';
 import AchievementService from '../services/achievementService';
 import { pushToCloud } from '../services/userSyncService';
@@ -401,7 +402,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
       : '';
     Alert.alert(
       journey.name,
-      `${journey.description}\n\nDistance: ${journey.distance || 'Not specified'}\nDuration: ${journey.duration || 'Unknown'}${versesText}`,
+      `${deDash(journey.description)}\n\nDistance: ${journey.distance || 'Not specified'}\nDuration: ${journey.duration || 'Unknown'}${versesText}`,
       [
         { text: 'Play Journey', onPress: () => animateJourneyRoute(journey) },
         { text: 'View Route', onPress: () => handleJourneyPress(journey) },
@@ -430,7 +431,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
     }
   };
 
-  // MapGlassContainer defined at top of file — semi-transparent View (BlurView causes artifacts with MapView)
+  // MapGlassContainer defined at top of file: semi-transparent View (BlurView causes artifacts with MapView)
 
   // =============================================
   // LOADING STATE
@@ -456,7 +457,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
   }
 
   // =============================================
-  // OVERLAY TEXT COLOR — adapts to map brightness
+  // OVERLAY TEXT COLOR: adapts to map brightness
   // =============================================
   const overlayText = '#FFFFFF';
   const overlayTextMuted = 'rgba(255,255,255,0.7)';
@@ -482,7 +483,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
           showsBuildings={false}
           showsTraffic={false}
         >
-          {/* Location Markers — pre-filtered to avoid null children (AIRMap native crash) */}
+          {/* Location Markers, pre-filtered to avoid null children (AIRMap native crash) */}
           {getFilteredLocations()
             .filter(loc => loc?.coordinate)
             .map((location) => {
@@ -531,7 +532,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
               );
             })}
 
-          {/* Connection Lines — only when connections are shown and location is selected */}
+          {/* Connection Lines, only when connections are shown and location is selected */}
           {showConnections && selectedLocation?.coordinate &&
             getConnectedLocations(selectedLocation.id)
               .filter(loc => loc?.coordinate)
@@ -546,7 +547,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
               ))
           }
 
-          {/* Active Journey Route — guard route has 2+ points */}
+          {/* Active Journey Route, guard route has 2+ points */}
           {showJourneyRoutes && selectedJourney?.route?.length >= 2 && showPaths && (
             <Polyline
               coordinates={selectedJourney.route}
@@ -557,7 +558,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
             />
           )}
 
-          {/* All Journey Routes (faded) — skip journeys with <2 route points */}
+          {/* All Journey Routes (faded), skip journeys with fewer than 2 route points */}
           {!showJourneyRoutes && showPaths &&
             getFilteredJourneys()
               .filter(j => j.route?.length >= 2)
@@ -711,7 +712,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
             </View>
           </MapGlassContainer>
 
-          {/* Journey Controls — pinned at bottom */}
+          {/* Journey Controls, pinned at bottom */}
           <MapGlassContainer style={styles.journeyControlsBlur}>
             <View style={[styles.journeyControlsContent, { paddingBottom: Math.max(insets.bottom, 15) }]}>
               <View style={styles.journeyHeaderRow}>
@@ -792,7 +793,7 @@ const InteractiveBibleMaps = ({ visible, onClose, asScreen = false, navigation =
 };
 
 // =============================================
-// LOCATION DETAIL — native-stack modal screen
+// LOCATION DETAIL: native-stack modal screen
 // =============================================
 // Presented as its own `presentation:'modal'` screen so it gets the same native
 // parent-scale-back + swipe-down-to-dismiss as every other sheet. (The old inline
@@ -826,11 +827,11 @@ export const BibleMapDetailScreen = ({ navigation, route }) => {
             </View>
           </View>
           <Text style={[styles.detailDescription, { color: theme.textSecondary }]}>
-            {location.description}
+            {deDash(location.description)}
           </Text>
           {location.significance ? (
             <Text style={[styles.detailSignificance, { color: theme.text }]}>
-              {location.significance}
+              {deDash(location.significance)}
             </Text>
           ) : null}
         </View>
