@@ -1,15 +1,19 @@
-// Turning an exercise name into watchable videos. Pure: no React, no network.
+// Finding watchable videos by name. Pure: no React, no network.
 //
-// The exercise catalog has 994 entries and not one of them carries a video, so
-// "show me how this is done" has to start from the name. YouTube's own search
-// page carries its results as a JSON blob (ytInitialData) inside the HTML, and
-// reading that needs no API key and no account. The alternative, the YouTube
-// Data API, costs 100 quota units per search against a 10,000 a day allowance
-// and would need a key per install.
+// Some things the apps want to show a video for carry no video of their own:
+// an exercise in Biblely's catalogue, a game whose provider has no trailer.
+// YouTube's own search page carries its results as a JSON blob (ytInitialData)
+// inside the HTML, and reading that needs no API key and no account. The
+// alternative, the YouTube Data API, costs 100 quota units per search against
+// a 10,000 a day allowance and would need a key per install.
 //
 // Several candidates are returned rather than one, because a video's owner can
-// turn embedding off and the player only finds that out by trying. The sheet
+// turn embedding off and the player only finds that out by trying. The caller
 // walks the list until one plays.
+//
+// What counts as a good result differs by caller (a form tutorial is not a
+// game trailer), so ranking lives with the caller. This file only finds and
+// reads. Kept byte-identical between Biblely and EyeCandy; edit both.
 
 // A desktop browser's user agent and a consent cookie are both required. A
 // phone user agent is redirected to the mobile site, which ships no
@@ -17,10 +21,6 @@
 // to the consent wall. Both verified by request.
 export const SEARCH_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 export const SEARCH_COOKIE = 'SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjQwMzE5LjA2X3AwGgJlbiADGgYIgOapsAY';
-
-// What to ask for. "form" and "how to" bias the results towards instruction
-// rather than workout montages and gym vlogs.
-export const exerciseQuery = (name) => `${String(name || '').trim()} exercise how to proper form`;
 
 export const searchUrl = (query) =>
   `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
@@ -112,7 +112,7 @@ export const parseSearchResults = (html, limit = 8) => {
       seen.add(id);
       out.push({
         id,
-        title: firstRun(r.title) || 'Tutorial',
+        title: firstRun(r.title) || 'Video',
         channel: firstRun(r.ownerText) || firstRun(r.longBylineText) || '',
         seconds: durationToSeconds(firstRun(r.lengthText)),
       });
@@ -129,7 +129,7 @@ export const parseSearchResults = (html, limit = 8) => {
     while ((m = re.exec(html || '')) !== null) {
       if (seen.has(m[1])) continue;
       seen.add(m[1]);
-      out.push({ id: m[1], title: 'Tutorial', channel: '', seconds: null });
+      out.push({ id: m[1], title: 'Video', channel: '', seconds: null });
       if (out.length >= limit) break;
     }
   }
@@ -137,40 +137,11 @@ export const parseSearchResults = (html, limit = 8) => {
   return out;
 };
 
-// YouTube's own ordering mixes five second clips and vertical Shorts in with
-// real instruction. Someone who taps "How to do this" wants to be shown the
-// movement, so length and wording decide the order, not the search rank.
-const HELPFUL = /(how to|proper form|correct form|technique|tutorial|step by step|guide|demonstration|form tips?|beginners?)/i;
-const SHORT_FORM = /(#shorts?\b|\bshorts\b)/i;
-
-export const scoreExerciseVideo = (v, rank = 0) => {
-  let s = 0;
-  const secs = v && typeof v.seconds === 'number' ? v.seconds : null;
-  if (secs != null) {
-    if (secs >= 45 && secs <= 900) s += 3;        // a real demonstration
-    else if (secs >= 20 && secs < 45) s += 1;     // short but usually watchable
-    else if (secs < 20) s -= 2;                   // a clip, not a lesson
-    if (secs > 1800) s -= 2;                      // a full workout video
-  }
-  const text = `${(v && v.title) || ''} ${(v && v.channel) || ''}`;
-  if (HELPFUL.test(text)) s += 2;
-  if (SHORT_FORM.test(text)) s -= 3;
-  // Search rank still breaks ties: YouTube knows what people watch.
-  return s - rank * 0.01;
-};
-
-export const rankExerciseVideos = (results = []) =>
-  (results || [])
-    .filter(Boolean)
-    .map((v, i) => ({ v, s: scoreExerciseVideo(v, i), i }))
-    .sort((a, b) => b.s - a.s || a.i - b.i)
-    .map((x) => x.v);
-
 // Video titles are other people's text and routinely carry emoji and shouting
-// punctuation. Biblely does not show emoji, so they are stripped for display
-// while the video itself is untouched.
-export const cleanTitle = (title) =>
+// punctuation. Neither app shows emoji, so they are stripped for display while
+// the video itself is untouched.
+export const cleanTitle = (title, fallback = 'Video') =>
   String(title || '')
     .replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{27BF}\u{FE0F}\u{2B00}-\u{2BFF}]/gu, '')
     .replace(/\s{2,}/g, ' ')
-    .trim() || 'Tutorial';
+    .trim() || fallback;

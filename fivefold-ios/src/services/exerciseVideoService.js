@@ -2,11 +2,43 @@ import userStorage from '../utils/userStorage';
 import {
   SEARCH_UA,
   SEARCH_COOKIE,
-  exerciseQuery,
   searchUrl,
   parseSearchResults,
-  rankExerciseVideos,
 } from '../utils/youtubeSearch';
+
+// What to ask for. "form" and "how to" bias the results towards instruction
+// rather than workout montages and gym vlogs.
+export const exerciseQuery = (name) => `${String(name || '').trim()} exercise how to proper form`;
+
+// YouTube's own ordering mixes five second clips and vertical Shorts in with
+// real instruction. Someone who taps "How to do this" wants to be shown the
+// movement, so length and wording decide the order, not the search rank.
+const HELPFUL = /(how to|proper form|correct form|technique|tutorial|step by step|guide|demonstration|form tips?|beginners?)/i;
+const SHORT_FORM = /(#shorts?\b|\bshorts\b)/i;
+
+export const scoreExerciseVideo = (v, rank = 0) => {
+  let s = 0;
+  const secs = v && typeof v.seconds === 'number' ? v.seconds : null;
+  if (secs != null) {
+    if (secs >= 45 && secs <= 900) s += 3;        // a real demonstration
+    else if (secs >= 20 && secs < 45) s += 1;     // short but usually watchable
+    else if (secs < 20) s -= 2;                   // a clip, not a lesson
+    if (secs > 1800) s -= 2;                      // a full workout video
+  }
+  const text = `${(v && v.title) || ''} ${(v && v.channel) || ''}`;
+  if (HELPFUL.test(text)) s += 2;
+  if (SHORT_FORM.test(text)) s -= 3;
+  // Search rank still breaks ties: YouTube knows what people watch.
+  return s - rank * 0.01;
+};
+
+export const rankExerciseVideos = (results = []) =>
+  (results || [])
+    .filter(Boolean)
+    .map((v, i) => ({ v, s: scoreExerciseVideo(v, i), i }))
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .map((x) => x.v);
+
 
 // Finds the videos that show how an exercise is done, so they can play inside
 // Biblely instead of throwing the user out to the YouTube app.

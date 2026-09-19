@@ -8,7 +8,12 @@
 const fs = require('fs');
 const path = require('path');
 const src = fs.readFileSync(path.join(__dirname, '..', 'youtubeSearch.js'), 'utf8').replace(/^export /gm, '');
-const m = new Function(`${src}\nreturn { SEARCH_UA, SEARCH_COOKIE, exerciseQuery, searchUrl, durationToSeconds, parseSearchResults, scoreExerciseVideo, rankExerciseVideos, cleanTitle };`)();
+// The ranking lives with the caller that needs it, since a form tutorial and a
+// game trailer are not judged the same way. Lift just that part out of the
+// service, which otherwise imports React Native modules this cannot load.
+const svc = fs.readFileSync(path.join(__dirname, '..', '..', 'services', 'exerciseVideoService.js'), 'utf8');
+const ranking = svc.slice(svc.indexOf('// What to ask for.'), svc.indexOf('// Finds the videos that show how')).replace(/^export /gm, '');
+const m = new Function(`${src}\n${ranking}\nreturn { SEARCH_UA, SEARCH_COOKIE, exerciseQuery, searchUrl, durationToSeconds, parseSearchResults, scoreExerciseVideo, rankExerciseVideos, cleanTitle };`)();
 
 let fails = 0;
 const ok = (c, msg) => { if (c) console.log(`  PASS ${msg}`); else { console.log(`  FAIL ${msg}`); fails++; } };
@@ -45,7 +50,7 @@ ok(m.parseSearchResults('<html>nothing here</html>').length === 0, 'a page with 
 // The blob is YouTube's shape and will change one day. Ids alone still play.
 const rawOnly = '<html>"videoId":"eeeeeeeeeee" junk "videoId":"fffffffffff" "videoId":"eeeeeeeeeee"</html>';
 const fallback = m.parseSearchResults(rawOnly, 8);
-ok(fallback.length === 2 && fallback[0].id === 'eeeeeeeeeee' && fallback[0].title === 'Tutorial',
+ok(fallback.length === 2 && fallback[0].id === 'eeeeeeeeeee' && fallback[0].title === 'Video',
   'when the shape is gone, ids in page order still give playable videos');
 
 // ── Ranking: a five second clip must not beat a real tutorial ─────────
@@ -65,7 +70,7 @@ ok(m.durationToSeconds('12:34') === 754 && m.durationToSeconds('1:02:03') === 37
 ok(m.durationToSeconds('LIVE') === null && m.durationToSeconds(null) === null, 'an unreadable length is null, never zero');
 ok(m.cleanTitle('How to Use the Ab Roller') === 'How to Use the Ab Roller', 'a plain title is left alone');
 ok(!/[\u{1F300}-\u{1FAFF}]/u.test(m.cleanTitle('How to Use the Ab Roller')), 'no emoji survive into the UI');
-ok(m.cleanTitle('') === 'Tutorial', 'an empty title still reads as something');
+ok(m.cleanTitle('') === 'Video' && m.cleanTitle('', 'Tutorial') === 'Tutorial', 'an empty title still reads as something');
 
 // ── The request itself ───────────────────────────────────────────────
 ok(/Macintosh/.test(m.SEARCH_UA), 'a desktop user agent: a phone one is redirected to a mobile page that carries no results');
@@ -85,7 +90,7 @@ const live = async () => {
   ok(results.length >= 4, `enough candidates came back to survive a refusal or two (${results.length})`);
   ok(results.every((v) => /^[A-Za-z0-9_-]{11}$/.test(v.id)), 'every id is a real video id');
   ok(results.some((v) => v.seconds > 0), 'lengths are being read, so the shape has not changed');
-  ok(results.filter((v) => v.title !== 'Tutorial').length >= 4, 'titles are being read, so this is not the fallback path');
+  ok(results.filter((v) => v.title !== 'Video').length >= 4, 'titles are being read, so this is not the fallback path');
   results.slice(0, 3).forEach((v) => console.log(`       ${v.id}  ${String(v.seconds ?? '?')}s  ${v.channel}  ${m.cleanTitle(v.title).slice(0, 48)}`));
 };
 
