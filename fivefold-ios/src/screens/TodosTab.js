@@ -608,7 +608,9 @@ const TodosTab = () => {
     }
   }, [todos, userStats]);
 
-  const handleMiscPoints = useCallback((pointsEarned) => {
+  // `persisted` means the caller already wrote the points through
+  // services/pointsService; this then only refreshes what is on screen.
+  const handleMiscPoints = useCallback((pointsEarned, { persisted = false } = {}) => {
     try {
       const oldTotal = userStats.totalPoints || userStats.points || 0;
       const updatedStats = {
@@ -618,6 +620,7 @@ const TodosTab = () => {
         level: AchievementService.getLevelFromPoints(oldTotal + pointsEarned),
       };
       setUserStats(updatedStats);
+      if (persisted) return;
       saveData('userStats', updatedStats).catch(() => {});
       userStorage.setRaw('userStats', JSON.stringify(updatedStats)).catch(() => {});
       addSeasonalPoints(pointsEarned).catch(() => {});

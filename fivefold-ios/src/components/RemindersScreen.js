@@ -30,6 +30,7 @@ import {
 import { formatDurationShort } from '../utils/duration';
 import userStorage from '../utils/userStorage';
 import AchievementService from '../services/achievementService';
+import { awardOnce, reminderKey, blockKey } from '../services/pointsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -123,22 +124,13 @@ const RemindersScreen = ({ navigation }) => {
     ]).start(() => setFloatingPoints(prev => prev.filter(f => f.id !== id)));
   }, []);
 
-  const awardPoints = useCallback(async (pts) => {
-    try {
-      const raw = await userStorage.getRaw('userStats');
-      const stats = raw ? JSON.parse(raw) : {};
-      const oldTotal = stats.totalPoints || stats.points || 0;
-      const updated = {
-        ...stats,
-        totalPoints: oldTotal + pts,
-        points: oldTotal + pts,
-        level: AchievementService.getLevelFromPoints(oldTotal + pts),
-      };
-      await userStorage.setRaw('userStats', JSON.stringify(updated));
-    } catch (e) {
-      console.warn('[RemindersScreen] awardPoints error:', e?.message);
-    }
-  }, []);
+  // Awarding goes through services/pointsService so the points reach the
+  // season and the cloud, not just the local total, and so that ticking the
+  // same thing twice in a day cannot pay twice.
+  const award = useCallback(async (key, color) => {
+    const pts = await awardOnce(key);
+    if (pts > 0) showFloatingPts(pts, color);
+  }, [showFloatingPts]);
 
   const handleToggleComplete = async (reminder, dateStr) => {
     hapticFeedback.success();
@@ -146,10 +138,8 @@ const RemindersScreen = ({ navigation }) => {
     if (isCompleted) {
       await uncompleteReminder(reminder.id, dateStr);
     } else {
-      const pts = 10 + Math.floor(Math.random() * 11);
-      showFloatingPts(pts, reminder.color || theme.primary);
-      awardPoints(pts);
       await completeReminder(reminder.id, dateStr);
+      await award(reminderKey(reminder.id, dateStr), reminder.color || theme.primary);
     }
     await refresh();
   };
@@ -245,6 +235,9 @@ const RemindersScreen = ({ navigation }) => {
                         const done = !reminder.completions?.[dateStr];
                         if (done) hapticFeedback.success(); else hapticFeedback.light();
                         try { await require('../services/dayTemplates').setBlockDone(dateStr, reminder.blockId, done); } catch {}
+                        // A block off a day template is a thing you finished,
+                        // exactly like a reminder, so it pays the same.
+                        if (done) await award(blockKey(reminder.blockId, dateStr), reminder.color || '#5AC8FA');
                         await refresh();
                         return;
                       }

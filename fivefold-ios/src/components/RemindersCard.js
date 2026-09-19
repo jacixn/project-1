@@ -15,6 +15,7 @@ import {
 } from '../utils/liquidGlassSafe';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { awardOnce, reminderKey, blockKey } from '../services/pointsService';
 import { getRemindersForDay, formatTime, DAY_SHORT } from '../services/reminderService';
 
 const AnimatedCheck = ({ done, onPress }) => {
@@ -236,9 +237,17 @@ const RemindersCard = ({
               onPress={() => {
                 setPendingIds(prev => new Set(prev).add(reminder.id));
                 hapticFeedback.success();
-                const pts = 10 + Math.floor(Math.random() * 11);
-                showFloatingPoints(pts, rColor);
-                onPointsEarned?.(pts);
+                // The reminders screen can tick the same row, so the award is
+                // recorded centrally and pays once, wherever it was ticked.
+                const key = reminder.isBlock
+                  ? blockKey(reminder.blockId, dateStr)
+                  : reminderKey(reminder.id, dateStr);
+                awardOnce(key).then((pts) => {
+                  if (pts > 0) {
+                    showFloatingPoints(pts, rColor);
+                    onPointsEarned?.(pts, { persisted: true });
+                  }
+                }).catch(() => {});
                 if (reminder.isBlock) { try { require('../services/dayTemplates').setBlockDone(dateStr, reminder.blockId, true); } catch {} return; }
                 onComplete?.(reminder, dateStr);
               }}

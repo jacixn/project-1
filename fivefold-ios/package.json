@@ -15,7 +15,8 @@
     "test:stt": "node scripts/sttChainTest.mjs",
     "test:fit": "node scripts/fitPlanLive.mjs",
     "test:exercise-video": "node scripts/test-exercise-video.js",
-    "test:youtube-search": "node src/utils/__tests__/youtubeSearch.selftest.js"
+    "test:youtube-search": "node src/utils/__tests__/youtubeSearch.selftest.js",
+    "test:points": "node scripts/test-points.js && node src/components/__tests__/pointsWiring.selftest.js"
   },
   "dependencies": {
     "@bottom-tabs/react-navigation": "^1.1.0",
