@@ -19,6 +19,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
 import bibleAudioService from '../services/bibleAudioService';
+import { IDLE as AUDIO_IDLE, startLoading, applyTtsState, isBusy } from '../utils/ttsState';
 import chatterboxService from '../services/chatterboxService';
 import googleTtsService from '../services/googleTtsService';
 
@@ -50,12 +51,20 @@ const PrayerDetailModal = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const panY = useRef(new Animated.Value(0)).current;
 
-  // Audio state
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speakingVerseIndex, setSpeakingVerseIndex] = useState(null);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [loadingAudioVerseIndex, setLoadingAudioVerseIndex] = useState(null);
-  const [isPaused, setIsPaused] = useState(false);
+  // Audio state. One object rather than five flags, because the five could
+  // disagree: starting a clip stops the previous one, and the stop called
+  // back late and wiped the record of what was playing, so the control read
+  // "Listen" while the phone was plainly speaking. See utils/ttsState.
+  const [audio, setAudio] = useState(AUDIO_IDLE);
+  // True from tapping Listen until the new clip reaches the service, so a
+  // terminal event in that window is known to belong to the outgoing clip.
+  const startingRef = useRef(false);
+
+  const isSpeaking = audio.speaking;
+  const isLoadingAudio = audio.loading && !audio.speaking;
+  const speakingVerseIndex = audio.speaking ? audio.target : null;
+  const loadingAudioVerseIndex = isLoadingAudio ? audio.target : null;
+  const isPaused = audio.paused;
 
   useEffect(() => {
     if (!visible) {
@@ -75,40 +84,12 @@ const PrayerDetailModal = ({
 
   // TTS state listeners
   useEffect(() => {
-    const handleChatterboxState = (state) => {
-      if (state === 'finished' || state === 'stopped' || state === 'error') {
-        setIsSpeaking(false);
-        setSpeakingVerseIndex(null);
-        setIsLoadingAudio(false);
-        setLoadingAudioVerseIndex(null);
-        setIsPaused(false);
-      } else if (state === 'playing') {
-        setIsLoadingAudio(false);
-        setLoadingAudioVerseIndex(null);
-        setIsSpeaking(true);
-      } else if (state === 'loading') {
-        setIsLoadingAudio(true);
-      }
+    const handleState = (state) => {
+      setAudio((prev) => applyTtsState(prev, state, { starting: startingRef.current }));
     };
 
-    const handleGoogleTtsState = (state) => {
-      if (state === 'finished' || state === 'stopped' || state === 'error') {
-        setIsSpeaking(false);
-        setSpeakingVerseIndex(null);
-        setIsLoadingAudio(false);
-        setLoadingAudioVerseIndex(null);
-        setIsPaused(false);
-      } else if (state === 'playing') {
-        setIsLoadingAudio(false);
-        setLoadingAudioVerseIndex(null);
-        setIsSpeaking(true);
-      } else if (state === 'loading') {
-        setIsLoadingAudio(true);
-      }
-    };
-
-    chatterboxService.onStateChange = handleChatterboxState;
-    googleTtsService.onStateChange = handleGoogleTtsState;
+    chatterboxService.onStateChange = handleState;
+    googleTtsService.onStateChange = handleState;
 
     return () => {
       chatterboxService.onStateChange = null;
@@ -121,21 +102,19 @@ const PrayerDetailModal = ({
       await chatterboxService.stop();
       await googleTtsService.stop();
     } catch (e) {}
-    setIsSpeaking(false);
-    setSpeakingVerseIndex(null);
-    setIsLoadingAudio(false);
-    setLoadingAudioVerseIndex(null);
-    setIsPaused(false);
+    setAudio(AUDIO_IDLE);
   };
 
   const speakVerse = async (verseText, verseRef, verseIndex) => {
     try {
-      if ((isSpeaking && speakingVerseIndex === verseIndex) ||
-          (isLoadingAudio && loadingAudioVerseIndex === verseIndex)) {
+      if (isBusy(audio, verseIndex)) {
         await stopAllAudio();
         return;
       }
 
+      // Everything from here until the new clip is handed over belongs to the
+      // new clip; the outgoing one's "stopped" must not be read as its end.
+      startingRef.current = true;
       await stopAllAudio();
 
       const cleanText = `${verseRef}. ${verseText}`
@@ -144,34 +123,25 @@ const PrayerDetailModal = ({
         .replace(/\n/g, ' ')
         .trim();
 
-      setIsLoadingAudio(true);
-      setLoadingAudioVerseIndex(verseIndex);
-      setSpeakingVerseIndex(verseIndex);
+      setAudio(startLoading(verseIndex));
       hapticFeedback.light();
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const useGoogleTts = bibleAudioService.isUsingGoogleTTS();
 
-      if (useGoogleTts) {
-        const success = await googleTtsService.speak(cleanText);
-        if (!success) {
-          setIsLoadingAudio(false);
-          setLoadingAudioVerseIndex(null);
-          setIsSpeaking(false);
-          setSpeakingVerseIndex(null);
-        }
-      } else {
-        const success = await chatterboxService.speak(cleanText);
-        if (!success) {
-          setIsLoadingAudio(false);
-          setLoadingAudioVerseIndex(null);
-          setIsSpeaking(false);
-          setSpeakingVerseIndex(null);
-        }
+      const speaker = useGoogleTts ? googleTtsService : chatterboxService;
+      let success = false;
+      try {
+        success = await speaker.speak(cleanText);
+      } finally {
+        // The clip is the service's now, so its events are about this one.
+        startingRef.current = false;
       }
+      if (!success) setAudio(AUDIO_IDLE);
     } catch (error) {
       console.error('Error speaking verse:', error);
+      startingRef.current = false;
       await stopAllAudio();
     }
   };
@@ -179,7 +149,7 @@ const PrayerDetailModal = ({
   const pauseAudio = async () => {
     try {
       await googleTtsService.pause();
-      setIsPaused(true);
+      setAudio((prev) => ({ ...prev, paused: true }));
       hapticFeedback.light();
     } catch (e) {}
   };
@@ -187,7 +157,7 @@ const PrayerDetailModal = ({
   const resumeAudio = async () => {
     try {
       await googleTtsService.resume();
-      setIsPaused(false);
+      setAudio((prev) => ({ ...prev, paused: false }));
       hapticFeedback.light();
     } catch (e) {}
   };
