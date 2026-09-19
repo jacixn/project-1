@@ -688,6 +688,9 @@ const NutritionScreen = () => {
 
   // ─── Add food handlers ───
   const openAddFood = () => {
+    // The add button, the floating one and the two in the day's list all come
+    // through here, so they all get the same tap. Matches My Week's add.
+    hapticFeedback.light();
     setAddFoodMode(null);
     setFoodName('');
     setFoodCalories('');
