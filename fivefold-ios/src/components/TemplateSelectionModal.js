@@ -103,6 +103,8 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   const [editorBodyPartFilter, setEditorBodyPartFilter] = useState('All');
   const [editorNameFocused, setEditorNameFocused] = useState(false);
   const [editorExercisesList, setEditorExercisesList] = useState([]); // All exercises for picker
+  const [editorSearchQuery, setEditorSearchQuery] = useState('');
+  const [loadingExercises, setLoadingExercises] = useState(false);
   // Picker rows are filtered once per query/chip change, not on every render
   // of the editor, and the list itself is virtualised below: mounting all
   // 994 library rows at once was the pause on "Add Exercise".
@@ -118,8 +120,6 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
       return matchesQuery && matchesPart;
     });
   }, [editorExercisesList, editorSearchQuery, editorBodyPartFilter]);
-  const [editorSearchQuery, setEditorSearchQuery] = useState('');
-  const [loadingExercises, setLoadingExercises] = useState(false);
   
   // Schedule modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
