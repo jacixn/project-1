@@ -38,6 +38,12 @@ ok(/playsInSilentModeIOS: true/.test(player), 'the audio session plays with the 
 ok(/injectJavaScript/.test(player) && !/webRef\.current\?\.postMessage/.test(player),
   'play and pause go through injectJavaScript, not postMessage (which dispatches on document, where a window listener never sees it)');
 
+// ── The size of YouTube's own controls ───────────────────────────────
+ok(/width:200%;height:200%/.test(player) && /transform:scale\(0\.5\)/.test(player),
+  'the embed chrome is halved by laying the iframe out at double size and scaling it back');
+ok(!/width:200%;height:200%[\s\S]{0,200}transform:scale\((?!0\.5\))/.test(player),
+  'the layout size and the scale stay reciprocal, so the video is neither cropped nor letterboxed');
+
 // ── Staying in the app ───────────────────────────────────────────────
 ok(/onShouldStartLoadWithRequest/.test(player) && /navigationType === 'click'\) return false/.test(player) && /onOpenWindow=\{\(\) => \{\}\}/.test(player),
   'a tap on the title, the channel or Watch on YouTube cannot hand the app off');

@@ -74,7 +74,14 @@ const playerHtml = (videoId) => `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden;}
-#player{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+/* YouTube's controls are sized in the iframe's own CSS pixels, and nothing
+   in the embed API makes them smaller. Laying the iframe out at twice the
+   box and scaling it back by half does: the chrome renders at half size,
+   and because 200% scaled by 0.5 is exactly the box again, the video keeps
+   its framing. Nothing is cropped or zoomed. Measured against a real
+   WKWebView, title, avatar, captions, settings, the centre button, the
+   scrub bar, share and the wordmark all halve. */
+#player{position:absolute;top:0;left:0;width:200%;height:200%;border:0;transform:scale(0.5);transform-origin:top left;}
 </style>
 </head>
 <body>
