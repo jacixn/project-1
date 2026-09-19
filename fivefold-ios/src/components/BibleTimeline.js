@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   RefreshControl,
   PanResponder,
 } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -737,19 +738,22 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false, 
   currentCardIndexRef.current = currentCardIndex;
   selectedEraRef.current = selectedEra;
 
-  const isHorizontalSwipe = (gesture) =>
-    Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5;
+  // A flick counts even when it is short: insisting on a quarter of the
+  // screen made quick swipes feel like they had been ignored.
+  const FLICK_VX = 0.35;
 
   const settleSwipe = (gesture) => {
     const stories = selectedEraRef.current?.stories || [];
     const idx = currentCardIndexRef.current;
-    if (gesture.dx < -SWIPE_THRESHOLD && idx < stories.length - 1) {
+    const flickedLeft = gesture.vx <= -FLICK_VX;
+    const flickedRight = gesture.vx >= FLICK_VX;
+    if ((gesture.dx < -SWIPE_THRESHOLD || flickedLeft) && gesture.dx < 0 && idx < stories.length - 1) {
       Animated.spring(swipeX, { toValue: -width, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
         stopStoryAudio();
         setCurrentCardIndex(prev => prev + 1);
         swipeX.setValue(0);
       });
-    } else if (gesture.dx > SWIPE_THRESHOLD && idx > 0) {
+    } else if ((gesture.dx > SWIPE_THRESHOLD || flickedRight) && gesture.dx > 0 && idx > 0) {
       Animated.spring(swipeX, { toValue: width, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
         stopStoryAudio();
         setCurrentCardIndex(prev => prev - 1);
@@ -760,56 +764,97 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false, 
     }
   };
 
-  const cardPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gesture) => isHorizontalSwipe(gesture),
-      // Capture the horizontal swipe BEFORE the inner ScrollView or the native
-      // modal's dismiss gesture can claim it.
-      onMoveShouldSetPanResponderCapture: (_, gesture) => isHorizontalSwipe(gesture),
-      onPanResponderMove: (_, gesture) => {
-        swipeX.setValue(gesture.dx);
-      },
-      // Once we own the swipe, do NOT hand it back to the native modal — that was
-      // terminating the pan mid-drag and freezing the card.
-      onPanResponderTerminationRequest: () => false,
-      onShouldBlockNativeResponder: () => true,
-      onPanResponderRelease: (_, gesture) => settleSwipe(gesture),
-      // If something still steals it, settle so the card never gets stuck.
-      onPanResponderTerminate: (_, gesture) => settleSwipe(gesture),
-    })
-  ).current;
+  // A gesture handler, not a PanResponder.
+  //
+  // This screen is a native modal sheet, and a JS PanResponder loses to the
+  // sheet's own dismiss gesture: the sheet claims the touch and the card's pan
+  // is terminated mid-drag, which is why the swipe worked only sometimes. The
+  // previous code tried to hold on with onPanResponderTerminationRequest and
+  // onShouldBlockNativeResponder, neither of which can outrank a native
+  // recogniser. react-native-gesture-handler negotiates with it properly.
+  //
+  // activeOffsetX claims the touch only once it is clearly horizontal, and
+  // failOffsetY hands it to the story's own scroll view the moment it is
+  // clearly vertical, so reading and swiping do not fight.
+  const cardGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-12, 12])
+        .failOffsetY([-20, 20])
+        .onUpdate((e) => { swipeX.setValue(e.translationX); })
+        .onEnd((e) => {
+          settleSwipe({ dx: e.translationX, dy: e.translationY, vx: e.velocityX / 1000 });
+        })
+        .runOnJS(true),
+    []
+  );
 
   const renderStackedCards = (eraColor) => {
     const stories = selectedEra?.stories || [];
     if (!stories.length) return null;
 
-    const cardsToShow = stories.slice(currentCardIndex, currentCardIndex + 3);
+    // Two cards, not three. The third was never visible behind the second and
+    // only paid for itself in layout and scroll views.
+    const cardsToShow = stories.slice(currentCardIndex, currentCardIndex + 2);
 
     return (
-      <View style={styles.stackContainer}>
+      // Biblely has no gesture root at the app level; each screen that uses
+      // one provides its own, as My Week does. Without this the card's pan
+      // would silently never fire, which is worse than the PanResponder it
+      // replaced.
+      <GestureHandlerRootView style={styles.stackContainer}>
         {cardsToShow.map((story, i) => {
           const actualIndex = currentCardIndex + i;
           const isTop = i === 0;
           const isPlaying = playingStoryIndex === actualIndex;
 
+          // The card behind used to sit lower and to one side, so a swipe
+          // revealed a misaligned second rectangle with its text showing
+          // through the gap. It now sits squarely behind, slightly smaller and
+          // dimmer, and grows into place as the top card leaves. Nothing is
+          // offset, so there is no seam to notice.
           const cardStyle = {
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
             zIndex: 3 - i,
-            transform: isTop
-              ? [
-                  { translateX: swipeX },
-                  { rotate: swipeX.interpolate({ inputRange: [-width, 0, width], outputRange: ['-8deg', '0deg', '8deg'], extrapolate: 'clamp' }) },
-                ]
-              : [
-                  { scale: 1 - i * 0.05 },
-                  { translateY: i * 10 },
-                ],
+            ...(isTop
+              ? {
+                  transform: [
+                    { translateX: swipeX },
+                    {
+                      rotate: swipeX.interpolate({
+                        inputRange: [-width, 0, width],
+                        outputRange: ['-4deg', '0deg', '4deg'],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                  opacity: swipeX.interpolate({
+                    inputRange: [-width, -width * 0.65, 0, width * 0.65, width],
+                    outputRange: [0, 1, 1, 1, 0],
+                    extrapolate: 'clamp',
+                  }),
+                }
+              : {
+                  transform: [
+                    {
+                      scale: swipeX.interpolate({
+                        inputRange: [-width, 0, width],
+                        outputRange: [1, 0.94, 1],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                  opacity: swipeX.interpolate({
+                    inputRange: [-width, 0, width],
+                    outputRange: [1, 0.55, 1],
+                    extrapolate: 'clamp',
+                  }),
+                }),
           };
 
-          return (
-            <Animated.View key={actualIndex} style={cardStyle} {...(isTop ? cardPanResponder.panHandlers : {})}>
+          const card = (
+            <Animated.View key={actualIndex} style={cardStyle} pointerEvents={isTop ? 'auto' : 'none'}>
               <View style={[styles.deckCard, {
                 backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
                 borderColor: isDark ? eraColor + '40' : eraColor + '30',
@@ -907,8 +952,12 @@ const BibleTimeline = ({ visible, onClose, onNavigateToVerse, asScreen = false, 
               </View>
             </Animated.View>
           );
+          // Only the card on top takes the swipe; the one behind is inert.
+          return isTop
+            ? <GestureDetector key={actualIndex} gesture={cardGesture}>{card}</GestureDetector>
+            : card;
         }).reverse()}
-      </View>
+      </GestureHandlerRootView>
     );
   };
 
