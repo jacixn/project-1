@@ -32,6 +32,7 @@ import ExercisesService from '../services/exercisesService';
 import { hapticFeedback } from '../utils/haptics';
 import CustomLoadingIndicator from './CustomLoadingIndicator';
 import AddExerciseModal from './AddExerciseModal';
+import ExerciseVideoSheet from './ExerciseVideoSheet';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
@@ -999,6 +1000,8 @@ const ExercisesModal = ({ visible, onClose, onSelectExercise, selectionMode = fa
 // small handle and the parent never scaled back.)
 export const ExerciseDetailScreen = ({ route }) => {
   const { theme, isDark } = useTheme();
+  // Declared above the early return: hooks have to run on every render.
+  const [videoOpen, setVideoOpen] = useState(false);
   const exercise = route?.params?.exercise || null;
   if (!exercise) return null;
 
@@ -1049,8 +1052,7 @@ export const ExerciseDetailScreen = ({ route }) => {
           <TouchableOpacity
             onPress={() => {
               hapticFeedback.light();
-              const query = encodeURIComponent(`${exercise.name} exercise form tutorial`);
-              Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
+              setVideoOpen(true);
             }}
             activeOpacity={0.7}
             style={{
@@ -1092,6 +1094,12 @@ export const ExerciseDetailScreen = ({ route }) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <ExerciseVideoSheet
+        visible={videoOpen}
+        exerciseName={exercise.name}
+        onClose={() => setVideoOpen(false)}
+      />
     </View>
   );
 };
