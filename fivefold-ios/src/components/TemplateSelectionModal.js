@@ -764,7 +764,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
       exercises: editorExercises,
       // The Length control always shows a value (chosen, else the exercise
       // estimate), and that value is what gets saved.
-      durationMinutes: suggestedDurationMinutes(editorTemplate, editorExercises),
+      durationMinutes: suggestedDurationMinutes(editorTemplate),
     };
 
     try {
@@ -823,7 +823,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
     const muscles = summary.muscleSplit.slice(0, 2).map((m) => m.bodyPart).join(', ');
     const meta = [
       `${summary.exerciseCount} ${summary.exerciseCount === 1 ? 'exercise' : 'exercises'}`,
-      templateLengthLabel(template, summary.estMinutes),
+      templateLengthLabel(template),
       muscles || null,
     ].filter(Boolean).join('  ·  ');
     const last = insights.lastDoneLabel
@@ -1524,7 +1524,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                     <Text style={[styles.detailStats, { color: theme.textSecondary }]}>
                       {summary.exerciseCount} {summary.exerciseCount === 1 ? 'exercise' : 'exercises'}
                       {'  ·  '}{summary.totalSets} {summary.totalSets === 1 ? 'set' : 'sets'}
-                      {templateLengthLabel(selectedTemplate, summary.estMinutes) ? `  ·  ${templateLengthLabel(selectedTemplate, summary.estMinutes)}` : ''}
+                      {`  ·  ${templateLengthLabel(selectedTemplate)}`}
                     </Text>
                     {detailInsights?.lastDoneLabel ? (
                       <Text style={[styles.detailLastDone, { color: theme.textSecondary }]}>
@@ -1870,7 +1870,7 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
                   <View style={styles.editorBlock}>
                     <Text style={[styles.editorOverline, { color: theme.textSecondary }]}>LENGTH</Text>
                     <DurationField
-                      value={suggestedDurationMinutes(editorTemplate, editorExercises)}
+                      value={suggestedDurationMinutes(editorTemplate)}
                       onChange={(m) => setEditorTemplate({ ...editorTemplate, durationMinutes: m })}
                       accent={theme.primary}
                       compact
