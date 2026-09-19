@@ -61,6 +61,11 @@ let _cachedConfig = undefined;
 
 export const refreshTabBarConfig = () => _refreshFn?.();
 
+// Last loaded tab layout ({ order, hidden }) or null before any load, for
+// callers that must decide synchronously (notification taps resolving a
+// hidden tab). Preloaded at app start by preloadTabConfig.
+export const getCachedTabConfig = () => (_cachedConfig === undefined ? null : _cachedConfig);
+
 export const preloadTabConfig = async () => {
   try {
     const config = await userStorage.get('tabBarConfig');

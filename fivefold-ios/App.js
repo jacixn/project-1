@@ -11,6 +11,8 @@ import { LanguageProvider } from './src/contexts/LanguageContext';
 import { WorkoutProvider, useWorkout } from './src/contexts/WorkoutContext';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
+import { getCachedTabConfig } from './src/navigation/TabNavigator';
+import { resolveNavTarget } from './src/utils/notificationRoutes';
 import notificationService from './src/services/notificationService';
 import { setCurrentNotificationUser, clearCurrentNotificationUser } from './src/services/notificationService';
 // OnboardingWrapper is now handled inside RootNavigator
@@ -326,6 +328,23 @@ const ThemedApp = () => {
   const navigationRef = useRef(null);
   const pendingNavigationRef = useRef(null);
   const prevUserIdRef = useRef(undefined);
+
+  // Every notification tap and widget deep link lands through here. Tabs go
+  // via the Main host as a nested screen (React Navigation applies it as the
+  // child's initial route even before the tab navigator has rendered, which
+  // is the cold-start case), a hidden tab falls back to Main instead of an
+  // unhandled NAVIGATE, root-stack routes go by name. The hidden list comes
+  // from the tab navigator's cache, else straight from storage (uid-scoped,
+  // so this is never read at module load). Resolves false when the exact
+  // target could not be reached (hidden tab).
+  const navigateToTarget = async (tab) => {
+    let config = getCachedTabConfig();
+    if (!config) { try { config = await userStorage.get('tabBarConfig'); } catch {} }
+    const target = resolveNavTarget(tab, config?.hidden);
+    if (!target || !navigationRef.current?.isReady()) return false;
+    navigationRef.current.navigate(target.route, target.params, target.options);
+    return !target.hidden;
+  };
   const [currentRoute, setCurrentRoute] = useState(null);
   const inAppNotifRef = useRef(null);
 
@@ -469,7 +488,7 @@ const ThemedApp = () => {
     setTimeout(() => {
       if (navigationRef.current?.isReady()) {
         try {
-          navigationRef.current.navigate('BiblePrayer');
+          navigateToTarget('BiblePrayer');
           console.log('✅ Navigated to BiblePrayer tab for widget');
         } catch (navError) {
           console.error('❌ Navigation error:', navError);
@@ -541,7 +560,7 @@ const ThemedApp = () => {
         global.__PENDING_ADD_TODO__ = true; // TodoList opens the form on mount
         const navigate = () => {
           if (navigationRef.current?.isReady()) {
-            navigationRef.current.navigate('Todos');
+            navigateToTarget('Todos');
           } else {
             pendingNavigationRef.current = { tab: 'Todos' };
           }
@@ -561,7 +580,7 @@ const ThemedApp = () => {
         console.log('📋 Todo widget tap — navigating to Todos');
         const navigate = () => {
           if (navigationRef.current?.isReady()) {
-            navigationRef.current.navigate('Todos');
+            navigateToTarget('Todos');
           } else {
             pendingNavigationRef.current = { tab: 'Todos' };
           }
@@ -643,7 +662,7 @@ const ThemedApp = () => {
   const lastNavTimestampRef = useRef(0);
   
   // Handle notification-based navigation
-  const handleNotificationNavigation = (payload) => {
+  const handleNotificationNavigation = async (payload) => {
     const { tab, data, notificationType } = payload;
     
     // Deduplication: prevent the same navigation from firing twice within 2 seconds
@@ -660,8 +679,8 @@ const ThemedApp = () => {
     // Navigate to the appropriate screen
     if (navigationRef.current?.isReady()) {
       try {
-        navigationRef.current.navigate(tab);
-        console.log('✅ Navigated to:', tab);
+        const landed = await navigateToTarget(tab);
+        console.log(landed ? '✅ Navigated to:' : '📱 Tab is hidden, opened Main instead of:', tab);
 
         // Emit a secondary event for the specific screen to handle additional data
         if (data) {
@@ -847,7 +866,7 @@ const ThemedApp = () => {
       // Navigate to BiblePrayer tab
       if (navigationRef.current?.isReady()) {
         try {
-          navigationRef.current.navigate('BiblePrayer');
+          navigateToTarget('BiblePrayer');
           console.log('✅ Navigated to BiblePrayer tab for audio verse');
           
           // Emit event to open Bible reader at the specific verse
