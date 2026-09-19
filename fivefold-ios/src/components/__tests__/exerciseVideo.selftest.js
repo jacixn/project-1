@@ -38,6 +38,19 @@ ok(/playsInSilentModeIOS: true/.test(player), 'the audio session plays with the 
 ok(/injectJavaScript/.test(player) && !/webRef\.current\?\.postMessage/.test(player),
   'play and pause go through injectJavaScript, not postMessage (which dispatches on document, where a window listener never sees it)');
 
+// ── The HUD, which is the picture's worst enemy ──────────────────────
+// YouTube's embed chrome (title, channel, share, More videos, the wordmark,
+// the scrub bar, the big centre button) covers the video and cannot be turned
+// off by a parameter. It is only drawn in response to a pointer, so the
+// iframe is given none and the app draws its own controls instead.
+ok(/controls: 0/.test(player), 'YouTube\'s own controls are off');
+ok(/pointer-events:none/.test(player), 'the iframe receives no pointer events, so the embed chrome is never drawn');
+ok(/post\('time'/.test(player), 'the page reports position and length for the app-drawn progress line');
+ok(/<PlayerChrome/.test(player) && /'toggle'/.test(player) && /'seek'/.test(player), 'the app-drawn controls replace them');
+ok(!/scale\(|transform: \[\{ scale/.test(player), 'nothing is scaled or cropped to hide the chrome: the video still fills the box');
+const chrome = read('components/PlayerChrome.js');
+ok(!/[\u{1F300}-\u{1FAFF}]/u.test(chrome) && !/—/.test(chrome), 'no emojis, no em dashes in the chrome');
+
 // ── Staying in the app ───────────────────────────────────────────────
 ok(/onShouldStartLoadWithRequest/.test(player) && /navigationType === 'click'\) return false/.test(player) && /onOpenWindow=\{\(\) => \{\}\}/.test(player),
   'a tap on the title, the channel or Watch on YouTube cannot hand the app off');

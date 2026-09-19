@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import PlayerChrome from './PlayerChrome';
 
 // Plays an exercise tutorial inside Biblely instead of sending the user to the
 // YouTube app. Ported from EyeCandy's trailer player, which was worked out
@@ -74,7 +75,11 @@ const playerHtml = (videoId) => `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden;}
-#player{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+/* YouTube's own chrome (title, channel, share, More videos, the logo, the
+   scrub bar) only appears in response to a pointer, so the iframe is given
+   none. Controls are off as well, and the app draws its own in their place.
+   Nothing is scaled or cropped to achieve this: the video fills the box. */
+#player{position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none;}
 </style>
 </head>
 <body>
@@ -86,20 +91,33 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
   // Player states: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued.
   var state = function(){ try { return player.getPlayerState(); } catch(e){ return -1; } };
 
-  window.__cmd = function(c){
+  window.__cmd = function(c, v){
     if (!player) return;
     try {
       if (c === 'play') player.playVideo();
       else if (c === 'pause') player.pauseVideo();
+      else if (c === 'toggle') { if (state() === 1) player.pauseVideo(); else player.playVideo(); }
+      else if (c === 'seek') { player.seekTo(Number(v) || 0, true); player.playVideo(); }
       else if (c === 'unmute') {
         player.unMute();
         player.setVolume(100);
-        // Never resume a video the viewer paused on purpose in the embed's
-        // own controls: turning the sound on is not a request to play.
+        // Never resume a video the viewer paused on purpose: turning the
+        // sound on is not a request to play.
         if (state() !== 2) player.playVideo();
       }
     } catch(e){}
   };
+
+  // The app draws the progress line, so it needs the numbers YouTube's own
+  // scrub bar would have shown. Twice a second is smooth at this width and
+  // costs nothing.
+  setInterval(function(){
+    if (!player) return;
+    try {
+      var st = state();
+      post('time', { at: player.getCurrentTime(), of: player.getDuration(), playing: st === 1 || st === 3 });
+    } catch(e){}
+  }, 500);
 
   window.onYouTubeIframeAPIReady = function(){
     try {
@@ -108,7 +126,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
         playerVars: {
           autoplay: 1,
           playsinline: 1,
-          controls: 1,
+          controls: 0,
           rel: 0,
           fs: 1,
           iv_load_policy: 3,
@@ -186,6 +204,9 @@ const ExerciseVideoPlayer = ({ videoId, width, height, playing = true, onEnd, on
   const [ready, setReady] = useState(false);
   const [playedOnce, setPlayedOnce] = useState(false);
   const [muted, setMuted] = useState(false);
+  // YouTube's own scrub bar and buttons are off, so the numbers behind the
+  // app's own controls come from the page instead.
+  const [clock, setClock] = useState({ at: 0, of: 0, running: false });
   const html = useMemo(() => playerHtml(videoId), [videoId]);
 
   // One video reports itself unplayable at most once, whichever signal
@@ -203,7 +224,7 @@ const ExerciseVideoPlayer = ({ videoId, width, height, playing = true, onEnd, on
   }, [onUnplayable, videoId]);
 
   useEffect(() => { ensureAudioMode(); }, []);
-  useEffect(() => { spentRef.current = false; setReady(false); setPlayedOnce(false); setMuted(false); }, [videoId]);
+  useEffect(() => { spentRef.current = false; setReady(false); setPlayedOnce(false); setMuted(false); setClock({ at: 0, of: 0, running: false }); }, [videoId]);
 
   // The page never loaded at all: the API script hung, or the web view never
   // painted. Nothing is reported in that case, so a deadline is the only
@@ -223,8 +244,12 @@ const ExerciseVideoPlayer = ({ videoId, width, height, playing = true, onEnd, on
     return () => clearTimeout(t);
   }, [ready, playedOnce, playing, giveUp]);
 
-  const send = useCallback((cmd) => {
-    try { webRef.current?.injectJavaScript(`window.__cmd && window.__cmd(${JSON.stringify(cmd)}); true;`); } catch {}
+  const send = useCallback((cmd, value) => {
+    try {
+      webRef.current?.injectJavaScript(
+        `window.__cmd && window.__cmd(${JSON.stringify(cmd)}, ${JSON.stringify(value ?? null)}); true;`
+      );
+    } catch {}
   }, []);
 
   // Closing the sheet pauses, reopening resumes. injectJavaScript rather than
@@ -250,6 +275,15 @@ const ExerciseVideoPlayer = ({ videoId, width, height, playing = true, onEnd, on
       case 'playingMuted':
         setPlayedOnce(true);
         setMuted(true);
+        break;
+      case 'time':
+        if (msg.d) {
+          setClock({
+            at: Number(msg.d.at) || 0,
+            of: Number(msg.d.of) || 0,
+            running: !!msg.d.playing,
+          });
+        }
         break;
       case 'ended':
         onEnd?.();
@@ -315,6 +349,17 @@ const ExerciseVideoPlayer = ({ videoId, width, height, playing = true, onEnd, on
           onHttpError={() => giveUp('http error')}
           onContentProcessDidTerminate={() => giveUp('content process gone')}
         />
+        {ready ? (
+          <PlayerChrome
+            width={width}
+            height={height}
+            playing={clock.running}
+            at={clock.at}
+            of={clock.of}
+            onToggle={() => send('toggle')}
+            onSeek={(seconds) => { setClock((c) => ({ ...c, at: seconds })); send('seek', seconds); }}
+          />
+        ) : null}
         {!ready ? (
           <View style={styles.loading} pointerEvents="none">
             <ActivityIndicator color="#fff" />
