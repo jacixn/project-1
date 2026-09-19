@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, A
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { headerTopPadding } from '../utils/sheetTop';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { computeDayFlow } from '../utils/dayFlow';
@@ -148,6 +149,14 @@ const MyWeekScreen = ({ navigation }) => {
   const [showWheel, setShowWheel] = useState(false);
   const [moveAll, setMoveAll] = useState(false); // repeating reminder: just today (default) or every day
   const insets = useSafeAreaInsets();
+  // This screen is pushed, so it is full screen from a tab header but sits
+  // inside a sheet when it is opened from one. The safe-area inset cannot
+  // tell those apart, so measure where the screen actually starts.
+  const rootRef = useRef(null);
+  const [containerTop, setContainerTop] = useState(null);
+  const measureTop = useCallback(() => {
+    try { rootRef.current?.measureInWindow((x, y) => setContainerTop(y)); } catch {}
+  }, []);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
   // Make it fit: plan (AI proposes, rules verify) shown before anything moves
@@ -809,9 +818,9 @@ const MyWeekScreen = ({ navigation }) => {
   }, [draftDate, anchor]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View ref={rootRef} onLayout={measureTop} style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header: same tile back button as Habits / Fuel, title centred, Today on the right */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: headerTopPadding(insets.top, containerTop) }]}>
         <TouchableOpacity
           style={[styles.headerBtn, { backgroundColor: tile }]}
           onPress={() => { hapticFeedback.light(); navigation.goBack(); }}
