@@ -14,6 +14,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { getCachedTabConfig } from './src/navigation/TabNavigator';
 import { resolveNavTarget } from './src/utils/notificationRoutes';
 import notificationService from './src/services/notificationService';
+import { checkForNewSignups } from './src/services/newSignupAlerts';
 import { setCurrentNotificationUser, clearCurrentNotificationUser } from './src/services/notificationService';
 // OnboardingWrapper is now handled inside RootNavigator
 import { initializeApiSecurity } from './src/utils/secureApiKey';
@@ -771,6 +772,21 @@ const ThemedApp = () => {
     });
     return () => sub.remove();
   }, []);
+
+  // Owner accounts get told when somebody new joins. The service checks the
+  // owner gate itself and does nothing for anyone else, so this runs for
+  // every signed-in user and costs nothing for almost all of them. Checked on
+  // sign-in and whenever the app comes back to the foreground, since this is
+  // a local notification rather than a push.
+  useEffect(() => {
+    const email = user?.email;
+    if (!email) return undefined;
+    checkForNewSignups(email).catch(() => {});
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkForNewSignups(email).catch(() => {});
+    });
+    return () => sub.remove();
+  }, [user?.email]);
 
   // ── Track current user for notification filtering ──
   useEffect(() => {

@@ -15,6 +15,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import userStorage from '../utils/userStorage';
+import { isAdminEmail } from '../config/admin';
+import { useAuth } from '../contexts/AuthContext';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../contexts/ThemeContext';
 import { getStoredData, saveData } from '../utils/localStorage';
@@ -48,6 +50,9 @@ const SETTING_TO_TAB = {
 
 const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
   const { theme, isDark } = useTheme();
+  const { user } = useAuth();
+  // The one setting that is not for everyone.
+  const isOwner = isAdminEmail(user?.email);
   const [settings, setSettings] = useState({
     prayerReminders: true,
     taskReminders: true,
@@ -64,6 +69,9 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
     insistenceLevel: 'gentle', // 'gentle' | 'strong' | 'relentless'
     soundName: 'default', // 'default' or a filename from SOUND_OPTIONS
     // Weather alerts (planned from the Open-Meteo forecast, see services/weatherAlerts)
+    // Owner accounts only (see config/admin). Nobody else is shown the
+    // toggle or has the check run for them.
+    newSignupAlerts: true,
     weatherAlerts: false,
     weatherAlertTime: DEFAULT_WEATHER_PREFS.time, // 'HH:mm'
     weatherConditions: [...DEFAULT_WEATHER_PREFS.conditions],
@@ -662,6 +670,25 @@ const NotificationSettings = ({ visible, onClose, asScreen = false }) => {
                   </TouchableOpacity>
                 );
               })}
+            </View>
+          )}
+
+          {/* Owner only: nobody else is shown this, and the check that
+              backs it never runs for them either. */}
+          {isOwner && (
+            <View style={[styles.section, { backgroundColor: theme.card }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Biblely</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Only you can see this
+              </Text>
+
+              <NotificationToggle
+                title="New sign-ups"
+                subtitle="Tell me when someone new joins Biblely"
+                icon="person-add"
+                settingKey="newSignupAlerts"
+                iconColor="#10B981"
+              />
             </View>
           )}
 
