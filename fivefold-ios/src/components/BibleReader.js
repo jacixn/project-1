@@ -307,9 +307,13 @@ const BibleReader = ({
   const showColorPickerRef = useRef(false);
   showColorPickerRef.current = showColorPicker;
   const [highlightedVerses, setHighlightedVerses] = useState({}); // { verseId: color }
-  const verseMenuSlideAnim = useRef(new Animated.Value(0)).current;
   const verseMenuFadeAnim = useRef(new Animated.Value(0)).current;
-  const verseMenuDragY = useRef(new Animated.Value(0)).current;
+  // One translateY for the verse sheet, exactly like searchModalPanY: rest at
+  // windowHeight, open at 0, the drag writes straight into it, and close runs
+  // from wherever the finger let go. (The old slide + drag pair snapped the
+  // drag back toward the origin while sliding out, and its clamped
+  // interpolation stopped following the finger after 300 px.)
+  const verseMenuPanY = useRef(new Animated.Value(windowHeight)).current;
   
   // Range selection state for saving multiple verses
   const [rangeSelectionMode, setRangeSelectionMode] = useState(false);
@@ -1136,10 +1140,20 @@ const BibleReader = ({
   // window no native recognizer competes, so the drag actually arrives.
   // Drag writes are clamped at 0 so pulling back up never leaves the sheet
   // parked below its origin, and a terminated gesture springs home.
-  const createSheetPanResponder = (panY, closeRef) =>
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+  // `fromAnywhere` is the verse menu's variant: its handlers sit on the whole
+  // sheet, over tappable rows, so it never claims on touch start and instead
+  // CAPTURES a clear downward move (otherwise the row Touchable becomes the
+  // responder and the sheet never sees the drag). `canCapture` lets it back
+  // off while a nested ScrollView (the colour picker) is open. Everything
+  // after the claim (clamp, thresholds, springs) is shared, so every sheet
+  // feels the same.
+  const createSheetPanResponder = (panY, closeRef, { fromAnywhere = false, canCapture = () => true } = {}) => {
+    const isDownwardDrag = (gs) => gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2;
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => !fromAnywhere,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder: (_, gs) => (fromAnywhere ? isDownwardDrag(gs) : Math.abs(gs.dy) > 5),
+      onMoveShouldSetPanResponderCapture: (_, gs) => fromAnywhere && canCapture() && isDownwardDrag(gs),
       onPanResponderTerminationRequest: () => false,
       onPanResponderMove: (_, gestureState) => {
         panY.setValue(Math.max(0, gestureState.dy));
@@ -1166,6 +1180,7 @@ const BibleReader = ({
         }).start();
       },
     });
+  };
 
   const bookSelectorPanResponder = useRef(
     createSheetPanResponder(bookSelectorPanY, closeBookSelectorRef)
@@ -1585,12 +1600,12 @@ const BibleReader = ({
     setSelectedVerseForMenu(verse);
     setShowVerseMenu(true);
     
-    verseMenuDragY.setValue(0);
+    verseMenuPanY.setValue(windowHeightRef.current);
     Animated.parallel([
-      // Shares a transform with the JS-driven drag value, so it stays off the
-      // native driver (mixing drivers on one transform throws)
-      Animated.spring(verseMenuSlideAnim, {
-        toValue: 1,
+      // Drag tracking is JS-driven (PanResponder gestureState can't feed the
+      // native driver), so this value stays off the native driver
+      Animated.spring(verseMenuPanY, {
+        toValue: 0,
         tension: 65,
         friction: 11,
         useNativeDriver: false,
@@ -1604,9 +1619,19 @@ const BibleReader = ({
   };
 
   const closeVerseMenu = (afterClose) => {
+    // Same re-entrancy guard as closeSearchSheet: a backdrop tap landing
+    // during a flick's release (or during the Share handoff below) would
+    // restart the exit and fire two completions, the second of which nulls
+    // selectedVerseForMenu while the share card still needs it.
+    if (closingSheetRef.current === 'verse') {
+      scheduleAfterSheetDismiss(afterClose);
+      return;
+    }
+    closingSheetRef.current = 'verse';
     Animated.parallel([
-      Animated.timing(verseMenuSlideAnim, {
-        toValue: 0,
+      // Slides out from wherever the drag left it, like closeSearchSheet
+      Animated.timing(verseMenuPanY, {
+        toValue: windowHeightRef.current,
         duration: 250,
         useNativeDriver: false,
       }),
@@ -1615,12 +1640,8 @@ const BibleReader = ({
         duration: 250,
         useNativeDriver: true,
       }),
-      Animated.timing(verseMenuDragY, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }),
     ]).start(() => {
+      closingSheetRef.current = null;
       setShowVerseMenu(false);
       setSelectedVerseForMenu(null);
       setShowColorPicker(false);
@@ -2323,9 +2344,11 @@ const BibleReader = ({
     // Only reset temporary state, keep user's saved preferences (bg, layout, font, etc.)
     setShareCardControlsTab('bg');
     
+    if (closingSheetRef.current === 'verse') return;
+    closingSheetRef.current = 'verse';
     Animated.parallel([
-      Animated.timing(verseMenuSlideAnim, {
-        toValue: 0,
+      Animated.timing(verseMenuPanY, {
+        toValue: windowHeightRef.current,
         duration: 200,
         useNativeDriver: false,
       }),
@@ -2334,12 +2357,8 @@ const BibleReader = ({
         duration: 200,
         useNativeDriver: true,
       }),
-      Animated.timing(verseMenuDragY, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }),
     ]).start(() => {
+      closingSheetRef.current = null;
       setShowVerseMenu(false);
       setShowColorPicker(false);
       // Don't clear selectedVerseForMenu yet - we need it for the share card
@@ -3406,48 +3425,12 @@ const BibleReader = ({
   const closeVerseMenuRef = useRef(null);
   closeVerseMenuRef.current = closeVerseMenu;
 
+  // Same physics as the search sheet (createSheetPanResponder), in the
+  // drag-from-anywhere variant so the action rows stay tappable.
   const verseMenuPanResponder = useRef(
-    PanResponder.create({
-      // Taps must still reach the action rows, so never claim on touch start.
-      // The CAPTURE variant is what makes the sheet draggable from anywhere:
-      // without it the row Touchables become the responder on touch-down and
-      // the parent never sees the drag, so pull-to-close only worked on the
-      // handle and the gaps between cards.
-      onStartShouldSetPanResponder: () => false,
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
-      onMoveShouldSetPanResponderCapture: (_, gs) =>
-        !showColorPickerRef.current && gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: () => { verseMenuDragY.setValue(0); },
-      onPanResponderMove: Animated.event(
-        [null, { dy: verseMenuDragY }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dy > 100 || gs.vy > 0.5) {
-          hapticFeedback.light();
-          closeVerseMenuRef.current?.();
-        } else {
-          Animated.spring(verseMenuDragY, {
-            toValue: 0,
-            tension: 65,
-            friction: 11,
-            // Drag tracking is JS-driven (PanResponder gestureState can't feed
-            // the native driver), and this value shares a transform with
-            // verseMenuSlideAnim, so both must stay off the native driver
-            useNativeDriver: false,
-          }).start();
-        }
-      },
-      onPanResponderTerminate: () => {
-        Animated.spring(verseMenuDragY, {
-          toValue: 0,
-          tension: 65,
-          friction: 11,
-          useNativeDriver: false,
-        }).start();
-      },
+    createSheetPanResponder(verseMenuPanY, closeVerseMenuRef, {
+      fromAnywhere: true,
+      canCapture: () => !showColorPickerRef.current,
     })
   ).current;
 
@@ -5363,21 +5346,7 @@ const BibleReader = ({
                   shadowOpacity: 0.3,
                   shadowRadius: 12,
                   elevation: 10,
-                  transform: [
-                    {
-                      translateY: verseMenuSlideAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [600, 0],
-                      }),
-                    },
-                    {
-                      translateY: verseMenuDragY.interpolate({
-                        inputRange: [-1, 0, 300],
-                        outputRange: [0, 0, 300],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ],
+                  transform: [{ translateY: verseMenuPanY }],
                 }}
               >
                 {/* Drag Handle */}
