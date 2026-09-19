@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   Platform,
   TextInput,
   Alert,
@@ -102,6 +103,21 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
   const [editorBodyPartFilter, setEditorBodyPartFilter] = useState('All');
   const [editorNameFocused, setEditorNameFocused] = useState(false);
   const [editorExercisesList, setEditorExercisesList] = useState([]); // All exercises for picker
+  // Picker rows are filtered once per query/chip change, not on every render
+  // of the editor, and the list itself is virtualised below: mounting all
+  // 994 library rows at once was the pause on "Add Exercise".
+  const pickerBodyParts = useMemo(
+    () => ["All", ...Array.from(new Set(editorExercisesList.map((e) => e.bodyPart).filter(Boolean)))],
+    [editorExercisesList],
+  );
+  const pickerFiltered = useMemo(() => {
+    const q = editorSearchQuery.trim().toLowerCase();
+    return editorExercisesList.filter((ex) => {
+      const matchesQuery = !q || ex.name.toLowerCase().includes(q) || (ex.bodyPart || "").toLowerCase().includes(q);
+      const matchesPart = editorBodyPartFilter === "All" || ex.bodyPart === editorBodyPartFilter;
+      return matchesQuery && matchesPart;
+    });
+  }, [editorExercisesList, editorSearchQuery, editorBodyPartFilter]);
   const [editorSearchQuery, setEditorSearchQuery] = useState('');
   const [loadingExercises, setLoadingExercises] = useState(false);
   
@@ -1839,6 +1855,155 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
               </TouchableOpacity>
             </View>
 
+            {showExercisePickerInEditor ? (
+              (() => {
+                const pickerHeader = (
+                  <View>
+                    <View style={styles.pickerHeader}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowExercisePickerInEditor(false);
+                          setEditorSearchQuery("");
+                        }}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      >
+                        <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+                      </TouchableOpacity>
+                      <Text style={[styles.pickerTitle, { color: theme.text }]}>Add Exercise</Text>
+                      <View style={{ width: 24 }} />
+                    </View>
+
+                    <View
+                      style={[
+                        styles.pickerSearch,
+                        {
+                          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
+                      <MaterialIcons name="search" size={20} color={theme.textSecondary} />
+                      <TextInput
+                        style={[styles.pickerSearchInput, { color: theme.text }]}
+                        placeholder="Search exercises"
+                        placeholderTextColor={theme.textSecondary}
+                        value={editorSearchQuery}
+                        onChangeText={setEditorSearchQuery}
+                        autoCorrect={false}
+                      />
+                      {editorSearchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setEditorSearchQuery("")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                          <MaterialIcons name="close" size={18} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {pickerBodyParts.length > 1 && (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.pickerChipsRow}
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        {pickerBodyParts.map((part) => {
+                          const active = editorBodyPartFilter === part;
+                          return (
+                            <TouchableOpacity
+                              key={part}
+                              onPress={() => {
+                                hapticFeedback.selection();
+                                setEditorBodyPartFilter(part);
+                              }}
+                              activeOpacity={0.8}
+                              style={[
+                                styles.pickerChip,
+                                {
+                                  backgroundColor: active ? theme.primary : "transparent",
+                                  borderColor: active ? theme.primary : theme.border,
+                                },
+                              ]}
+                            >
+                              <Text style={[styles.pickerChipText, { color: active ? "#FFFFFF" : theme.textSecondary }]}>
+                                {part}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setShowCreateExerciseInEditor(true);
+                      }}
+                      activeOpacity={0.8}
+                      style={[styles.pickerCreateRow, { borderColor: theme.primary }]}
+                    >
+                      <MaterialIcons name="add" size={20} color={theme.primary} />
+                      <Text style={[styles.pickerCreateText, { color: theme.primary }]}>
+                        {editorSearchQuery.trim()
+                          ? `Create "${editorSearchQuery.trim()}"`
+                          : "Create custom exercise"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+                const renderPickerRow = ({ item: exercise }) => (
+                  <TouchableOpacity
+                    style={[styles.pickerItem, { borderBottomColor: theme.border }]}
+                    onPress={() => handleExerciseSelectedForEditor(exercise)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.pickerItemInfo}>
+                      <View style={styles.pickerItemNameRow}>
+                        <Text style={[styles.pickerItemName, { color: theme.text }]}>{exercise.name}</Text>
+                        {exercise.isCustom && (
+                          <View style={[styles.pickerCustomTag, { borderColor: theme.primary }]}>
+                            <Text style={[styles.pickerCustomTagText, { color: theme.primary }]}>Custom</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.pickerItemMeta, { color: theme.textSecondary }]}>
+                        {[exercise.bodyPart, exercise.equipment].filter(Boolean).join("  ·  ")}
+                      </Text>
+                    </View>
+                    <MaterialIcons name="add" size={22} color={theme.primary} />
+                  </TouchableOpacity>
+                );
+                return (
+                  <FlatList
+                    style={styles.editorContent}
+                    data={loadingExercises ? [] : pickerFiltered}
+                    keyExtractor={(exercise, index) => String(exercise.id || `${exercise.name}-${index}`)}
+                    renderItem={renderPickerRow}
+                    ListHeaderComponent={pickerHeader}
+                    ListEmptyComponent={loadingExercises ? (
+                      <View style={styles.pickerLoading}>
+                        <ActivityIndicator color={theme.primary} />
+                        <Text style={[styles.pickerLoadingText, { color: theme.textSecondary }]}>Loading exercises</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.pickerEmpty}>
+                        <Text style={[styles.pickerEmptyTitle, { color: theme.text }]}>No matches</Text>
+                        <Text style={[styles.pickerEmptySub, { color: theme.textSecondary }]}>
+                          Nothing here by that name. Create it as a custom exercise above.
+                        </Text>
+                      </View>
+                    )}
+                    ListFooterComponent={<View style={{ height: 100 }} />}
+                    contentContainerStyle={[styles.editorContentContainer, styles.pickerWrap]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                    initialNumToRender={16}
+                    maxToRenderPerBatch={16}
+                    windowSize={7}
+                    removeClippedSubviews
+                  />
+                );
+              })()
+            ) : (
             <ScrollView
               style={styles.editorContent}
               showsVerticalScrollIndicator={false}
@@ -2048,154 +2213,9 @@ const TemplateSelectionModal = ({ visible, onClose, onStartEmptyWorkout, asScree
               )}
 
               {/* Embedded exercise picker */}
-              {showExercisePickerInEditor && (() => {
-                const q = editorSearchQuery.trim().toLowerCase();
-                const bodyParts = ["All", ...Array.from(new Set(editorExercisesList.map((e) => e.bodyPart).filter(Boolean)))];
-                const filtered = editorExercisesList.filter((ex) => {
-                  const matchesQuery =
-                    !q ||
-                    ex.name.toLowerCase().includes(q) ||
-                    (ex.bodyPart || "").toLowerCase().includes(q);
-                  const matchesPart = editorBodyPartFilter === "All" || ex.bodyPart === editorBodyPartFilter;
-                  return matchesQuery && matchesPart;
-                });
-
-                return (
-                  <View style={styles.pickerWrap}>
-                    <View style={styles.pickerHeader}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setShowExercisePickerInEditor(false);
-                          setEditorSearchQuery("");
-                        }}
-                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                      >
-                        <MaterialIcons name="arrow-back" size={24} color={theme.text} />
-                      </TouchableOpacity>
-                      <Text style={[styles.pickerTitle, { color: theme.text }]}>Add Exercise</Text>
-                      <View style={{ width: 24 }} />
-                    </View>
-
-                    <View
-                      style={[
-                        styles.pickerSearch,
-                        {
-                          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-                          borderColor: theme.border,
-                        },
-                      ]}
-                    >
-                      <MaterialIcons name="search" size={20} color={theme.textSecondary} />
-                      <TextInput
-                        style={[styles.pickerSearchInput, { color: theme.text }]}
-                        placeholder="Search exercises"
-                        placeholderTextColor={theme.textSecondary}
-                        value={editorSearchQuery}
-                        onChangeText={setEditorSearchQuery}
-                        autoCorrect={false}
-                      />
-                      {editorSearchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setEditorSearchQuery("")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                          <MaterialIcons name="close" size={18} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    {bodyParts.length > 1 && (
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.pickerChipsRow}
-                        keyboardShouldPersistTaps="handled"
-                      >
-                        {bodyParts.map((part) => {
-                          const active = editorBodyPartFilter === part;
-                          return (
-                            <TouchableOpacity
-                              key={part}
-                              onPress={() => {
-                                hapticFeedback.selection();
-                                setEditorBodyPartFilter(part);
-                              }}
-                              activeOpacity={0.8}
-                              style={[
-                                styles.pickerChip,
-                                {
-                                  backgroundColor: active ? theme.primary : "transparent",
-                                  borderColor: active ? theme.primary : theme.border,
-                                },
-                              ]}
-                            >
-                              <Text style={[styles.pickerChipText, { color: active ? "#FFFFFF" : theme.textSecondary }]}>
-                                {part}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                    )}
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        hapticFeedback.light();
-                        setShowCreateExerciseInEditor(true);
-                      }}
-                      activeOpacity={0.8}
-                      style={[styles.pickerCreateRow, { borderColor: theme.primary }]}
-                    >
-                      <MaterialIcons name="add" size={20} color={theme.primary} />
-                      <Text style={[styles.pickerCreateText, { color: theme.primary }]}>
-                        {editorSearchQuery.trim()
-                          ? `Create "${editorSearchQuery.trim()}"`
-                          : "Create custom exercise"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {loadingExercises ? (
-                      <View style={styles.pickerLoading}>
-                        <ActivityIndicator color={theme.primary} />
-                        <Text style={[styles.pickerLoadingText, { color: theme.textSecondary }]}>Loading exercises</Text>
-                      </View>
-                    ) : filtered.length === 0 ? (
-                      <View style={styles.pickerEmpty}>
-                        <Text style={[styles.pickerEmptyTitle, { color: theme.text }]}>No matches</Text>
-                        <Text style={[styles.pickerEmptySub, { color: theme.textSecondary }]}>
-                          Nothing here by that name. Create it as a custom exercise above.
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.pickerList}>
-                        {filtered.map((exercise, index) => (
-                          <TouchableOpacity
-                            key={exercise.id || index}
-                            style={[styles.pickerItem, { borderBottomColor: theme.border }]}
-                            onPress={() => handleExerciseSelectedForEditor(exercise)}
-                            activeOpacity={0.7}
-                          >
-                            <View style={styles.pickerItemInfo}>
-                              <View style={styles.pickerItemNameRow}>
-                                <Text style={[styles.pickerItemName, { color: theme.text }]}>{exercise.name}</Text>
-                                {exercise.isCustom && (
-                                  <View style={[styles.pickerCustomTag, { borderColor: theme.primary }]}>
-                                    <Text style={[styles.pickerCustomTagText, { color: theme.primary }]}>Custom</Text>
-                                  </View>
-                                )}
-                              </View>
-                              <Text style={[styles.pickerItemMeta, { color: theme.textSecondary }]}>
-                                {[exercise.bodyPart, exercise.equipment].filter(Boolean).join("  ·  ")}
-                              </Text>
-                            </View>
-                            <MaterialIcons name="add" size={22} color={theme.primary} />
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                );
-              })()}
-
               <View style={{ height: 100 }} />
             </ScrollView>
+            )}
           </KeyboardAvoidingView>
 
           {/* Create a custom exercise without leaving the template editor. Saves via
