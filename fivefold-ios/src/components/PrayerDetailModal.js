@@ -88,12 +88,14 @@ const PrayerDetailModal = ({
       setAudio((prev) => applyTtsState(prev, state, { starting: startingRef.current }));
     };
 
-    chatterboxService.onStateChange = handleState;
-    googleTtsService.onStateChange = handleState;
+    // Subscribe rather than assign: Guide and Coach listen too, and the single
+    // onStateChange slot meant whichever mounted last silenced the others.
+    const offA = chatterboxService.subscribe(handleState);
+    const offB = googleTtsService.subscribe(handleState);
 
     return () => {
-      chatterboxService.onStateChange = null;
-      googleTtsService.onStateChange = null;
+      offA();
+      offB();
     };
   }, []);
 

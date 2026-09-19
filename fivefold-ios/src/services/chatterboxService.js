@@ -97,12 +97,33 @@ class ChatterboxService {
   /**
    * Notify state change
    */
+  /**
+   * Listen for playback state. Returns a function that stops listening.
+   *
+   * There is also a single `onStateChange` slot, which is what every screen
+   * used to assign to. Three of them did, so whichever mounted last silenced
+   * the other two and a Listen button elsewhere in the app would sit there
+   * looking idle while audio played. Screens subscribe now; the slot stays
+   * for bibleAudioService, which is the one internal user.
+   */
+  subscribe(fn) {
+    if (typeof fn !== 'function') return () => {};
+    if (!this._listeners) this._listeners = new Set();
+    this._listeners.add(fn);
+    return () => { if (this._listeners) this._listeners.delete(fn); };
+  }
+
   _notifyStateChange(state) {
+    const meta = { isLoading: this.isLoading, isPlaying: this.isPlaying };
     if (this.onStateChange) {
-      this.onStateChange(state, {
-        isLoading: this.isLoading,
-        isPlaying: this.isPlaying,
-      });
+      try { this.onStateChange(state, meta); } catch (e) {}
+    }
+    if (this._listeners) {
+      // Copied, so a listener that unsubscribes while being told does not
+      // disturb the walk.
+      for (const fn of [...this._listeners]) {
+        try { fn(state, meta); } catch (e) {}
+      }
     }
   }
 

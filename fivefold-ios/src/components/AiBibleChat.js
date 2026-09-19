@@ -29,6 +29,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { IDLE as AUDIO_IDLE, startLoading, applyTtsState, isBusy } from '../utils/ttsState';
 import userStorage from '../utils/userStorage';
 import { pushToCloud } from '../services/userSyncService';
 import aiService from '../services/aiService';
@@ -246,11 +247,17 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const [nameLoaded, setNameLoaded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speakingMessageId, setSpeakingMessageId] = useState(null);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [loadingAudioMessageId, setLoadingAudioMessageId] = useState(null);
-  const [isPaused, setIsPaused] = useState(false);
+  // One object rather than five flags. Starting a clip stops the previous
+  // one, and that stop calls back late; clearing the record of which message
+  // was speaking left the Listen button looking idle while audio played.
+  // Same machine as the prayer card uses. See utils/ttsState.
+  const [audio, setAudio] = useState(AUDIO_IDLE);
+  const startingRef = useRef(false);
+  const isSpeaking = audio.speaking;
+  const isLoadingAudio = audio.loading && !audio.speaking;
+  const speakingMessageId = audio.speaking ? audio.target : null;
+  const loadingAudioMessageId = isLoadingAudio ? audio.target : null;
+  const isPaused = audio.paused;
   const [attachedImage, setAttachedImage] = useState(null);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -325,11 +332,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
       chatterboxService.stop();
       googleTtsService.stop();
       resetVoice();
-      setIsSpeaking(false);
-      setSpeakingMessageId(null);
-      setIsLoadingAudio(false);
-      setLoadingAudioMessageId(null);
-      setIsPaused(false);
+      setAudio(AUDIO_IDLE);
     } else {
       speechToTextService.preWarm();
     }
@@ -344,42 +347,18 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
 
   // Set up TTS state listeners
   useEffect(() => {
-    // Chatterbox (device TTS) state listener
-    chatterboxService.onStateChange = (state) => {
-      if (state === 'playing') {
-        setIsLoadingAudio(false);
-        setLoadingAudioMessageId(null);
-        setIsSpeaking(true);
-      } else if (state === 'finished' || state === 'stopped' || state === 'error') {
-        setIsSpeaking(false);
-        setSpeakingMessageId(null);
-        setIsLoadingAudio(false);
-        setLoadingAudioMessageId(null);
-        setIsPaused(false);
-      }
+    const handleState = (state) => {
+      if (state === 'paused') { setAudio((prev) => ({ ...prev, paused: true })); return; }
+      setAudio((prev) => applyTtsState(prev, state, { starting: startingRef.current }));
     };
-    
-    // Google TTS state listener
-    googleTtsService.onStateChange = (state) => {
-      if (state === 'loading') {
-        // Keep loading state
-      } else if (state === 'playing') {
-        setIsLoadingAudio(false);
-        setLoadingAudioMessageId(null);
-        setIsSpeaking(true);
-        setIsPaused(false);
-      } else if (state === 'paused') {
-        setIsPaused(true);
-      } else if (state === 'finished' || state === 'stopped' || state === 'error') {
-        setIsSpeaking(false);
-        setSpeakingMessageId(null);
-        setIsLoadingAudio(false);
-        setLoadingAudioMessageId(null);
-        setIsPaused(false);
-      }
-    };
-    
+    // Subscribing rather than assigning onStateChange: the prayer card
+    // listens too, and whichever assigned last used to silence the other.
+    const offA = chatterboxService.subscribe(handleState);
+    const offB = googleTtsService.subscribe(handleState);
+
     return () => {
+      offA();
+      offB();
       chatterboxService.stop();
       googleTtsService.stop();
     };
@@ -389,25 +368,18 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
   const speakResponse = async (text, messageId) => {
     try {
       // If already speaking or loading this message, stop it
-      if ((isSpeaking && speakingMessageId === messageId) || 
-          (isLoadingAudio && loadingAudioMessageId === messageId)) {
+      if (isBusy(audio, messageId)) {
         await chatterboxService.stop();
         await googleTtsService.stop();
-        setIsSpeaking(false);
-        setSpeakingMessageId(null);
-        setIsLoadingAudio(false);
-        setLoadingAudioMessageId(null);
-        setIsPaused(false);
+        setAudio(AUDIO_IDLE);
         return;
       }
-      
-      // Stop any current playback from other messages
+
+      // Everything from here until the new clip is handed over belongs to the
+      // new clip; the outgoing one's "stopped" must not be read as its end.
+      startingRef.current = true;
       await chatterboxService.stop();
       await googleTtsService.stop();
-      
-      // Reset all states first
-      setIsSpeaking(false);
-      setIsPaused(false);
       
       // Clean text for speech (remove markdown, extra spaces, etc.)
       const cleanText = text
@@ -422,9 +394,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
       const useGoogleTts = bibleAudioService.isUsingGoogleTTS();
       
       // Show loading state first
-      setIsLoadingAudio(true);
-      setLoadingAudioMessageId(messageId);
-      setSpeakingMessageId(messageId);
+      setAudio(startLoading(messageId));
       hapticFeedback.light();
       
       // Give React time to render the loading state
@@ -435,25 +405,20 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
         
         if (!success) {
           // Fallback to device TTS if Google fails
-          setIsLoadingAudio(false);
-          setLoadingAudioMessageId(null);
-          setIsSpeaking(true);
+          setAudio((prev) => ({ ...prev, loading: false, speaking: true }));
           await chatterboxService.speak(cleanText);
         }
       } else {
         // Device TTS - switch to speaking state
-        setIsLoadingAudio(false);
-        setLoadingAudioMessageId(null);
-        setIsSpeaking(true);
+        setAudio((prev) => ({ ...prev, loading: false, speaking: true }));
         await chatterboxService.speak(cleanText);
       }
+      // The clip is the service's now, so its events are about this one.
+      startingRef.current = false;
     } catch (error) {
+      startingRef.current = false;
       console.error('Failed to speak response:', error);
-      setIsSpeaking(false);
-      setSpeakingMessageId(null);
-      setIsLoadingAudio(false);
-      setLoadingAudioMessageId(null);
-      setIsPaused(false);
+      setAudio(AUDIO_IDLE);
     }
   };
 
@@ -465,12 +430,11 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
       
       if (useGoogleTts) {
         await googleTtsService.pause();
-        setIsPaused(true);
+        setAudio((prev) => ({ ...prev, paused: true }));
       } else {
         // Device TTS doesn't support true pause, so we just stop
         await chatterboxService.stop();
-        setIsSpeaking(false);
-        setSpeakingMessageId(null);
+        setAudio(AUDIO_IDLE);
       }
     } catch (error) {
       console.error('Failed to pause audio:', error);
@@ -485,7 +449,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
       
       if (useGoogleTts) {
         await googleTtsService.resume();
-        setIsPaused(false);
+        setAudio((prev) => ({ ...prev, paused: false }));
       }
       // Device TTS doesn't support resume
     } catch (error) {
@@ -499,11 +463,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
       hapticFeedback.light();
       await chatterboxService.stop();
       await googleTtsService.stop();
-      setIsSpeaking(false);
-      setSpeakingMessageId(null);
-      setIsLoadingAudio(false);
-      setLoadingAudioMessageId(null);
-      setIsPaused(false);
+      setAudio(AUDIO_IDLE);
     } catch (error) {
       console.error('Failed to stop audio:', error);
     }
@@ -1273,11 +1233,7 @@ const AiBibleChat = ({ visible, onClose, initialVerse, onNavigateToBible, asScre
     await chatterboxService.stop();
     await googleTtsService.stop();
     resetVoice();
-    setIsSpeaking(false);
-    setSpeakingMessageId(null);
-    setIsLoadingAudio(false);
-    setLoadingAudioMessageId(null);
-    setIsPaused(false);
+    setAudio(AUDIO_IDLE);
     onClose();
   };
 
