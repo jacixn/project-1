@@ -83,9 +83,37 @@ export const applyTakeover = (items) => {
 // Biblely shows its reminder and hides the event; EyeCandy shows the event
 // and hides Biblely's mirror of the reminder. One thing, once, in both.
 const overlaps = (a, b) => a.startMin < b.endMin && b.startMin < a.endMin;
+/**
+ * Two calendar events that are the same EyeCandy slot.
+ *
+ * EyeCandy is the only writer of its own two calendars, so two events there
+ * with the same title over the same minutes are never two things: they are
+ * one slot written twice. That happened whenever EyeCandy's event map went
+ * missing while the calendar kept its events (a reinstall wipes
+ * AsyncStorage and leaves iOS calendars alone; the map is uid-scoped, so
+ * signing in moves every read off the key it was written under). EyeCandy
+ * reconciles against the calendar now and cleans them up, but this screen
+ * should not show the same thing twice while it waits for that to run, and
+ * should not depend on another app being correct to render correctly.
+ *
+ * Only EyeCandy's kinds. A person can genuinely have two identical events
+ * in their own calendar, and hiding one of those would be this screen
+ * deciding it knows better.
+ */
+const EYECANDY_KINDS = new Set(['eyecandy', 'eyecandySports']);
+const sameSlot = (a, b) =>
+  EYECANDY_KINDS.has(a.kind) && a.kind === b.kind
+  && a.startMin === b.startMin && a.endMin === b.endMin
+  && sameThing(a.title, b.title);
+
 export const dedupeMirrors = (items) => {
   const list = items || [];
+  const seenSlot = [];
   return list.filter((it) => {
+    if (EYECANDY_KINDS.has(it.kind)) {
+      if (seenSlot.some((o) => sameSlot(o, it))) return false;
+      seenSlot.push(it);
+    }
     if (it.kind === 'calendar' && !(it.raw && it.raw.templateBlock)) {
       return !list.some((o) => (o.kind === 'reminder' || o.kind === 'task' || o.kind === 'gym') && overlaps(o, it) && sameThing(o.title, it.title));
     }
