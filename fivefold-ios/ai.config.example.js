@@ -7,6 +7,9 @@
 //   SambaNova   cloud.sambanova.ai
 //   OpenRouter  openrouter.ai/keys        (free models via :free)
 //   Mistral     console.mistral.ai/api-keys
+//   GitHub      github.com/settings/tokens  (fine-grained, models:read)
+//   HuggingFace huggingface.co/settings/tokens
+//   Cohere      dashboard.cohere.com/api-keys
 //
 // DeepSeek and Gemini keep their existing config files (deepseek.config.js,
 // gemini.config.js) and are folded into the chain automatically.
@@ -21,4 +24,7 @@ export const AI_CONFIG = {
   SAMBANOVA_API_KEY: '',
   OPENROUTER_API_KEY: '',
   MISTRAL_API_KEY: '',
+  GITHUB_MODELS_TOKEN: '',
+  HF_API_KEY: '',
+  COHERE_API_KEY: '',
 };
