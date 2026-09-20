@@ -15,6 +15,7 @@ import * as Calendar from 'expo-calendar';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../contexts/ThemeContext';
 import { formatDuration } from '../utils/duration';
+import { mergeCalendarCopies } from '../utils/takeover';
 
 // A one-day scheduling instrument. The reminder being placed is a lit gradient
 // "hero" block the user drops on a time by TAP (jump) or LONG-PRESS + DRAG
@@ -259,10 +260,15 @@ const DayTimeline = ({ date, selected, durationMinutes = 60, episodeMinutes = 0,
           // True end, no padding: pills handle sub-15-min readability now, so
           // a 5-min reminder keeps its honest 5-min extent.
           const endMin = clamp(en > dayEnd ? DAY_MIN : en.getHours() * 60 + en.getMinutes(), startMin + 1, DAY_MIN);
-          timed.push({ id: e.id, title: e.title || 'Busy', startMin, endMin });
+          timed.push({ id: e.id, title: e.title || 'Busy', startMin, endMin, calendarId: e.calendarId || null });
         }
         timed.sort((a, b) => a.startMin - b.startMin);
-        setEvents(withExtras(timed));
+        // Work appears twice on this phone: once in the calendar it came
+        // from, and once in the purple calendar this app mirrors it into.
+        // Reading every calendar sees both, and drawing both puts the same
+        // commitment in two columns and squeezes the rest of the day into a
+        // third. My Week already collapses these; this is the same rule.
+        setEvents(withExtras(mergeCalendarCopies(timed)));
         setAllDay(whole);
         setState('ready');
       } catch {

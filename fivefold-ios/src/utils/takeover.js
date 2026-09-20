@@ -35,6 +35,41 @@ export const sameThing = (a, b) => {
   return short.every((w) => long.includes(w));
 };
 
+/**
+ * One commitment, written into two calendars, drawn once.
+ *
+ * Biblely mirrors the day's Work block into its own purple calendar, and the
+ * real Work event still sits in the calendar it came from, which the user
+ * hides in the Calendar app but expo-calendar reads regardless. Anything that
+ * reads EVERY calendar therefore sees Work twice and lays it out as two
+ * side-by-side columns, which is not just wrong but squeezes everything else
+ * on the day into a narrower one.
+ *
+ * My Week already collapses these (dayItems.dedupeCalendarCopies). This is
+ * the same rule for the plain {id, title, startMin, endMin, calendarId}
+ * shape the day timelines read, so both surfaces agree.
+ *
+ * Only events from DIFFERENT calendars that overlap AND share a title are
+ * collapsed, so two genuinely separate things at the same time both survive.
+ * The survivor covers the union of the two spans, since either copy alone
+ * might be the clipped one.
+ */
+export const mergeCalendarCopies = (events) => {
+  const out = [];
+  for (const ev of events || []) {
+    if (!ev) continue;
+    const twin = out.find((m) => (
+      (m.calendarId || null) !== (ev.calendarId || null)
+      && m.startMin < ev.endMin && ev.startMin < m.endMin
+      && sameThing(m.title, ev.title)
+    ));
+    if (!twin) { out.push({ ...ev }); continue; }
+    twin.startMin = Math.min(twin.startMin, ev.startMin);
+    twin.endMin = Math.max(twin.endMin, ev.endMin);
+  }
+  return out;
+};
+
 // Drop everything a block stands in for. Returns a new list.
 export const applyTakeover = (items) => {
   const list = items || [];
