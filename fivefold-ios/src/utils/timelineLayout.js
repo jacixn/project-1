@@ -76,7 +76,7 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
       const wanted = y(i.startMin);
       const top = Math.max(wanted, prevBottom + CARD_GAP);
       prevBottom = top + h;
-      return { item: i, y: top, h, pushed: top - wanted > 1, proportional: false, left: 0, width: 1, col: 0, cols: 1, group: null };
+      return { item: i, y: top, h, pushed: top - wanted > 1, proportional: false, left: 0, width: 1, span: 1, col: 0, cols: 1, group: null };
     });
   } else {
     // iOS-Calendar rules, per overlap cluster:
@@ -125,6 +125,34 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
         placed.push({ i, col, depth: 0 });
       }
       const cols = Math.max(1, colLastBottom.length);
+      /**
+       * How many columns a block may spread across.
+       *
+       * An overlap cluster used to give every block the same 1/cols slice
+       * for the whole cluster, even where nothing sat beside it. An evening
+       * with four fixtures made every card a quarter of the track, so
+       * "Marseille vs Paris Saint-Germain" came out broken mid-word, one
+       * word per line, and a 50 minute episode beside them was a sliver.
+       *
+       * A block now takes the empty columns to its right, which is what the
+       * iPhone Calendar does. It only stops at a column that is occupied
+       * while this block is on screen, so nothing is ever covered.
+       *
+       * Measured in PIXELS, not minutes: heightOf floors a short block at
+       * CARD_H_TINY, so two blocks can be clear of each other by the clock
+       * and still overlap on screen.
+       */
+      const spanOf = (p) => {
+        const top = topOf(p.i);
+        const bot = bottomOf(p.i);
+        let span = 1;
+        for (let c = p.col + 1; c < cols; c += 1) {
+          const busy = placed.some((q) => q.col === c && topOf(q.i) < bot && top < bottomOf(q.i));
+          if (busy) break;
+          span += 1;
+        }
+        return span;
+      };
       const gTop = Math.min(...group.map(topOf));
       const gBottom = Math.max(...group.map(bottomOf));
       groups.push({ index, y: gTop, h: gBottom - gTop, cols });
@@ -133,10 +161,11 @@ export const layoutDay = (items, { pxPerHour = PX_PER_HOUR, nowMin = null } = {}
         // label has to fit above that (iOS shortens the title to that room).
         const covering = placed.filter((p) => p.col === col && p.depth > depth && topOf(p.i) >= topOf(i) && topOf(p.i) < bottomOf(i));
         const coverTop = covering.length ? Math.min(...covering.map((p) => topOf(p.i))) : null;
-        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, depth, left: col / cols, width: 1 / cols, group: index, strip: false, labelRoom: coverTop != null ? coverTop - topOf(i) : null });
+        const span = spanOf({ i, col, depth });
+        cards.push({ item: i, y: topOf(i), h: heightOf(i), pushed: false, proportional: true, col, cols, depth, span, left: col / cols, width: span / cols, group: index, strip: false, labelRoom: coverTop != null ? coverTop - topOf(i) : null });
       }
       for (const i of strips) {
-        cards.push({ item: i, y: topOf(i), h: STRIP_H, pushed: false, proportional: true, col: 0, cols: 1, depth: 0, left: 0, width: 1, group: index, strip: true });
+        cards.push({ item: i, y: topOf(i), h: STRIP_H, pushed: false, proportional: true, col: 0, cols: 1, depth: 0, span: 1, left: 0, width: 1, group: index, strip: true });
       }
       prevBottom = Math.max(prevBottom, gBottom);
       group = [];

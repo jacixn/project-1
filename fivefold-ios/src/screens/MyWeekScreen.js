@@ -270,9 +270,27 @@ const MyWeekScreen = ({ navigation }) => {
     const inset = (c.depth || 0) * Math.min(NEST_INSET, Math.round(colW * 0.1));
     // Host with something nested on top: keep the title to the room above it
     const room = c.labelRoom != null ? c.labelRoom - 8 : null;
-    const titleLines = room != null ? Math.max(1, Math.floor((room - 12) / 13)) : undefined;
-    const showMeta = room == null || room >= 13 + 12;
-    const width = c.strip ? (gw ? gw.contentW : cardAreaW) : Math.max(40, Math.round(colW) - (c.cols > 1 ? 4 : 0) - inset);
+    // The card is a fixed-height box with overflow hidden, so a title long
+    // enough to push the time line past the bottom edge did not wrap out of
+    // view, it was CUT: "The Nanny, 2 episodes in your free time" in a
+    // narrow column left "9:15 - 10:05" sliced in half along its middle.
+    //
+    // The room is whatever the block's own height gives, less the padding,
+    // and the time line is dropped before the title is shortened: a card
+    // that cannot show both is more useful naming the thing than timing it,
+    // and the time is on the ruler beside it anyway.
+    const TITLE_LH = 15;
+    const META_LH = 14;
+    const boxRoom = Math.max(0, (room != null ? Math.min(room, c.h - 12) : c.h - 12));
+    const fitsMeta = boxRoom >= TITLE_LH + META_LH;
+    const showMeta = (room == null || room >= 13 + 12) && fitsMeta;
+    const titleLines = Math.max(1, Math.floor((boxRoom - (showMeta ? META_LH : 0)) / TITLE_LH));
+    // span: the columns to the right that nothing occupies while this block
+    // is on screen. Without using it here the layout's widening would have
+    // no effect at all, because this used to size every card to exactly one
+    // column whatever was beside it.
+    const span = c.span || 1;
+    const width = c.strip ? (gw ? gw.contentW : cardAreaW) : Math.max(40, Math.round(colW * span) - (c.cols > 1 ? 4 : 0) - inset);
     const tinyCard = c.h <= 44;
     const narrowCard = width < 200;
     const roomForGlyph = width >= 110;

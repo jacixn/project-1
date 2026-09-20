@@ -63,5 +63,88 @@ const screen = fs.readFileSync(path.join(__dirname, '..', 'screens', 'MyWeekScre
 check(/NEST_INSET/.test(screen) && /c\.strip/.test(screen) && /styles\.stripDot/.test(screen) && !/layout\.rails/.test(screen) && !/horizontal/.test(screen.slice(screen.indexOf('{/* Cards'), screen.indexOf('{layout.nowY'))) && /colW: cardAreaW \/ Math\.max\(1, g\.cols\)/.test(screen), 'screen draws nested blocks and strips; columns share the width, never scroll sideways');
 check(/fmtRange\(it\.startMin, it\.endMin\)/.test(screen) && /\\u00A0– \$\{nb\(cb\)\}/.test(screen) && /numberOfLines=\{titleLines\}/.test(screen) && /Math\.min\(NEST_INSET, Math\.round\(colW \* 0\.1\)\)/.test(screen), 'compact time range that breaks only at the dash; host titles limited to the room above a nested block; small scaled inset');
 check(/backgroundColor: c\.proportional \? theme\.background : tile/.test(screen) && /styles\.cardFill/.test(screen), 'blocks are opaque so nested ones cover their host');
+// ── A block takes the empty columns beside it ──────────────────────────
+// Every block in an overlap cluster used to get the same 1/cols slice for
+// the whole cluster, even where nothing sat beside it. An evening of four
+// fixtures made every card a quarter of the track, and "Marseille vs Paris
+// Saint-Germain" came out broken mid-word, one word per line.
+{
+  const at = (startMin, endMin, id) => ({ id, title: id, startMin, endMin, kind: 'eyecandy' });
+  const px = 200; // proportional
+  const wide = layoutDay([
+    at(19 * 60 + 45, 21 * 60 + 45, 'milan'),
+    at(19 * 60 + 45, 21 * 60 + 45, 'marseille'),
+    at(22 * 60 + 20, 23 * 60 + 55, 'film'),
+  ], { pxPerHour: px });
+  const by = (id) => wide.cards.find((c) => c.item.id === id);
+  check(by('milan').cols === 2 && by('marseille').cols === 2, 'two fixtures at the same time take a column each');
+  check(by('milan').span === 1 && by('marseille').span === 1, 'and neither widens, because the other is beside it');
+  // The film does not overlap them at all, so it is its own cluster with
+  // one column: already the full width, nothing to widen into.
+  check(by('film').cols === 1 && by('film').span === 1 && by('film').width === 1,
+    'the film after them is its own cluster and takes the whole track');
+
+  // The exact case from the owner's screenshot: a short episode beside a
+  // long fixture, where the columns to the right are free.
+  const mixed = layoutDay([
+    at(19 * 60 + 45, 21 * 60 + 45, 'fixtureA'),
+    at(19 * 60 + 45, 21 * 60 + 45, 'fixtureB'),
+    at(21 * 60 + 15, 22 * 60 + 5, 'nanny'),
+  ], { pxPerHour: px });
+  const nanny = mixed.cards.find((c) => c.item.id === 'nanny');
+  // It runs 21:15 to 22:05 while the second fixture is still on until
+  // 21:45, so half the track is the honest answer and widening would cover
+  // the fixture. Widening must never be greedy.
+  check(nanny.span === 1, 'an episode that really does overlap a fixture stays in its own column');
+
+  // Where the space IS free, it is taken. "sideBySide" starts five minutes
+  // after "long", too close for its title to nest, so it gets its own
+  // column. "late" starts long after both, by which time column 1 has
+  // cleared, so it takes the whole width instead of half of it.
+  const freed = layoutDay([
+    at(9 * 60, 12 * 60, 'long'),
+    at(9 * 60 + 5, 10 * 60, 'sideBySide'),
+    at(10 * 60 + 30, 11 * 60, 'late'),
+  ], { pxPerHour: px });
+  const late = freed.cards.find((c) => c.item.id === 'late');
+  check(late.cols === 2 && late.span === 2 && late.width === 1,
+    'a block whose neighbouring column has cleared takes the whole width');
+  const long = freed.cards.find((c) => c.item.id === 'long');
+  check(long.span === 1 && long.width === 0.5,
+    'while a block that overlaps its neighbour keeps its own column, even after the neighbour ends');
+
+  // Nesting already gives full width where it applies, so a cluster that
+  // nests everything needs no widening at all.
+  const nested = layoutDay([
+    at(9 * 60, 12 * 60, 'host'),
+    at(10 * 60, 10 * 60 + 30, 'inside'),
+  ], { pxPerHour: px });
+  check(nested.cards.every((c) => c.cols === 1 && c.width === 1),
+    'a nested cluster is one column wide, which is already the whole track');
+
+  // Nothing may be covered. For every pair sharing screen rows, their
+  // spans must not overlap unless one is nested inside the other.
+  const all = layoutDay([
+    at(9 * 60, 12 * 60, 'a'), at(9 * 60 + 30, 10 * 60 + 30, 'b'),
+    at(10 * 60, 11 * 60, 'c'), at(13 * 60, 14 * 60, 'd'),
+    at(13 * 60, 15 * 60, 'e'), at(14 * 60 + 30, 15 * 60, 'f'),
+  ], { pxPerHour: px }).cards.filter((c) => !c.strip);
+  let clash = 0;
+  for (const p of all) {
+    for (const q of all) {
+      if (p === q || p.depth !== q.depth) continue;
+      const rows = p.y < q.y + q.h && q.y < p.y + p.h;
+      const colsOverlap = p.col < q.col + (q.span || 1) && q.col < p.col + (p.span || 1);
+      if (rows && colsOverlap) clash += 1;
+    }
+  }
+  check(clash === 0, 'no two blocks at the same nesting depth ever share screen space');
+
+  // Compact mode still hands back a span, so the renderer can multiply by
+  // it unconditionally.
+  const compact = layoutDay([at(9 * 60, 10 * 60, 'x')], { pxPerHour: 64 });
+  check(compact.cards[0].span === 1, 'compact cards carry span 1');
+}
+
 console.log(failures ? `\n${failures} FAILED` : '\nALL PASS');
 process.exit(failures ? 1 : 0);
