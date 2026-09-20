@@ -2013,32 +2013,40 @@ class NotificationService {
         await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
 
         const now = new Date();
-        const reminderDays = reminder.days || [];
+        const { repeatOf, nextOccurrences, horizonFor } = require('../utils/reminderRecurrence');
+        const mode = repeatOf(reminder);
+        // Weekdays are what a weekly or fortnightly reminder is made of; a
+        // monthly one is a day of the month and has no weekdays at all, so
+        // an empty days[] only means "never" for the first two.
+        if (mode !== 'monthly' && !(reminder.days || []).length) return;
 
-        if (reminderDays.length === 0) return;
-
-        let nextFireDate = null;
-
-        // Up to two weeks out: a weekly reminder moved "just today" skips a
-        // whole week (skipDates) and must land on the occurrence after it.
+        // A weekly reminder moved "just today" skips a whole week
+        // (skipDates) and must land on the occurrence after it, and a day
+        // template that does not include this reminder silences it that
+        // day. Both have to be looked at across the WHOLE horizon, which is
+        // now long enough to clear a monthly gap: this used to scan
+        // fourteen days, and a monthly reminder is up to sixty-two days
+        // away, so it would have found nothing and scheduled nothing.
+        const horizon = horizonFor(1);
         const skipDates = Array.isArray(reminder.skipDates) ? reminder.skipDates : [];
-        // A day template that does not include this reminder silences it that day.
         let hidden = new Set();
-        try { hidden = await require('./dayTemplates').hiddenDatesForReminder(reminder, 15); } catch {}
-        for (let offset = 0; offset <= 14; offset++) {
-          const candidate = new Date(now);
-          candidate.setDate(candidate.getDate() + offset);
-          candidate.setHours(hour, minute, 0, 0);
+        try { hidden = await require('./dayTemplates').hiddenDatesForReminder(reminder, horizon + 1); } catch {}
 
-          const candidateDayIndex = candidate.getDay();
-          const candidateKey = `${candidate.getFullYear()}-${String(candidate.getMonth() + 1).padStart(2, '0')}-${String(candidate.getDate()).padStart(2, '0')}`;
-          if (skipDates.includes(candidateKey)) continue;
-          if (hidden.has(candidateKey)) continue;
-
-          if (reminderDays.includes(candidateDayIndex) && candidate > now) {
-            nextFireDate = candidate;
-            break;
-          }
+        const [found] = nextOccurrences(reminder, now, {
+          count: 1,
+          horizonDays: horizon,
+          skip: (key, d) => {
+            if (skipDates.includes(key) || hidden.has(key)) return true;
+            // Today counts only if its time has not already gone.
+            const at = new Date(d);
+            at.setHours(hour, minute, 0, 0);
+            return at <= now;
+          },
+        });
+        let nextFireDate = null;
+        if (found) {
+          nextFireDate = new Date(found);
+          nextFireDate.setHours(hour, minute, 0, 0);
         }
 
         if (nextFireDate) {

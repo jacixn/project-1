@@ -2,6 +2,7 @@ import { getStoredData, saveData } from '../utils/localStorage';
 import { pushToCloud } from './userSyncService';
 import notificationService from './notificationService';
 import { DEFAULT_DURATION, clampDuration } from '../utils/duration';
+import { occursOn, REPEATS, dateKey } from '../utils/reminderRecurrence';
 
 const STORAGE_KEY = 'user_reminders';
 
@@ -138,7 +139,7 @@ const persist = async (reminders) => {
   try { require('./calendarSync').syncReminders(reminders); } catch {}
 };
 
-export const addReminder = async ({ title, time, type, days, icon, color, date, duration }) => {
+export const addReminder = async ({ title, time, type, days, icon, color, date, duration, repeat, monthDay, anchor }) => {
   const reminders = await loadReminders();
   const reminderType = type || 'recurring';
   const newReminder = {
@@ -148,6 +149,14 @@ export const addReminder = async ({ title, time, type, days, icon, color, date, 
     duration: clampDuration(duration ?? DEFAULT_DURATION),
     type: reminderType,
     days: days || [0, 1, 2, 3, 4, 5, 6],
+    // Weekly unless told otherwise, so every reminder already saved, and
+    // every caller that does not know about this yet, is unchanged.
+    repeat: REPEATS.includes(repeat) ? repeat : 'weekly',
+    // The anchor fixes WHICH weeks a fortnightly series falls in and WHICH
+    // day of the month a monthly one uses. Set at creation and never moved,
+    // so the series cannot drift when the app reopens.
+    ...(anchor ? { anchor } : { anchor: dateKey(new Date()) }),
+    ...(Number(monthDay) > 0 ? { monthDay: Math.min(31, Math.round(Number(monthDay))) } : {}),
     icon: icon || 'notifications',
     color: color || '#3B82F6',
     enabled: true,
@@ -287,6 +296,18 @@ export const uncompleteReminder = async (id, dateStr) => {
   }
 };
 
+/**
+ * `dayIndex` alone cannot answer a fortnightly or monthly reminder: which
+ * WEEK, and which day of the month, both matter. Callers already pass the
+ * date string, so the date is rebuilt from it and the weekday is only the
+ * fallback for the one legacy caller that passes no date.
+ */
+const dateFor = (dayIndex, dateStr) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr || ''));
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  return null;
+};
+
 export const getRemindersForDay = (reminders, dayIndex, dateStr) => {
   // Series that have a one-time copy on this day (moved "just today"): the
   // copy shows, the series does not, even if its skipDates got lost in a sync.
@@ -301,7 +322,11 @@ export const getRemindersForDay = (reminders, dayIndex, dateStr) => {
       // carries that day instead).
       if (dateStr && Array.isArray(r.skipDates) && r.skipDates.includes(dateStr)) return false;
       if (copied.has(r.id)) return false;
-      return (r.days || []).includes(dayIndex);
+      const on = dateFor(dayIndex, dateStr);
+      // No date given (one old caller): the weekday is all there is, so
+      // answer the weekly question, which is what it always answered.
+      if (!on) return (r.days || []).includes(dayIndex);
+      return occursOn(r, on);
     })
     .sort((a, b) => {
       const [ah, am] = (a.time || '08:00').split(':').map(Number);

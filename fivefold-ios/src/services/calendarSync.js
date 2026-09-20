@@ -12,6 +12,7 @@
 import * as Calendar from 'expo-calendar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import userStorage from '../utils/userStorage';
+import { repeatOf, nextOccurrences } from '../utils/reminderRecurrence';
 
 const ENABLED_KEY = 'biblely_calendar_sync_enabled';
 const CAL_ID_KEY = 'biblely_calendar_id';
@@ -222,11 +223,39 @@ const buildReminders = (list) => {
         frequency: null,
         notes: notesFor('reminder', !!r.pinned),
       });
+    } else if (repeatOf(r) === 'monthly') {
+      // One MONTHLY series, from the next date it actually falls on. Not
+      // one per weekday: a monthly reminder has no weekdays, it has a day
+      // of the month, and the engine has already clamped it for the short
+      // ones.
+      const [first] = nextOccurrences(r, new Date(), { count: 1 });
+      if (first) {
+        const start = new Date(first.getFullYear(), first.getMonth(), first.getDate(), t.h, t.m, 0, 0);
+        out.push({
+          stableKey: `reminder__${r.id}__monthly`,
+          title,
+          start,
+          end: new Date(start.getTime() + durMs),
+          recurring: true,
+          frequency: Calendar.Frequency.MONTHLY,
+          notes: notesFor('reminder', !!r.pinned),
+          skipDates: Array.isArray(r.skipDates) ? r.skipDates : [],
+        });
+      }
     } else {
       const days = Array.isArray(r.days) && r.days.length ? r.days : [0, 1, 2, 3, 4, 5, 6];
+      // Fortnightly is a WEEKLY series with an interval of two. The series
+      // has to START on an on-week, or the Calendar app alternates on the
+      // opposite weeks from the app and the two disagree forever.
+      const every = repeatOf(r) === 'biweekly' ? 2 : 1;
       for (const dayIdx of days) {
         if (dayIdx == null || dayIdx < 0 || dayIdx > 6) continue;
-        const start = nextWeekdayDate(dayIdx, t.h, t.m);
+        let start = nextWeekdayDate(dayIdx, t.h, t.m);
+        if (every === 2) {
+          const [first] = nextOccurrences({ ...r, days: [dayIdx] }, new Date(), { count: 1 });
+          if (!first) continue;
+          start = new Date(first.getFullYear(), first.getMonth(), first.getDate(), t.h, t.m, 0, 0);
+        }
         out.push({
           stableKey: `reminder__${r.id}__${dayIdx}`,
           title,
@@ -234,6 +263,7 @@ const buildReminders = (list) => {
           end: new Date(start.getTime() + durMs),
           recurring: true,
           frequency: Calendar.Frequency.WEEKLY,
+          ...(every > 1 ? { interval: every } : {}),
           notes: notesFor('reminder', !!r.pinned),
           skipDates: Array.isArray(r.skipDates) ? r.skipDates : [],
         });
@@ -404,7 +434,10 @@ const reconcile = (namespace, desired) => serialize(async () => {
       alarms: calendarAlertsOff ? [] : (d.alarms !== undefined ? d.alarms : defaultAlarms),
       notes: d.notes || 'Added by Biblely',
       ...(d.allDay ? { allDay: true } : {}),
-      ...(d.recurring ? { recurrenceRule: { frequency: d.frequency } } : {}),
+      // interval: every other week for a fortnightly reminder. Left out
+      // entirely when it is 1, so every existing event keeps the exact rule
+      // it already has and is not rewritten on the next sync.
+      ...(d.recurring ? { recurrenceRule: { frequency: d.frequency, ...(Number(d.interval) > 1 ? { interval: Number(d.interval) } : {}) } } : {}),
     };
     const entry = map[d.stableKey];
     let existingId = idOf(entry);

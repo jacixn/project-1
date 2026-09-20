@@ -4,7 +4,22 @@ const path = require('path');
 const src = fs.readFileSync(path.join(__dirname, '..', 'services', 'reminderService.js'), 'utf8');
 const m = /export const getRemindersForDay = ([\s\S]*?\n\});/.exec(src);
 if (!m) { console.log('FAIL: getRemindersForDay not found'); process.exit(1); }
-const getRemindersForDay = new Function(`return (${m[1]})`)();
+// It leans on two helpers now, because "which day of the week" stopped
+// being enough once reminders could repeat fortnightly or monthly. Give it
+// the REAL ones rather than stubs, so this test still exercises the
+// shipping recurrence rules and not a copy of them.
+const dm = /const dateFor = ([\s\S]*?\n\};)/.exec(src);
+if (!dm) { console.log('FAIL: dateFor not found'); process.exit(1); }
+const dateFor = new Function(`return (${dm[1].replace(/;$/, '')})`)();
+const babel = require('@babel/core');
+const recPath = path.join(__dirname, '..', 'utils', 'reminderRecurrence.js');
+const recCode = babel.transformSync(fs.readFileSync(recPath, 'utf8'), {
+  filename: recPath, presets: [require.resolve('babel-preset-expo')], babelrc: false, configFile: false,
+}).code;
+const recMod = { exports: {} };
+new Function('module', 'exports', 'require', recCode)(recMod, recMod.exports, require);
+const { occursOn } = recMod.exports;
+const getRemindersForDay = new Function('dateFor', 'occursOn', `return (${m[1]})`)(dateFor, occursOn);
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}: ${msg}`); if (!ok) failures++; };
 const lunch = { id: 'l', title: 'eat lunch', enabled: true, type: 'recurring', days: [0, 1, 2, 3, 4, 5, 6], time: '14:00', skipDates: ['2026-08-23'] };

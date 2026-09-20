@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { hapticFeedback } from '../utils/haptics';
+import { REPEATS, REPEAT_LABEL, REPEAT_SPOKEN, dateKey as recDateKey } from '../utils/reminderRecurrence';
 import {
   BUILTIN_REMINDER_PRESETS,
   loadReminderPresets,
@@ -53,6 +54,13 @@ const blankItem = () => ({ title: '', duration: DEFAULT_DURATION, icon: 'notific
 // choose how it repeats, then DRAG it onto the timeline to set the time. Persists
 // straight to reminderService; RemindersScreen refreshes on focus. Editing target
 // arrives via route.params.editingReminder.
+const ordinal = (n) => {
+  const v = Math.max(1, Math.min(31, Math.round(Number(n) || 1)));
+  const tens = v % 100;
+  if (tens >= 11 && tens <= 13) return `${v}th`;
+  return `${v}${['th', 'st', 'nd', 'rd'][v % 10] || 'th'}`;
+};
+
 const ScheduleReminderModal = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -65,6 +73,14 @@ const ScheduleReminderModal = ({ navigation, route }) => {
   const [saveToLib, setSaveToLib] = useState(true);    // save a brand-new one to the library
   const [type, setType] = useState('recurring');
   const [days, setDays] = useState([0, 1, 2, 3, 4, 5, 6]);
+  // How often a recurring reminder comes round. Weekly is what every
+  // reminder already is, so it is the default and nothing saved changes.
+  const [repeat, setRepeat] = useState('weekly');
+  // Which day of the month a monthly reminder lands on. Defaults to the
+  // day it is being made on, which is what "monthly" means when you set
+  // one up, but it has to be changeable or somebody wanting the 1st would
+  // have to wait until the 1st to create it.
+  const [monthDay, setMonthDay] = useState(() => new Date().getDate());
   const [oneTimeDates, setOneTimeDates] = useState([new Date()]);
   const [draftDate, setDraftDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -92,6 +108,8 @@ const ScheduleReminderModal = ({ navigation, route }) => {
       });
       setType(r.type || 'recurring');
       setDays(Array.isArray(r.days) && r.days.length ? r.days : [0, 1, 2, 3, 4, 5, 6]);
+      setRepeat(REPEATS.includes(r.repeat) ? r.repeat : 'weekly');
+      setMonthDay(Number(r.monthDay) > 0 ? Number(r.monthDay) : new Date().getDate());
       if (r.type === 'one-time' && r.date) {
         const [y, mo, dd] = r.date.split('-').map(Number);
         setOneTimeDates([new Date(y, mo - 1, dd)]);
@@ -259,7 +277,9 @@ const ScheduleReminderModal = ({ navigation, route }) => {
     );
   };
 
-  const repeatValid = type === 'one-time' ? oneTimeDates.length > 0 : days.length > 0;
+  const repeatValid = type === 'one-time'
+    ? oneTimeDates.length > 0
+    : repeat === 'monthly' || days.length > 0;
 
   // ── time ─────────────────────────────────────────────────────────────────
   const timelineDate = type === 'one-time'
@@ -304,7 +324,20 @@ const ScheduleReminderModal = ({ navigation, route }) => {
           }
         }
       } else {
-        const payload = { ...base, type: 'recurring', days };
+        // The anchor is what fixes WHICH weeks a fortnightly series falls
+        // in and WHICH day of the month a monthly one uses. Keep the one an
+        // existing reminder already has, so editing the title cannot shift
+        // every future occurrence by a week.
+        const existingAnchor = editingReminder && editingReminder.anchor;
+        const anchor = existingAnchor || recDateKey(new Date());
+        const payload = {
+          ...base,
+          type: 'recurring',
+          days,
+          repeat,
+          anchor,
+          ...(repeat === 'monthly' ? { monthDay } : {}),
+        };
         const saved = editingReminder ? await updateReminder(editingReminder.id, payload) : await addReminder(payload);
         if (saved) offer = { anchorId: `reminder:${saved.id}`, date: nextDateFor(days, timeStr) };
       }
@@ -479,13 +512,80 @@ const ScheduleReminderModal = ({ navigation, route }) => {
                   >
                     <MaterialIcons name={t === 'recurring' ? 'repeat' : 'event'} size={18} color={type === t ? '#fff' : theme.textSecondary} />
                     <Text style={[styles.typeBtnText, { color: type === t ? '#fff' : theme.text }]}>
-                      {t === 'recurring' ? 'Weekly' : 'One-time'}
+                      {t === 'recurring' ? 'Repeats' : 'One-time'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
+              {/* How often. Reminders were weekly and only weekly, so a
+                  fortnightly or monthly one had to be entered by hand every
+                  time. Weekly stays first and stays the default. */}
               {type === 'recurring' ? (
+                <View style={[styles.quickRow, styles.repeatRow]}>
+                  {REPEATS.map((k) => {
+                    const active = repeat === k;
+                    return (
+                      <TouchableOpacity
+                        key={k}
+                        onPress={() => { hapticFeedback.light(); setRepeat(k); }}
+                        style={[styles.quickChip, { backgroundColor: tileColor, borderColor: active ? (item.color || theme.primary) : 'transparent' }]}
+                        activeOpacity={0.7}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={REPEAT_SPOKEN[k]}
+                      >
+                        <Text style={[styles.quickChipText, { color: active ? (item.color || theme.primary) : theme.text }]}>
+                          {REPEAT_LABEL[k]}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : null}
+
+              {type === 'recurring' && repeat === 'monthly' ? (
+                <>
+                  {/* Laid out explicitly rather than mapped and reordered:
+                      React Native has no `order` style, so a mapped pair
+                      plus the value would render minus, plus, value. */}
+                  <View style={styles.monthDayRow}>
+                    <TouchableOpacity
+                      onPress={() => { hapticFeedback.light(); setMonthDay((d) => Math.max(1, d - 1)); }}
+                      disabled={monthDay <= 1}
+                      style={[styles.monthDayBtn, { backgroundColor: tileColor, opacity: monthDay <= 1 ? 0.35 : 1 }]}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Earlier in the month"
+                    >
+                      <MaterialIcons name="remove" size={20} color={theme.text} />
+                    </TouchableOpacity>
+                    <Text
+                      style={[styles.monthDayValue, { color: item.color || theme.primary }]}
+                      accessibilityLabel={`On the ${ordinal(monthDay)} of every month`}
+                    >
+                      {ordinal(monthDay)}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => { hapticFeedback.light(); setMonthDay((d) => Math.min(31, d + 1)); }}
+                      disabled={monthDay >= 31}
+                      style={[styles.monthDayBtn, { backgroundColor: tileColor, opacity: monthDay >= 31 ? 0.35 : 1 }]}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Later in the month"
+                    >
+                      <MaterialIcons name="add" size={20} color={theme.text} />
+                    </TouchableOpacity>
+                  </View>
+                  {/* Never truncated, and never a surprise: a reminder set
+                      to the 31st has to say what it does in February. */}
+                  <Text style={[styles.monthDayNote, { color: theme.textSecondary }]}>
+                    {monthDay > 28
+                      ? `On the ${ordinal(monthDay)} of every month. Months without a ${ordinal(monthDay)} use their last day instead.`
+                      : `On the ${ordinal(monthDay)} of every month.`}
+                  </Text>
+                </>
+              ) : type === 'recurring' ? (
                 <>
                   <View style={styles.quickRow}>
                     {[
@@ -649,6 +749,13 @@ const styles = StyleSheet.create({
   },
   typeBtnText: { fontSize: 16, fontWeight: '800' },
   quickRow: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 12 },
+  // Three chips are wider than the row on a 393pt screen, and wider again
+  // at a large system text size, so they wrap rather than being clipped.
+  repeatRow: { flexWrap: 'wrap', rowGap: 8 },
+  monthDayRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 4, marginBottom: 10 },
+  monthDayBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  monthDayValue: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, minWidth: 66, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  monthDayNote: { fontSize: 13, lineHeight: 18, marginBottom: 6 },
   quickChip: { height: 36, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, justifyContent: 'center' },
   quickChipText: { fontSize: 14, fontWeight: '700' },
   daysRow: { flexDirection: 'row', gap: 6 },

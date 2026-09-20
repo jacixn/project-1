@@ -101,7 +101,14 @@ check(/moveReminderForDay\(raw\.id, \{ from, to: to\.date \|\| from, time: to\.t
 const rem = read('services/reminderService.js');
 check(/r\.skipDates\.includes\(dateStr\)\) return false;/.test(rem) && /export const moveReminderForDay = async \(id, \{ from, to, time \}\)/.test(rem) && /parentId: parent\.id/.test(rem), 'reminderService: skipDates honoured, one-day copies carry parentId');
 const notif = read('services/notificationService.js');
-check(/if \(skipDates\.includes\(candidateKey\)\) continue;/.test(notif) && /offset <= 14/.test(notif), 'reminder notifications skip moved days and look two weeks out');
+// The scan is no longer a hand-rolled fourteen-day weekday walk: reminders
+// can repeat fortnightly or monthly now, and a monthly one is up to
+// sixty-two days out, so fourteen days would have found nothing and
+// scheduled nothing. Same two guarantees, expressed through the shared
+// recurrence engine and over a horizon that can actually reach.
+check(/skipDates\.includes\(key\) \|\| hidden\.has\(key\)/.test(notif), 'reminder notifications still skip moved and silenced days');
+check(/nextOccurrences\(reminder, now, \{/.test(notif) && /horizonDays: horizon/.test(notif), 'and find the next occurrence through the shared recurrence rules');
+check(/const horizon = horizonFor\(1\);/.test(notif) && !/offset <= 14/.test(notif), 'looking far enough ahead for a monthly reminder, not two weeks');
 const offer = read('services/fitOffer.js');
 check(/export const nextDateFor/.test(offer) && /Alert\.alert\(/.test(offer) && /await applyPlanRow\(it, line, key\)/.test(offer) && /'Leave it', style: 'cancel'/.test(offer), 'fitOffer: one alert, changes only on tap, rows applied by action');
 for (const [f, pat] of [['components/ScheduleReminderModal.js', /if \(offer\) offerFit\(offer\)/], ['screens/TodosTab.js', /offerFit\(\{ anchorId: `task:\$\{todo\.id\}`, date: todo\.scheduledDate/], ['screens/TasksOverviewScreen.js', /offerFit\(\{ anchorId: `task:\$\{editingTask\.id\}`, date: editDateTime/], ['components/ScheduleWorkoutModal.js', /if \(offer\) offerFit\(offer\)/]]) {

@@ -120,7 +120,14 @@ check(T.reminderHiddenOn({ title: 'Social Media time', type: 'recurring' }, [wr]
 check(T.reminderHiddenOn({ title: 'Eat breakfast', type: 'recurring' }, [wr], plan2, '2026-08-27', 4) === false, 'Thursday (no template): rings as usual');
 check(T.reminderHiddenOn({ title: 'Dentist', type: 'one-time' }, [wr], plan2, '2026-08-26', 3) === false, 'one-time reminders are never silenced');
 const ns = fs.readFileSync(path.join(root, 'services', 'notificationService.js'), 'utf8');
-check(/hiddenDatesForReminder\(reminder, 15\)/.test(ns) && /if \(hidden\.has\(candidateKey\)\) continue;/.test(ns), 'reminder notifications skip silenced days');
+// Both branches still honour a template that silences the reminder: the
+// one-time branch by date, and the recurring branch inside the skip
+// predicate the recurrence engine calls. The recurring one asks for the
+// whole horizon now rather than a fixed fifteen days, because a monthly
+// reminder's next turn can be further away than that.
+check(/hiddenDatesForReminder\(reminder, 15\)/.test(ns), 'one-time reminders still skip silenced days');
+check(/hiddenDatesForReminder\(reminder, horizon \+ 1\)/.test(ns), 'recurring ones ask across the whole horizon');
+check(/hidden\.has\(key\)/.test(ns), 'and a silenced date is passed over');
 const svc2 = fs.readFileSync(path.join(root, 'services', 'dayTemplates.js'), 'utf8');
 check(/export const hiddenDatesForReminder/.test(svc2) && (svc2.match(/mirror\(\); requiet\(\); emit\(\);/g) || []).length === 2 && !/from '\.\.\/utils\/dayBusy'/.test(svc2), 'plan/template saves reschedule reminders; service no longer pulls dayBusy (no require cycle with notifications)');
 
